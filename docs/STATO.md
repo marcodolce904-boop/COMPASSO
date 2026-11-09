@@ -31,8 +31,15 @@ Prossima: Fase 3 (harness web e UI del pannello, modello consigliato Sonnet).
   - `pnpm bench`; 164 test verdi (golden inclusi); typecheck e lint verdi;
   - `fixtures/expected/*.json` approvati e committati.
 
+- [x] Fase 3 (preparazione): wireframe e mockup del pannello in Figma, **in attesa di approvazione** —
+  https://www.figma.com/design/uBBzOGMjVLG4NpMkLePI1f
+  - pagina *Wireframe*: bassa fedeltà annotata (§7.2);
+  - pagina *Mockup*: 5 stati della tab ANALIZZA (Geometria, elenco aperto con hover, Anomalie, Misure dopo il disegno, stato vuoto);
+  - token §7.3 come variabili Figma (collezione «Compasso · tokens»: colori, spazi, raggi);
+  - componenti: Panel/Header, Panel/Tabs, Panel/SubTabs, Panel/Levels, Control/Slider, Button/Primary, List/ElementRow.
+
 ## Da fare
-- [ ] Fase 3 — harness web e UI del pannello.
+- [ ] Approvare wireframe e mockup, poi Fase 3 — harness web e UI del pannello.
 
 ## Report di calibrazione (Fase 2)
 
