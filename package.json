@@ -11,7 +11,8 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "bench": "tsx scripts/bench.ts",
-    "fixtures:gen": "tsx scripts/gen-fixtures.ts"
+    "fixtures:gen": "tsx scripts/gen-fixtures.ts",
+    "fixtures:update": "tsx scripts/fixtures-update.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

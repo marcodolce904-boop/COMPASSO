@@ -10,11 +10,28 @@ export interface FixtureTruth {
   lines: number;
 }
 
+/** Attese a livello di analyze() (Fase 2); i campi assenti non vengono verificati. */
+export interface AnalyzeTruth {
+  circles?: number;
+  /** Assi validi: 'v' (verticale, x = rho) o 'h' (orizzontale, y = rho). */
+  axes?: { dir: 'v' | 'h'; at: number }[];
+  noAxes?: boolean;
+  unitX?: number | null;
+  /** Tipi di finding attesi (almeno uno ciascuno). */
+  findings?: string[];
+  /** Nessun finding. */
+  clean?: boolean;
+  /** Delta atteso del primo finding del tipo indicato. */
+  findingDelta?: { kind: string; delta: number; tol: number };
+  relations?: string[];
+}
+
 export interface FixtureDef {
   file: string;
   title: string;
   svg: string;
   truth: FixtureTruth;
+  analyze?: AnalyzeTruth;
 }
 
 const KAPPA = 0.5522847498307936;
@@ -49,6 +66,15 @@ function f01(): FixtureDef {
     title: 'Cerchio da 4 cubiche',
     svg: wrap(`<path d="${d}" fill="#000"/>`),
     truth: { arcs: [{ cx, cy, r, sweepDeg: 360 }], nearArcs: 0, lines: 0 },
+    analyze: {
+      circles: 1,
+      clean: true,
+      axes: [
+        { dir: 'v', at: 100 },
+        { dir: 'h', at: 100 },
+      ],
+      unitX: null,
+    },
   };
 }
 
@@ -60,6 +86,7 @@ function f02(): FixtureDef {
     title: 'Arco di 90° (test kappa)',
     svg: wrap(`<path d="${d}" fill="none" stroke="#000"/>`),
     truth: { arcs: [{ cx, cy, r, sweepDeg: 90 }], nearArcs: 0, lines: 0 },
+    analyze: { circles: 1, clean: true },
   };
 }
 
@@ -76,6 +103,7 @@ function f03(): FixtureDef {
     title: 'Arco spezzato in 3 cubiche irregolari (catena)',
     svg: wrap(`<path d="${d}" fill="none" stroke="#000"/>`),
     truth: { arcs: [{ cx, cy, r, sweepDeg: 200 }], nearArcs: 0, lines: 0 },
+    analyze: { circles: 1, clean: true },
   };
 }
 
@@ -99,6 +127,7 @@ function f04(): FixtureDef {
     title: 'Quasi-cerchio: un quarto gonfiato (finding near-arc)',
     svg: wrap(`<path d="${d}" fill="#000"/>`),
     truth: { arcs: [{ cx, cy, r, sweepDeg: 270 }], nearArcs: 1, lines: 0 },
+    analyze: { circles: 1, findings: ['near-arc'] },
   };
 }
 
@@ -118,8 +147,114 @@ function f05(): FixtureDef {
       nearArcs: 0,
       lines: 4,
     },
+    analyze: {
+      circles: 4,
+      clean: true,
+      axes: [
+        { dir: 'v', at: 100 },
+        { dir: 'h', at: 100 },
+      ],
+      relations: ['equal-radius', 'tangent-line-circle'],
+    },
   };
 }
 
-export const FIXTURES: FixtureDef[] = [f01(), f02(), f03(), f04(), f05()];
+/** Lettera O geometrica: anello (due cerchi concentrici, verso opposto). Sostituibile da un disegno. */
+function f06(): FixtureDef {
+  const [cx, cy, R, r] = [100, 100, 80, 56];
+  const outer = `M ${pt(cx + R, cy)} ${circleBy4(cx, cy, R).join(' ')} Z`;
+  const innerParts = [3, 2, 1, 0].map((i) => arcCubic(cx, cy, r, deg(90 * (i + 1)), deg(90 * i)));
+  const inner = `M ${pt(cx + r, cy)} ${innerParts.join(' ')} Z`;
+  return {
+    file: '06-lettera-o.svg',
+    title: 'Lettera O geometrica (anello, unità x = 24)',
+    svg: wrap(`<path d="${outer} ${inner}" fill="#000" fill-rule="evenodd"/>`),
+    truth: {
+      arcs: [
+        { cx, cy, r: R, sweepDeg: 360 },
+        { cx, cy, r, sweepDeg: 360 },
+      ],
+      nearArcs: 0,
+      lines: 0,
+    },
+    analyze: { circles: 2, clean: true, unitX: R - r, relations: ['concentric'] },
+  };
+}
+
+/** Casetta: simmetrica solo rispetto all'asse verticale x = 100, con finestra circolare. */
+const house = (eaveRightY = 90) =>
+  `<path d="M40 180 L40 90 L100 30 L160 ${f(eaveRightY)} L160 180 Z"/>` +
+  `<circle cx="100" cy="125" r="25"/>`;
+
+function f09(): FixtureDef {
+  return {
+    file: '09-marchio-simmetrico.svg',
+    title: 'Marchio simmetrico (asse verticale)',
+    svg: wrap(house()),
+    truth: { arcs: [{ cx: 100, cy: 125, r: 25, sweepDeg: 360 }], nearArcs: 0, lines: 5 },
+    analyze: { circles: 1, axes: [{ dir: 'v', at: 100 }], clean: true },
+  };
+}
+
+function f10(): FixtureDef {
+  return {
+    file: '10-marchio-quasi-simmetrico.svg',
+    title: 'Marchio quasi simmetrico (gronda destra 1,5 pt più alta)',
+    svg: wrap(house(88.5)),
+    truth: { arcs: [{ cx: 100, cy: 125, r: 25, sweepDeg: 360 }], nearArcs: 0, lines: 5 },
+    analyze: {
+      circles: 1,
+      noAxes: true,
+      findings: ['near-symmetry'],
+      findingDelta: { kind: 'near-symmetry', delta: 1.5, tol: 0.2 },
+    },
+  };
+}
+
+function f11(): FixtureDef {
+  return {
+    file: '11-anchor-fuori-riga-0.3pt.svg',
+    title: 'Tre barre allineate in basso, la terza 0,3 pt più giù',
+    svg: wrap(
+      '<rect x="20" y="50" width="40" height="100"/>' +
+        '<rect x="80" y="70" width="40" height="80"/>' +
+        '<rect x="140" y="60" width="40" height="90.3"/>',
+    ),
+    truth: { arcs: [], nearArcs: 0, lines: 12 },
+    analyze: {
+      circles: 0,
+      findings: ['near-row'],
+      findingDelta: { kind: 'near-row', delta: 0.3, tol: 0.001 },
+      relations: ['anchor-row'],
+    },
+  };
+}
+
+function f12(): FixtureDef {
+  const h = 40 * Math.sqrt(3); // barra a 60°
+  return {
+    file: '12-diagonali-parallele.svg',
+    title: 'Diagonali parallele a 45° e 60° (clustering)',
+    svg: wrap(
+      '<path d="M20 120 L80 60 L100 60 L40 120 Z"/>' +
+        '<path d="M110 30 L130 10 L140 30 Z"/>' +
+        `<path d="M120 180 L${f(160)} ${f(180 - h)} L${f(180)} ${f(180 - h)} L140 180 Z"/>`,
+    ),
+    truth: { arcs: [], nearArcs: 0, lines: 11 },
+    analyze: { circles: 0, clean: true },
+  };
+}
+
+export const FIXTURES: FixtureDef[] = [
+  f01(),
+  f02(),
+  f03(),
+  f04(),
+  f05(),
+  f06(),
+  f09(),
+  f10(),
+  f11(),
+  f12(),
+];
 export { KAPPA };

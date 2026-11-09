@@ -12,3 +12,6 @@ export {
   type ArcDetection,
   type ArcTolerance,
 } from './fit/arcs';
+export { analyze } from './analyze';
+export { plan, LAYER_NAME, type PlanOptions } from './plan/plan';
+export { tolerances, type Tolerances, type Band } from './tolerance';
