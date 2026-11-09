@@ -12,8 +12,8 @@
     "types": ["node"]
   },
   "include": [
-    "packages/*/src",
-    "packages/*/test",
+    "packages/core/src",
+    "packages/core/test",
     "scripts",
     "vitest.config.ts",
     "eslint.config.js"

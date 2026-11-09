@@ -1,0 +1,79 @@
+/* Design token di Compasso (SPEC §7.3). Componenti: nessun colore o misura fuori da qui. */
+:root {
+  /* superfici (sincronizzate con il tema di Illustrator, §8.5) */
+  --c-bg-panel: #2f2f2f;
+  --c-bg-card: #232323;
+  --c-bg-raised: #3a3a3a;
+  --c-border: #464646;
+  --c-border-strong: #5a5a5a;
+  /* testo */
+  --c-text: #ededed;
+  --c-text-2: #a9a9a9;
+  --c-text-3: #7a7a7a;
+  /* accento e stati */
+  --c-accent: #3ec6ff;
+  --c-on-accent: #0b1b24;
+  --c-accent-dim: #3ec6ff33;
+  --c-warn: #f5a623;
+  --c-on-warn: #2a1a00;
+  --c-danger: #ff5a5f;
+  --c-ok: #4cd07d;
+  --c-ok-dim: #4cd07d2e;
+  /* anteprima */
+  --c-preview-bg: #d9d9d9;
+  --c-preview-logo: #b5b5b5;
+  --c-preview-line: #3a3a3a;
+  --c-preview-unit: #cfcfcf;
+  /* harness: tavola che simula il documento di Illustrator */
+  --c-app-bg: #1e1e1e;
+  --c-artboard: #ffffff;
+  --c-artboard-logo: #1a1a1a;
+  --c-construction: #7a7a7a; /* colore automatico RGB, §8.2 */
+  /* tipografia */
+  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --f-sans: 'Inter', system-ui, sans-serif;
+  --fs-xs: 10px;
+  --fs-s: 11px;
+  --fs-m: 12px;
+  --fs-l: 13px;
+  --fs-xl: 22px;
+  --ls-caps: 0.12em;
+  --lh-text: 1.4;
+  /* spazi e forme */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --r-s: 4px;
+  --r-m: 6px;
+  --r-pill: 8px;
+  --t-fast: 120ms ease-out;
+  /* misure dei componenti (§7.2) */
+  --w-panel: 320px;
+  --w-panel-min: 280px;
+  --h-header: 32px;
+  --h-tab: 36px;
+  --h-seg: 28px;
+  --h-row: 28px;
+  --h-btn: 40px;
+  --h-thumb: 176px;
+  --w-label: 96px;
+  --w-value: 56px;
+  --w-score: 36px;
+  --h-score: 3px;
+  --h-track: 4px;
+  --w-knob: 3px;
+  --h-knob: 14px;
+  --sz-icon: 14px;
+  --sz-dot: 7px;
+  --sz-focus: 2px;
+  --h-underline: 2px;
+  --bw: 1px; /* spessore dei bordi */
+  --fs-2xs: 9px;
+  --sp-half: 2px;
+  --r-xs: 1px;
+  --r-check: 3px;
+  --sz-halo: 3px;
+  --sz-halo-pulse: 5px;
+}

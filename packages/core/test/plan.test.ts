@@ -84,6 +84,10 @@ describe('plan', () => {
     const x = o.specs.unitX!;
     expect(rect).toMatchObject({ dashed: true, w: expect.closeTo(o.specs.bbox.width + 2 * x, 6) });
     expect(p.primitives.filter((q) => q.id.startsWith('clearspace-x'))).toHaveLength(4);
+    // il quadrato x non si sovrappone all'area di rispetto
+    if (unit?.type !== 'unit' || rect?.type !== 'rect') throw new Error('attesi unit e rect');
+    expect(unit.x + unit.size).toBeLessThan(rect.x);
+    expect(unit.y + unit.size).toBeLessThan(rect.y);
   });
 
   it('senza unità x niente quadrato né area di rispetto', () => {

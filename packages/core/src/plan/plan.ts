@@ -64,19 +64,21 @@ export function plan(result: AnalysisResult, opts: PlanOptions): ConstructionPla
     }
   }
   const x = result.specs.unitX;
+  const k = x !== null && opts.clearspace?.enabled ? opts.clearspace.multiplier * x : 0;
   if (x !== null && visible.has(UNIT_ID)) {
+    // in alto a sinistra, fuori dal bbox e, se disegnata, fuori dall'area di rispetto
+    const off = k + 1.5 * x;
     out.push({
       type: 'unit',
       id: UNIT_ID,
-      x: b.x - 1.5 * x,
-      y: b.y - 1.5 * x,
+      x: b.x - off,
+      y: b.y - off,
       size: x,
       label: 'x',
       group: 'specs',
     });
   }
   if (x !== null && opts.clearspace?.enabled) {
-    const k = opts.clearspace.multiplier * x;
     const r = { x: b.x - k, y: b.y - k, w: b.width + 2 * k, h: b.height + 2 * k };
     out.push({ type: 'rect', id: 'clearspace', ...r, dashed: true, group: 'specs' });
     const corners = [
@@ -92,7 +94,7 @@ export function plan(result: AnalysisResult, opts: PlanOptions): ConstructionPla
         x: cx,
         y: cy,
         size: x,
-        label: 'x',
+        label: '',
         group: 'specs',
       }),
     );

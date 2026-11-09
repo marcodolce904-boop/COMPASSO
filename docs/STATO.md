@@ -3,8 +3,16 @@
 Aggiornato da Claude Code a fine fase. Le decisioni stanno in `docs/SPEC.md` §2.
 
 ## Fase corrente
-**Fase 2 — Motore completo v1: completata** (golden test approvati da Marco il 09/11/2026).
-Prossima: Fase 3 (harness web e UI del pannello, modello consigliato Sonnet).
+**Fase 3 — Harness web e UI del pannello: completata** (mockup Figma approvato il 09/11/2026).
+Prossima: Fase 4 (Illustrator: lettura della selezione, Bolt CEP, sul PC Windows).
+
+### Come avviare l'harness
+```
+pnpm install
+pnpm dev            # = pnpm -F harness dev → http://localhost:5173
+```
+Trascina un SVG nella finestra (o «Apri SVG…», o scegli una fixture). Il pannello a destra
+analizza in un Web Worker; DISEGNA COSTRUZIONE disegna il piano sulla tavola centrale.
 
 ## Ambiente
 - Fasi 1–3: sessione cloud Linux — Node 22, pnpm 10, Git.
@@ -38,8 +46,19 @@ Prossima: Fase 3 (harness web e UI del pannello, modello consigliato Sonnet).
   - token §7.3 come variabili Figma (collezione «Compasso · tokens»: colori, spazi, raggi);
   - componenti: Panel/Header, Panel/Tabs, Panel/SubTabs, Panel/Levels, Control/Slider, Button/Primary, List/ElementRow.
 
+- [x] Fase 3:
+  - `packages/ui`: `tokens.css` (§7.3 + misure dei componenti), `fonts.css` (Inter e JetBrains Mono in locale, OFL), `strings.ts` (EN predefinito, IT, plurali), `labels.ts` (nomi degli elementi, frasi dei findings), `preview.ts` (SVG del logo, viewBox, evidenziazione, testo «Copia misure»);
+  - componenti Svelte 5 (§7.4): Header, TabBar, PreviewCard, ConstructionSvg, Segmented (frecce da tastiera), Slider (doppio clic = reset, frecce ±passo), ElementList (occhio includi/escludi, hover = evidenzia), FindingList (clic = evidenzia), SpecsView (unità x, bbox, raggi, rapporti, area di rispetto, copia), PrimaryButton (caricamento/disattivato), TextButton, EmptyState, Toast;
+  - `Panel.svelte`: tab ANALIZZA completa; COSTRUISCI e PRESENTA mostrano «In arrivo»; ⚙ con lingua e tolleranza;
+  - `apps/harness` (Vite): trascinamento SVG, scelta fixture, tavola con il layer disegnato, pannello a destra largo 320 px, analisi in Web Worker con indicatore dopo 300 ms, stati vuoto/caricamento/errore;
+  - 177 test verdi (nuovi: testi EN/IT, nomi, findings, anteprima, copia misure); typecheck (tsc + svelte-check) e lint (ESLint + Prettier, anche `.svelte`) verdi;
+  - verifica nel browser con Playwright: nessun errore in console.
+
 ## Da fare
-- [ ] Approvare wireframe e mockup, poi Fase 3 — harness web e UI del pannello.
+- [ ] Fase 4 — Illustrator: lettura della selezione (Bolt CEP, `extractSelection()`, anteprima live). Serve il PC Windows con Illustrator 2026.
+
+## Proposte aperte (da decidere)
+- **Livello Essenziale e pari merito:** su 05 (rettangolo arrotondato) i 4 cerchi hanno lo stesso punteggio, ma Essenziale/Struttura ne mostrano 3, perché il 60% di L_tot è già coperto (§6.10). Proposta: a parità di punteggio con l'ultimo elemento incluso, entrano tutti. Cambierebbe i golden test (`levels`) → da approvare.
 
 ## Report di calibrazione (Fase 2)
 
@@ -83,6 +102,8 @@ Tutte le fixture esatte sono "pulite" (zero findings) e ogni errore inserito vie
 - Il bbox si calcola sulle curve campionate (16 punti per cubica), non sui punti di controllo.
 - Fixture 04: un quarto di cerchio con maniglie ×1,26 → scarto 1,03 pt dal miglior cerchio (≈1,3% del raggio), tra le due soglie: dà 1 arco da 270° + 1 near-arc.
 - Il file `.debug`, il registro di Windows e Bolt CEP non sono toccati in questa fase.
+- **Fase 3, dipendenze aggiunte:** svelte, vite, @sveltejs/vite-plugin-svelte, svelte-check, eslint-plugin-svelte, prettier-plugin-svelte, globals, @fontsource/inter, @fontsource/jetbrains-mono (previste da D4/D5/§5.3).
+- **Fase 3, scelte:** `plan()` mette il quadrato x fuori anche dall'area di rispetto quando è disegnata; i quadratini agli angoli dell'area non hanno etichetta. L'anteprima usa un viewBox stabile (calcolato sul livello Tutto), così non "salta" cambiando livello. Le tavole dell'harness mostrano anche gli oggetti fuori tavola. Un nuovo file azzera il layer disegnato; cambiare tolleranza no.
 - **Contratto §5.4 esteso (approvato 09/11/2026):** `AnalysisResult.artboard?` (copiata da `DocumentGeometry.artboard`). `plan()` con `lineExtent: 'artboard'` estende le rette fino al bordo della tavola; senza tavola ricade su bbox + 25%. `parseSvg()` legge la tavola dal `viewBox` del `<svg>` radice, altrimenti da `width`/`height`. Anche `WarningCode` approvato.
 - **Fase 2, scelte di interpretazione** (confermate da Marco il 09/11/2026):
   - estensione delle rette "bbox + 25%" = margine del 12,5% del lato maggiore su ogni lato;
