@@ -1,0 +1,84 @@
+{
+  "stats": {
+    "paths": 1,
+    "anchors": 4,
+    "circles": 1,
+    "lines": 0,
+    "axes": 0
+  },
+  "circles": [
+    {
+      "id": "c1",
+      "cx": 100.0028,
+      "cy": 109.9997,
+      "r": 90.0009,
+      "support": 314.1336,
+      "refs": [
+        {
+          "pathId": "e0",
+          "index": 0
+        },
+        {
+          "pathId": "e0",
+          "index": 1
+        },
+        {
+          "pathId": "e0",
+          "index": 2
+        }
+      ],
+      "score": 0.5794
+    }
+  ],
+  "lines": [],
+  "axes": [],
+  "relations": [
+    {
+      "id": "rel1",
+      "kind": "anchor-column",
+      "refs": [
+        "a:e0:0",
+        "a:e0:3"
+      ],
+      "error": 0
+    }
+  ],
+  "findings": [],
+  "specs": {
+    "unitX": null,
+    "unitXConfidence": "low",
+    "bbox": {
+      "x": 84.3717,
+      "y": 20.0166,
+      "width": 105.6286,
+      "height": 179.9363
+    },
+    "radii": [
+      90.0009
+    ],
+    "notableRatios": []
+  },
+  "levels": {
+    "essential": [
+      "c1"
+    ],
+    "structure": [
+      "c1"
+    ],
+    "detail": [
+      "c1",
+      "m:c1"
+    ],
+    "full": [
+      "c1",
+      "m:c1"
+    ]
+  },
+  "artboard": {
+    "x": 0,
+    "y": 0,
+    "width": 200,
+    "height": 200
+  },
+  "tolerance": "normal"
+}

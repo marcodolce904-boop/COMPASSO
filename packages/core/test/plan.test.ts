@@ -44,6 +44,23 @@ describe('plan', () => {
     }
   });
 
+  it("lineExtent 'artboard' estende le rette fino al bordo della tavola", () => {
+    const p = plan(r, { level: 'full', style: { ...style, lineExtent: 'artboard' } });
+    const ab = r.artboard!;
+    const l1 = p.primitives.find((x) => x.id === 'l1');
+    if (l1?.type !== 'line') throw new Error('attesa retta');
+    expect(Math.min(l1.a.x, l1.b.x)).toBeCloseTo(ab.x);
+    expect(Math.max(l1.a.x, l1.b.x)).toBeCloseTo(ab.x + ab.width);
+  });
+
+  it("senza tavola 'artboard' ricade su bbox + 25%", () => {
+    const { artboard: _a, ...noBoard } = r;
+    void _a;
+    const p = plan(noBoard, { level: 'full', style: { ...style, lineExtent: 'artboard' } });
+    const q = plan(r, { level: 'full', style });
+    expect(p.primitives).toEqual(q.primitives);
+  });
+
   it('assi nel gruppo axes, marker di centro e di tangenza nel Dettaglio', () => {
     const p = plan(r, { level: 'detail', style });
     expect(p.primitives.filter((x) => x.type === 'line' && x.group === 'axes')).toHaveLength(2);

@@ -112,6 +112,8 @@ export interface AnalysisResult {
   findings: Finding[];
   specs: Specs;
   levels: Record<Level, string[]>; // id degli elementi visibili per livello
+  /** Tavola del documento (copiata da DocumentGeometry), usata da lineExtent 'artboard'. */
+  artboard?: { x: number; y: number; width: number; height: number };
   tolerance: TolerancePreset;
   durationMs: number;
 }

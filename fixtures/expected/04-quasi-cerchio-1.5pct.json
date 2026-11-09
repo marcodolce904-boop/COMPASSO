@@ -1,0 +1,112 @@
+{
+  "stats": {
+    "paths": 1,
+    "anchors": 4,
+    "circles": 1,
+    "lines": 0,
+    "axes": 0
+  },
+  "circles": [
+    {
+      "id": "c1",
+      "cx": 99.9995,
+      "cy": 100.0005,
+      "r": 80.0108,
+      "support": 376.9706,
+      "refs": [
+        {
+          "pathId": "e0",
+          "index": 0
+        },
+        {
+          "pathId": "e0",
+          "index": 1
+        },
+        {
+          "pathId": "e0",
+          "index": 2
+        }
+      ],
+      "score": 0.5561
+    }
+  ],
+  "lines": [],
+  "axes": [],
+  "relations": [
+    {
+      "id": "rel1",
+      "kind": "anchor-row",
+      "refs": [
+        "a:e0:2",
+        "a:e0:0"
+      ],
+      "error": 0
+    },
+    {
+      "id": "rel2",
+      "kind": "anchor-column",
+      "refs": [
+        "a:e0:3",
+        "a:e0:1"
+      ],
+      "error": 0
+    }
+  ],
+  "findings": [
+    {
+      "id": "f1",
+      "kind": "near-arc",
+      "severity": "info",
+      "refs": [
+        "s:e0:3"
+      ],
+      "delta": 1.0279,
+      "unit": "pt",
+      "messageKey": "finding.near-arc",
+      "params": {
+        "delta": 1.03,
+        "r": 67.68,
+        "cx": 112.42,
+        "cy": 87.58
+      },
+      "importance": 0.1848
+    }
+  ],
+  "specs": {
+    "unitX": null,
+    "unitXConfidence": "low",
+    "bbox": {
+      "x": 20,
+      "y": 20,
+      "width": 160,
+      "height": 160
+    },
+    "radii": [
+      80.0108
+    ],
+    "notableRatios": []
+  },
+  "levels": {
+    "essential": [
+      "c1"
+    ],
+    "structure": [
+      "c1"
+    ],
+    "detail": [
+      "c1",
+      "m:c1"
+    ],
+    "full": [
+      "c1",
+      "m:c1"
+    ]
+  },
+  "artboard": {
+    "x": 0,
+    "y": 0,
+    "width": 200,
+    "height": 200
+  },
+  "tolerance": "normal"
+}

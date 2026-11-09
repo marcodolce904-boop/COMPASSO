@@ -185,6 +185,7 @@ export function analyze(
       ...radiiSpecs(circles, tol),
     },
     levels,
+    ...(geom.artboard ? { artboard: { ...geom.artboard } } : {}),
     tolerance: preset,
     durationMs: now() - t0,
   };

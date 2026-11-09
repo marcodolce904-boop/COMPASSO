@@ -117,6 +117,20 @@ function polySubPath(points: string, closed: boolean): SubPath | null {
   return { segments, closed };
 }
 
+/** Tavola dall'elemento <svg> radice: viewBox, altrimenti width/height (in unità utente). */
+function rootArtboard(a: Record<string, string>): DocumentGeometry['artboard'] {
+  const vb = (a['viewBox'] ?? '')
+    .split(/[\s,]+/)
+    .filter((s) => s !== '')
+    .map(Number);
+  if (vb.length === 4 && vb.every(Number.isFinite) && vb[2]! > 0 && vb[3]! > 0) {
+    return { x: vb[0]!, y: vb[1]!, width: vb[2]!, height: vb[3]! };
+  }
+  const w = parseFloat(a['width'] ?? '');
+  const h = parseFloat(a['height'] ?? '');
+  return w > 0 && h > 0 ? { x: 0, y: 0, width: w, height: h } : undefined;
+}
+
 /**
  * Legge un SVG (path, circle, rect, ellipse, polygon, polyline) e applica le `transform`
  * degli elementi e dei gruppi. Un elemento con più sotto-tracciati condivide un `glyphId`.
@@ -127,6 +141,7 @@ export function parseSvg(svgText: string): DocumentGeometry {
   const stack: Matrix[] = [IDENTITY];
   let hidden = 0; // profondità dentro <defs>/<clipPath>/<mask>
   let elementIndex = 0;
+  let artboard: DocumentGeometry['artboard'];
 
   for (const tag of tags(svgText)) {
     const isHidden = ['defs', 'clippath', 'mask', 'symbol'].includes(tag.name);
@@ -141,6 +156,7 @@ export function parseSvg(svgText: string): DocumentGeometry {
       if (!tag.selfClosing) hidden++;
       continue;
     }
+    if (tag.name === 'svg' && artboard === undefined) artboard = rootArtboard(tag.attrs);
     if (tag.name === 'g' || tag.name === 'svg') {
       if (!tag.selfClosing) stack.push(m);
       continue;
@@ -203,5 +219,7 @@ export function parseSvg(svgText: string): DocumentGeometry {
       paths.push(pd);
     });
   }
-  return { source: 'svg', paths, warnings: [] };
+  const geom: DocumentGeometry = { source: 'svg', paths, warnings: [] };
+  if (artboard) geom.artboard = artboard;
+  return geom;
 }

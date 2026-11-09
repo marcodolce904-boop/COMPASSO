@@ -1,0 +1,169 @@
+{
+  "stats": {
+    "paths": 3,
+    "anchors": 11,
+    "circles": 0,
+    "lines": 10,
+    "axes": 0
+  },
+  "circles": [],
+  "lines": [
+    {
+      "id": "l1",
+      "theta": 0.7854,
+      "rho": 98.9949,
+      "orientation": "d45",
+      "origin": "segment",
+      "support": 113.1371,
+      "score": 0.55
+    },
+    {
+      "id": "l2",
+      "theta": 0.7854,
+      "rho": 113.1371,
+      "orientation": "d45",
+      "origin": "segment",
+      "support": 84.8528,
+      "score": 0.4556
+    },
+    {
+      "id": "l3",
+      "theta": 0.5236,
+      "rho": 193.923,
+      "orientation": "free",
+      "origin": "segment",
+      "support": 80,
+      "score": 0.3953
+    },
+    {
+      "id": "l4",
+      "theta": 0.5236,
+      "rho": 211.2436,
+      "orientation": "free",
+      "origin": "segment",
+      "support": 80,
+      "score": 0.3696
+    },
+    {
+      "id": "l5",
+      "theta": 1.5708,
+      "rho": 30,
+      "orientation": "h",
+      "origin": "segment",
+      "support": 30,
+      "score": 0.2821
+    },
+    {
+      "id": "l6",
+      "theta": 2.6779,
+      "rho": -111.8034,
+      "orientation": "free",
+      "origin": "segment",
+      "support": 22.3607,
+      "score": 0.1608
+    },
+    {
+      "id": "l7",
+      "theta": 1.5708,
+      "rho": 60,
+      "orientation": "h",
+      "origin": "segment",
+      "support": 20,
+      "score": 0.2424
+    },
+    {
+      "id": "l8",
+      "theta": 1.5708,
+      "rho": 110.718,
+      "orientation": "h",
+      "origin": "segment",
+      "support": 20,
+      "score": 0.2424
+    },
+    {
+      "id": "l9",
+      "theta": 1.5708,
+      "rho": 120,
+      "orientation": "h",
+      "origin": "segment",
+      "support": 20,
+      "score": 0.2424
+    },
+    {
+      "id": "l10",
+      "theta": 1.5708,
+      "rho": 180,
+      "orientation": "h",
+      "origin": "segment",
+      "support": 20,
+      "score": 0.2424
+    }
+  ],
+  "axes": [],
+  "relations": [
+    {
+      "id": "rel1",
+      "kind": "anchor-column",
+      "refs": [
+        "a:e1:2",
+        "a:e2:3"
+      ],
+      "error": 0
+    }
+  ],
+  "findings": [],
+  "specs": {
+    "unitX": 14.1421,
+    "unitXConfidence": "high",
+    "bbox": {
+      "x": 20,
+      "y": 10,
+      "width": 160,
+      "height": 170
+    },
+    "radii": [],
+    "notableRatios": []
+  },
+  "levels": {
+    "essential": [
+      "l1",
+      "l2",
+      "l3",
+      "l4"
+    ],
+    "structure": [
+      "l1",
+      "l2",
+      "l3",
+      "l4",
+      "unit-x"
+    ],
+    "detail": [
+      "l1",
+      "l2",
+      "l3",
+      "l4",
+      "unit-x"
+    ],
+    "full": [
+      "l1",
+      "l2",
+      "l3",
+      "l4",
+      "l5",
+      "l6",
+      "l7",
+      "l8",
+      "l9",
+      "l10",
+      "unit-x"
+    ]
+  },
+  "artboard": {
+    "x": 0,
+    "y": 0,
+    "width": 200,
+    "height": 200
+  },
+  "tolerance": "normal"
+}

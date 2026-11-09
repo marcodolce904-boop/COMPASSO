@@ -3,8 +3,8 @@
 Aggiornato da Claude Code a fine fase. Le decisioni stanno in `docs/SPEC.md` §2.
 
 ## Fase corrente
-**Fase 2 — Motore completo v1: implementata.** In attesa dell'approvazione dei JSON attesi
-(`fixtures/expected/`) per attivare i golden test. Poi: Fase 3 (harness web e UI, Sonnet).
+**Fase 2 — Motore completo v1: completata** (golden test approvati da Marco il 09/11/2026).
+Prossima: Fase 3 (harness web e UI del pannello, modello consigliato Sonnet).
 
 ## Ambiente
 - Fasi 1–3: sessione cloud Linux — Node 22, pnpm 10, Git.
@@ -28,10 +28,10 @@ Aggiornato da Claude Code a fine fase. Le decisioni stanno in `docs/SPEC.md` §2
   - preset di tolleranza Rigida/Normale/Morbida (×0,5/×1/×2) in `tolerance.ts`;
   - fixture sintetiche 06 (O geometrica) e 09–12 aggiunte al generatore;
   - golden test (`scripts/golden.test.ts`) + `pnpm fixtures:update [--out dir]` che mostra le differenze;
-  - `pnpm bench`; 151 test verdi (10 golden saltati finché mancano i JSON attesi); typecheck e lint verdi.
+  - `pnpm bench`; 164 test verdi (golden inclusi); typecheck e lint verdi;
+  - `fixtures/expected/*.json` approvati e committati.
 
 ## Da fare
-- [ ] Approvare e committare `fixtures/expected/*.json` (golden test).
 - [ ] Fase 3 — harness web e UI del pannello.
 
 ## Report di calibrazione (Fase 2)
@@ -76,9 +76,9 @@ Tutte le fixture esatte sono "pulite" (zero findings) e ogni errore inserito vie
 - Il bbox si calcola sulle curve campionate (16 punti per cubica), non sui punti di controllo.
 - Fixture 04: un quarto di cerchio con maniglie ×1,26 → scarto 1,03 pt dal miglior cerchio (≈1,3% del raggio), tra le due soglie: dà 1 arco da 270° + 1 near-arc.
 - Il file `.debug`, il registro di Windows e Bolt CEP non sono toccati in questa fase.
-- **Fase 2, scelte di interpretazione** (da confermare):
+- **Contratto §5.4 esteso (approvato 09/11/2026):** `AnalysisResult.artboard?` (copiata da `DocumentGeometry.artboard`). `plan()` con `lineExtent: 'artboard'` estende le rette fino al bordo della tavola; senza tavola ricade su bbox + 25%. `parseSvg()` legge la tavola dal `viewBox` del `<svg>` radice, altrimenti da `width`/`height`. Anche `WarningCode` approvato.
+- **Fase 2, scelte di interpretazione** (confermate da Marco il 09/11/2026):
   - estensione delle rette "bbox + 25%" = margine del 12,5% del lato maggiore su ogni lato;
-  - `lineExtent: 'artboard'` per ora ricade su bbox + 25%: `AnalysisResult` non contiene la tavola. Per supportarla serve aggiungere la tavola al contratto (§5.4) → da approvare;
   - righe di anchor: gli estremi dei cerchi (cx ± r, cy ± r) contano solo se non coincidono (entro ε_c) con un anchor; una guida nasce con ≥ 3 punti, ≥ 1 anchor reale e ≥ 2 provenienze;
   - gli assi si cercano su anchor + punti medi dei segmenti (più robusto dei soli anchor); gli assi validi quasi coincidenti si fondono;
   - archi sotto gli 8°: peso 0,25 nella media del cerchio canonico;

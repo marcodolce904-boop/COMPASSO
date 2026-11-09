@@ -1,0 +1,66 @@
+{
+  "stats": {
+    "paths": 1,
+    "anchors": 2,
+    "circles": 1,
+    "lines": 0,
+    "axes": 0
+  },
+  "circles": [
+    {
+      "id": "c1",
+      "cx": 100,
+      "cy": 100,
+      "r": 80,
+      "support": 125.6569,
+      "refs": [
+        {
+          "pathId": "e0",
+          "index": 0
+        }
+      ],
+      "score": 0.6
+    }
+  ],
+  "lines": [],
+  "axes": [],
+  "relations": [],
+  "findings": [],
+  "specs": {
+    "unitX": null,
+    "unitXConfidence": "low",
+    "bbox": {
+      "x": 100,
+      "y": 100,
+      "width": 80,
+      "height": 80
+    },
+    "radii": [
+      80
+    ],
+    "notableRatios": []
+  },
+  "levels": {
+    "essential": [
+      "c1"
+    ],
+    "structure": [
+      "c1"
+    ],
+    "detail": [
+      "c1",
+      "m:c1"
+    ],
+    "full": [
+      "c1",
+      "m:c1"
+    ]
+  },
+  "artboard": {
+    "x": 0,
+    "y": 0,
+    "width": 200,
+    "height": 200
+  },
+  "tolerance": "normal"
+}

@@ -46,6 +46,22 @@ describe('parseSvg', () => {
     expect(g.paths[0]).toMatchObject({ filled: false, stroked: true, strokeWidth: 2 });
   });
 
+  it('tavola dal viewBox, altrimenti da width/height', () => {
+    expect(parseSvg('<svg viewBox="10 20 300 200"></svg>').artboard).toEqual({
+      x: 10,
+      y: 20,
+      width: 300,
+      height: 200,
+    });
+    expect(parseSvg('<svg width="120pt" height="80"></svg>').artboard).toEqual({
+      x: 0,
+      y: 0,
+      width: 120,
+      height: 80,
+    });
+    expect(parseSvg('<svg></svg>').artboard).toBeUndefined();
+  });
+
   it('è deterministico', () => {
     const s = svg(`<circle cx="1" cy="2" r="3"/>`);
     expect(parseSvg(s)).toEqual(parseSvg(s));

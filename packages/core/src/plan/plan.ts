@@ -25,8 +25,11 @@ export function plan(result: AnalysisResult, opts: PlanOptions): ConstructionPla
 
   const b = result.specs.bbox;
   const m = EXTENT_MARGIN * Math.max(b.width, b.height);
-  // 'artboard': AnalysisResult non contiene la tavola; per ora si usa il bbox esteso.
-  const extent = { x: b.x - m, y: b.y - m, width: b.width + 2 * m, height: b.height + 2 * m };
+  // 'artboard': rette fino al bordo della tavola, se nota; altrimenti bbox + 25%
+  const extent =
+    opts.style.lineExtent === 'artboard' && result.artboard
+      ? result.artboard
+      : { x: b.x - m, y: b.y - m, width: b.width + 2 * m, height: b.height + 2 * m };
   const out: Primitive[] = [];
 
   for (const c of result.circles) {

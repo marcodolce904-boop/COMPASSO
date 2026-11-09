@@ -1,0 +1,201 @@
+{
+  "stats": {
+    "paths": 2,
+    "anchors": 9,
+    "circles": 1,
+    "lines": 6,
+    "axes": 1
+  },
+  "circles": [
+    {
+      "id": "c1",
+      "cx": 99.9999,
+      "cy": 125,
+      "r": 25.0034,
+      "support": 157.0711,
+      "refs": [
+        {
+          "pathId": "e1",
+          "index": 0
+        },
+        {
+          "pathId": "e1",
+          "index": 1
+        },
+        {
+          "pathId": "e1",
+          "index": 2
+        },
+        {
+          "pathId": "e1",
+          "index": 3
+        }
+      ],
+      "score": 0.529
+    }
+  ],
+  "lines": [
+    {
+      "id": "l1",
+      "theta": 1.5708,
+      "rho": 180,
+      "orientation": "h",
+      "origin": "segment",
+      "support": 120,
+      "score": 0.4975
+    },
+    {
+      "id": "l2",
+      "theta": 0,
+      "rho": 40,
+      "orientation": "v",
+      "origin": "segment",
+      "support": 90,
+      "score": 0.435
+    },
+    {
+      "id": "l3",
+      "theta": 0,
+      "rho": 160,
+      "orientation": "v",
+      "origin": "segment",
+      "support": 90,
+      "score": 0.435
+    },
+    {
+      "id": "l4",
+      "theta": 0.7854,
+      "rho": 91.9239,
+      "orientation": "d45",
+      "origin": "segment",
+      "support": 84.8528,
+      "score": 0.3094
+    },
+    {
+      "id": "l5",
+      "theta": 2.3562,
+      "rho": -49.4975,
+      "orientation": "d45",
+      "origin": "segment",
+      "support": 84.8528,
+      "score": 0.3094
+    },
+    {
+      "id": "l6",
+      "theta": 0,
+      "rho": 100,
+      "orientation": "v",
+      "origin": "anchor-row",
+      "support": 0,
+      "score": 0.2571
+    }
+  ],
+  "axes": [
+    {
+      "id": "ax1",
+      "theta": 0,
+      "rho": 100,
+      "error": 0,
+      "score": 0.7671
+    }
+  ],
+  "relations": [
+    {
+      "id": "rel1",
+      "kind": "center-on-line",
+      "refs": [
+        "c1",
+        "l6"
+      ],
+      "error": 0.0001
+    },
+    {
+      "id": "rel2",
+      "kind": "anchor-row",
+      "refs": [
+        "a:e0:1",
+        "a:e0:3"
+      ],
+      "error": 0
+    },
+    {
+      "id": "rel3",
+      "kind": "anchor-row",
+      "refs": [
+        "a:e1:2",
+        "a:e1:0"
+      ],
+      "error": 0
+    },
+    {
+      "id": "rel4",
+      "kind": "anchor-column",
+      "refs": [
+        "l6",
+        "a:e0:2",
+        "a:e1:3",
+        "a:e1:1"
+      ],
+      "error": 0
+    }
+  ],
+  "findings": [],
+  "specs": {
+    "unitX": null,
+    "unitXConfidence": "low",
+    "bbox": {
+      "x": 40,
+      "y": 30,
+      "width": 120,
+      "height": 150
+    },
+    "radii": [
+      25.0034
+    ],
+    "notableRatios": []
+  },
+  "levels": {
+    "essential": [
+      "c1",
+      "l1",
+      "l2",
+      "l3",
+      "ax1"
+    ],
+    "structure": [
+      "c1",
+      "l1",
+      "l2",
+      "l3",
+      "ax1",
+      "l6"
+    ],
+    "detail": [
+      "c1",
+      "l1",
+      "l2",
+      "l3",
+      "ax1",
+      "l6",
+      "m:c1"
+    ],
+    "full": [
+      "c1",
+      "l1",
+      "l2",
+      "l3",
+      "l4",
+      "l5",
+      "l6",
+      "ax1",
+      "m:c1"
+    ]
+  },
+  "artboard": {
+    "x": 0,
+    "y": 0,
+    "width": 200,
+    "height": 200
+  },
+  "tolerance": "normal"
+}

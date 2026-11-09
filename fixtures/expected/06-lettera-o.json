@@ -1,0 +1,238 @@
+{
+  "stats": {
+    "paths": 2,
+    "anchors": 8,
+    "circles": 2,
+    "lines": 2,
+    "axes": 2
+  },
+  "circles": [
+    {
+      "id": "c1",
+      "cx": 99.9996,
+      "cy": 100,
+      "r": 80.011,
+      "support": 502.6275,
+      "refs": [
+        {
+          "pathId": "e0.0",
+          "index": 0
+        },
+        {
+          "pathId": "e0.0",
+          "index": 1
+        },
+        {
+          "pathId": "e0.0",
+          "index": 2
+        },
+        {
+          "pathId": "e0.0",
+          "index": 3
+        }
+      ],
+      "score": 0.7761
+    },
+    {
+      "id": "c2",
+      "cx": 99.9998,
+      "cy": 100,
+      "r": 56.0077,
+      "support": 351.8393,
+      "refs": [
+        {
+          "pathId": "e0.1",
+          "index": 0
+        },
+        {
+          "pathId": "e0.1",
+          "index": 1
+        },
+        {
+          "pathId": "e0.1",
+          "index": 2
+        },
+        {
+          "pathId": "e0.1",
+          "index": 3
+        }
+      ],
+      "score": 0.6093
+    }
+  ],
+  "lines": [
+    {
+      "id": "l1",
+      "theta": 0,
+      "rho": 100,
+      "orientation": "v",
+      "origin": "anchor-row",
+      "support": 0,
+      "score": 0.2861
+    },
+    {
+      "id": "l2",
+      "theta": 1.5708,
+      "rho": 100,
+      "orientation": "h",
+      "origin": "anchor-row",
+      "support": 0,
+      "score": 0.2861
+    }
+  ],
+  "axes": [
+    {
+      "id": "ax1",
+      "theta": 0,
+      "rho": 100,
+      "error": 0,
+      "score": 0.7561
+    },
+    {
+      "id": "ax2",
+      "theta": 1.5708,
+      "rho": 100,
+      "error": 0,
+      "score": 0.7561
+    }
+  ],
+  "relations": [
+    {
+      "id": "rel1",
+      "kind": "concentric",
+      "refs": [
+        "c1",
+        "c2"
+      ],
+      "error": 0.0001
+    },
+    {
+      "id": "rel2",
+      "kind": "center-on-line",
+      "refs": [
+        "c1",
+        "l1"
+      ],
+      "error": 0.0004
+    },
+    {
+      "id": "rel3",
+      "kind": "center-on-line",
+      "refs": [
+        "c2",
+        "l1"
+      ],
+      "error": 0.0002
+    },
+    {
+      "id": "rel4",
+      "kind": "center-on-line",
+      "refs": [
+        "c1",
+        "l2"
+      ],
+      "error": 0
+    },
+    {
+      "id": "rel5",
+      "kind": "center-on-line",
+      "refs": [
+        "c2",
+        "l2"
+      ],
+      "error": 0
+    },
+    {
+      "id": "rel6",
+      "kind": "anchor-row",
+      "refs": [
+        "l2",
+        "a:e0.0:2",
+        "a:e0.1:2",
+        "a:e0.1:0",
+        "a:e0.0:0"
+      ],
+      "error": 0
+    },
+    {
+      "id": "rel7",
+      "kind": "anchor-column",
+      "refs": [
+        "l1",
+        "a:e0.0:3",
+        "a:e0.1:1",
+        "a:e0.1:3",
+        "a:e0.0:1"
+      ],
+      "error": 0
+    }
+  ],
+  "findings": [],
+  "specs": {
+    "unitX": 24.0033,
+    "unitXConfidence": "high",
+    "bbox": {
+      "x": 20,
+      "y": 20,
+      "width": 160,
+      "height": 160
+    },
+    "radii": [
+      80.011,
+      56.0077
+    ],
+    "notableRatios": [
+      {
+        "a": "c1",
+        "b": "c2",
+        "ratio": 1.4286
+      }
+    ]
+  },
+  "levels": {
+    "essential": [
+      "c1",
+      "c2",
+      "ax1",
+      "ax2"
+    ],
+    "structure": [
+      "c1",
+      "c2",
+      "ax1",
+      "ax2",
+      "l1",
+      "l2",
+      "unit-x"
+    ],
+    "detail": [
+      "c1",
+      "c2",
+      "ax1",
+      "ax2",
+      "l1",
+      "l2",
+      "unit-x",
+      "m:c1",
+      "m:c2"
+    ],
+    "full": [
+      "c1",
+      "c2",
+      "l1",
+      "l2",
+      "ax1",
+      "ax2",
+      "unit-x",
+      "m:c1",
+      "m:c2"
+    ]
+  },
+  "artboard": {
+    "x": 0,
+    "y": 0,
+    "width": 200,
+    "height": 200
+  },
+  "tolerance": "normal"
+}
