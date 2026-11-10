@@ -10,6 +10,9 @@ Windows 10/11 o macOS.
 
 INSTALLARE (1 minuto)
 ---------------------
+Serve il file Compasso-Windows-macOS.zip della pagina Releases (sezione «Assets»),
+non il «Source code» né il pulsante «Code» di GitHub.
+
 1. Estrai TUTTO questo ZIP in una cartella (non aprirlo solo in anteprima).
 2. Chiudi Illustrator.
 3. Doppio clic su:

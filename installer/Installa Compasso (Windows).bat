@@ -58,8 +58,15 @@ exit /b 0
 
 :nozxp
 echo   Non trovo "Compasso.zxp" accanto a questo file.
-echo   Estrai TUTTO lo ZIP in una cartella, poi riprova.
 echo.
+echo   Probabilmente hai scaricato il CODICE SORGENTE del progetto
+echo   - pulsante verde "Code", oppure "Source code" - e non il plugin.
+echo.
+echo   Scarica invece il file  Compasso-Windows-macOS.zip
+echo   dalla sezione "Assets" della pagina che si apre ora,
+echo   estrai TUTTO lo ZIP e fai doppio clic sull'installer che contiene.
+echo.
+start "" "https://github.com/marcodolce904-boop/COMPASSO/releases/latest"
 pause
 exit /b 1
 

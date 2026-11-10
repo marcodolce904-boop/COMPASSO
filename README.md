@@ -12,8 +12,10 @@ dell'1%, un anchor fuori riga di 0,3 pt.
 
 ## Scarica e installa (1 minuto)
 
-1. **Scarica** [Compasso-Windows-macOS.zip](../../releases/latest/download/Compasso-Windows-macOS.zip)
-   (oppure dalla pagina [Releases](../../releases)) ed **estrai tutto** lo ZIP.
+> ⚠️ **Non usare il pulsante verde «Code → Download ZIP»** né «Source code»: contengono il codice, non il plugin.
+
+1. **Scarica** [**Compasso-Windows-macOS.zip**](../../releases/latest/download/Compasso-Windows-macOS.zip)
+   (oppure dalla pagina [Releases](../../releases), sezione _Assets_) ed **estrai tutto** lo ZIP.
 2. **Chiudi Illustrator** e fai doppio clic su:
    - Windows: **`Installa Compasso (Windows).bat`** — se compare «Windows ha protetto il PC»: _Ulteriori informazioni → Esegui comunque_
    - macOS: **`Installa Compasso (macOS).command`** — se macOS lo blocca: _clic destro → Apri → Apri_

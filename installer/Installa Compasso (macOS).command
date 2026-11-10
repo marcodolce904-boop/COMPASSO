@@ -9,7 +9,12 @@ echo "  COMPASSO per Adobe Illustrator"
 echo "  ------------------------------"
 echo ""
 if [ ! -f "$ZXP" ]; then
-  echo "  Non trovo Compasso.zxp accanto a questo file: estrai tutto lo ZIP e riprova."
+  echo "  Non trovo Compasso.zxp accanto a questo file."
+  echo ""
+  echo "  Probabilmente hai scaricato il CODICE SORGENTE del progetto (pulsante «Code» o «Source code»)."
+  echo "  Scarica invece Compasso-Windows-macOS.zip dalla sezione «Assets» della pagina che si apre ora,"
+  echo "  estrai tutto e apri l'installer che contiene."
+  open "https://github.com/marcodolce904-boop/COMPASSO/releases/latest"
   read -r -p "  Premi Invio per chiudere…" _
   exit 1
 fi
