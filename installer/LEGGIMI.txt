@@ -17,7 +17,14 @@ INSTALLARE (1 minuto)
                se compare «Windows ha protetto il PC»: Ulteriori informazioni → Esegui comunque
      macOS:    «Installa Compasso (macOS).command»
                se macOS lo blocca: clic destro sul file → Apri → Apri
-4. Apri Illustrator → Finestra → Estensioni → Compasso.
+4. Apri Illustrator → Finestra → Estensioni → Compasso
+   (nelle versioni recenti il menu si chiama «Estensioni (legacy)»).
+
+NON COMPARE NEL MENU?
+- Riavvia Illustrator dopo l'installazione.
+- Guarda anche in Finestra → Estensioni (legacy).
+- Windows: doppio clic su «Diagnostica Compasso (Windows).bat» (non modifica nulla):
+  crea sul Desktop «compasso-diagnostica.txt» da mandare allo sviluppatore.
 
 Se l'installer non trova Creative Cloud, usa «ZXP Installer» (gratuito):
 https://aescripts.com/learn/zxp-installer/ → trascina Compasso.zxp nella sua finestra.

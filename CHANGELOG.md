@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 — anteprima (beta) · 10/11/2026
+
+- **Installer Windows corretto**: la versione 0.1.0 poteva chiudersi prima di installare (errore nello script).
+  Ora verifica che Compasso sia davvero installato e dice dove.
+- Nuovo **«Diagnostica Compasso (Windows).bat»** (solo lettura): raccoglie in un file sul Desktop le
+  informazioni utili se il pannello non compare.
+- Istruzioni: il pannello può trovarsi in **Finestra → Estensioni (legacy)** nelle versioni recenti di Illustrator.
+
 ## 0.1.0 — anteprima (beta) · 10/11/2026
 
 Prima versione installabile per Adobe Illustrator 2026 (v31) su Windows e macOS.

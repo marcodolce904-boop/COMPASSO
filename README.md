@@ -8,7 +8,7 @@ dell'1%, un anchor fuori riga di 0,3 pt.
 
 ![Compasso: costruzione disegnata e pannello](site/img/costruzione.png)
 
-> **Anteprima (beta) 0.1.0** — per Adobe Illustrator 2026 (v31) e successivi, Windows e macOS.
+> **Anteprima (beta) 0.1.1** — per Adobe Illustrator 2026 (v31) e successivi, Windows e macOS.
 
 ## Scarica e installa (1 minuto)
 
@@ -17,7 +17,7 @@ dell'1%, un anchor fuori riga di 0,3 pt.
 2. **Chiudi Illustrator** e fai doppio clic su:
    - Windows: **`Installa Compasso (Windows).bat`** — se compare «Windows ha protetto il PC»: _Ulteriori informazioni → Esegui comunque_
    - macOS: **`Installa Compasso (macOS).command`** — se macOS lo blocca: _clic destro → Apri → Apri_
-3. Apri Illustrator → **Finestra → Estensioni → Compasso**.
+3. Apri Illustrator → **Finestra → Estensioni → Compasso** (nelle versioni recenti: **Estensioni (legacy)**).
 
 L'installer usa l'installatore ufficiale di Adobe (incluso in Creative Cloud): non modifica
 impostazioni di sicurezza. Usi già [ZXP Installer](https://aescripts.com/learn/zxp-installer/)?
@@ -41,7 +41,7 @@ Lingua dell'interfaccia: ⚙ → English / Italiano.
 
 ## Domande frequenti
 
-- **Non vedo Compasso in Finestra → Estensioni.** Controlla di avere Illustrator 2026 (v31) o successivo e di aver riavviato Illustrator dopo l'installazione.
+- **Non vedo Compasso in Finestra → Estensioni.** Riavvia Illustrator e guarda anche in _Estensioni (legacy)_. Su Windows fai doppio clic su `Diagnostica Compasso (Windows).bat` (solo lettura): salva sul Desktop `compasso-diagnostica.txt` da allegare alla segnalazione.
 - **L'installer dice che non trova Creative Cloud.** Usa [ZXP Installer](https://aescripts.com/learn/zxp-installer/) con il file `Compasso.zxp`.
 - **Il documento cambia?** Solo quando premi DISEGNA: tutto finisce sul layer «Compasso — Construction», che puoi eliminare con _Rimuovi_. L'anteprima non tocca il documento.
 - **Raccoglie dati?** No. Funziona solo in locale, anche offline.
