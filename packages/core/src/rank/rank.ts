@@ -80,10 +80,15 @@ export function buildLevels(inp: LevelInput): Record<Level, string[]> {
   const elems = [...circles, ...lines].sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1));
   const essential: string[] = [];
   let covered = 0;
+  let lastScore: number | null = null;
   for (const e of elems) {
-    if (covered >= 0.6 * totalLength || e.support <= 0) break;
+    if (e.support <= 0) break;
+    // raggiunto il 60%, entrano ancora gli elementi a pari merito con l'ultimo incluso
+    // (approvato 10/11/2026: es. 4 cerchi uguali del rettangolo arrotondato)
+    if (covered >= 0.6 * totalLength && e.score !== lastScore) break;
     essential.push(e.id);
     covered += e.support;
+    lastScore = e.score;
   }
   essential.push(...axes.map((a) => a.id));
 

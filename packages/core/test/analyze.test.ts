@@ -133,3 +133,11 @@ describe('analyze: casi generali', () => {
     }
   });
 });
+
+describe('livelli: pari merito', () => {
+  it('a parità di punteggio con l’ultimo incluso, Essenziale li prende tutti (05: 4 cerchi)', () => {
+    const r = analyze(load('05-rettangolo-arrotondato.svg'));
+    const circles = r.circles.map((c) => c.id);
+    for (const id of circles) expect(r.levels.essential).toContain(id);
+  });
+});

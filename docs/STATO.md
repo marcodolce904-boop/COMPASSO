@@ -57,8 +57,8 @@ analizza in un Web Worker; DISEGNA COSTRUZIONE disegna il piano sulla tavola cen
 ## Da fare
 - [ ] Fase 4 — Illustrator: lettura della selezione (Bolt CEP, `extractSelection()`, anteprima live). Serve il PC Windows con Illustrator 2026.
 
-## Proposte aperte (da decidere)
-- **Livello Essenziale e pari merito:** su 05 (rettangolo arrotondato) i 4 cerchi hanno lo stesso punteggio, ma Essenziale/Struttura ne mostrano 3, perché il 60% di L_tot è già coperto (§6.10). Proposta: a parità di punteggio con l'ultimo elemento incluso, entrano tutti. Cambierebbe i golden test (`levels`) → da approvare.
+## Decisioni prese durante lo sviluppo
+- **Livello Essenziale e pari merito (approvato 10/11/2026):** raggiunto il 60% di L_tot (§6.10), entrano ancora gli elementi con punteggio uguale all'ultimo incluso. Golden aggiornati: 05 (4° cerchio) e 11 (una retta).
 
 ## Report di calibrazione (Fase 2)
 
