@@ -97,6 +97,10 @@ const en = {
   'tolerance.loose': 'Loose',
   'error.generic': 'Analysis failed: {msg}',
   'error.dismiss': 'Dismiss',
+  'error.host': 'Illustrator did not respond: {msg}',
+  'confirm.manyAnchors':
+    'The selection has {n} anchors: the analysis may take a few seconds. Continue?',
+  'dev.drawSoon': 'Drawing on the document arrives in the next update.',
   'warning.live-text-outlined': 'Live text was analysed on an outlined copy.',
   'warning.clip-ignored': 'Clipping paths were ignored.',
   'warning.stroke-centerline': 'Stroked open paths: the centre line was analysed.',
@@ -211,6 +215,10 @@ const it: Record<StringKey, string> = {
   'tolerance.loose': 'Morbida',
   'error.generic': 'Analisi non riuscita: {msg}',
   'error.dismiss': 'Chiudi',
+  'error.host': 'Illustrator non ha risposto: {msg}',
+  'confirm.manyAnchors':
+    'La selezione ha {n} anchor: l’analisi può richiedere qualche secondo. Continuare?',
+  'dev.drawSoon': 'Il disegno sul documento arriva con il prossimo aggiornamento.',
   'warning.live-text-outlined':
     'Il testo vivo è stato analizzato su una copia convertita in tracciati.',
   'warning.clip-ignored': 'I tracciati di ritaglio sono stati ignorati.',

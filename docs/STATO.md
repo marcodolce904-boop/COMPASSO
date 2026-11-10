@@ -3,20 +3,30 @@
 Aggiornato da Claude Code a fine fase. Le decisioni stanno in `docs/SPEC.md` §2.
 
 ## Fase corrente
-**Fase 3 — Harness web e UI del pannello: completata** (mockup Figma approvato il 09/11/2026).
-Prossima: Fase 4 (Illustrator: lettura della selezione, Bolt CEP, sul PC Windows).
+**Fase 4 — Illustrator: lettura.** Codice pronto e verificato in cloud; manca la **verifica sul PC Windows**
+(guida qui sotto). «Fatto quando»: selezionando un logo in Illustrator l'anteprima è corretta e i numeri
+coincidono con quelli dell'harness sullo stesso SVG.
 
-### Come avviare l'harness
-```
-pnpm install
-pnpm dev            # = pnpm -F harness dev → http://localhost:5173
-```
-Trascina un SVG nella finestra (o «Apri SVG…», o scegli una fixture). Il pannello a destra
-analizza in un Web Worker; DISEGNA COSTRUZIONE disegna il piano sulla tavola centrale.
+### Fase 4 — guida per Windows (Illustrator 2026 v31.0)
+1. Aggiorna e installa: `git pull`, poi `pnpm install` (Node LTS, `corepack enable`).
+2. **Registro (debug delle estensioni non firmate)** — da fare a mano, Claude non lo tocca.
+   Verifica prima quali versioni CEP ha registrato Illustrator: `reg query HKCU\Software\Adobe`
+   (cerca le chiavi `CSXS.11`, `CSXS.12`…). Poi, sulla più alta (probabilmente 12):
+   `reg add HKCU\Software\Adobe\CSXS.12 /v PlayerDebugMode /t REG_SZ /d 1 /f`
+3. Attiva la **Modalità sviluppatore** di Windows (Impostazioni → Sistema → Per sviluppatori): serve ai symlink.
+4. `pnpm -F illustrator build` → crea `apps/illustrator/dist/cep` e il collegamento nella cartella delle
+   estensioni CEP dell'utente (se manca: `pnpm -F illustrator symlink`).
+5. Riavvia Illustrator → **Finestra → Estensioni → Compasso**.
+6. Sviluppo con ricarica automatica: `pnpm -F illustrator dev` (il pannello si collega a localhost:3000).
+7. Debug: Chrome su `http://localhost:8860` (porta nel file `dist/cep/.debug`).
+8. Prova: seleziona un logo → anteprima e numeri; apri lo stesso SVG nell'harness (`pnpm dev`) e confronta
+   «N tracciati · N cerchi, N linee», anomalie e misure. Prova anche: tavola non all'origine, gruppi,
+   tracciati composti, testo vivo (avviso, nessuna copia rimasta), maschere, tema chiaro/scuro.
+   Il pulsante DISEGNA mostra «arriva con il prossimo aggiornamento» (Fase 5).
 
 ## Ambiente
 - Fasi 1–3: sessione cloud Linux — Node 22, pnpm 10, Git.
-- Illustrator (Fasi 4+): PC Windows dell'autore. Versione esatta di Illustrator 2026: **da annotare** (Aiuto → Informazioni su Illustrator).
+- Illustrator (Fasi 4+): PC Windows dell'autore, **Illustrator 2026 v31.0**.
 
 ## Fatto
 - [x] Fase 0: `docs/SPEC.md`, `CLAUDE.md`, `docs/STATO.md`.
@@ -54,8 +64,24 @@ analizza in un Web Worker; DISEGNA COSTRUZIONE disegna il piano sulla tavola cen
   - 177 test verdi (nuovi: testi EN/IT, nomi, findings, anteprima, copia misure); typecheck (tsc + svelte-check) e lint (ESLint + Prettier, anche `.svelte`) verdi;
   - verifica nel browser con Playwright: nessun errore in console.
 
+- [x] Fase 4 (parte cloud):
+  - `apps/illustrator` da Bolt CEP 2.2.3 (Svelte, solo ILST), id `com.marcodolce.compasso`, host `ILST [31.0,99.9]`, CSXS 11.0, pannello 320×720 (min 280×420), icone proprie;
+  - Bolt resta con le sue versioni (Vite 6, plugin Svelte 5, TS 5.9) dentro il monorepo e importa `@compasso/core` e `@compasso/ui` via workspace (§5.2);
+  - `src/jsx/ilst/extract.ts`: estrazione §6.1 (gruppi, composti, testo vivo su copia poi eliminata, maschere ignorate, guide/nascosti esclusi, Y invertita rispetto alla tavola attiva, avvisi §4.6); `ilst.ts`: `extractSelection`, `getSelectionFingerprint`, `getDocInfo` (una evalScript ciascuna); ExtendScript in TS → ES3 con Babel + json2;
+  - pannello: polling dell'impronta ogni 800 ms (sospeso se il pannello è nascosto; refresh su cambio documento), conferma oltre 3.000 anchor, analisi in worker incluso nel bundle con ripiego nel thread del pannello, tema sincronizzato (token chiari per le interfacce chiare);
+  - test: parità harness ↔ Illustrator su tutte le fixture con tavola fuori origine; casi limite; il bundle ES3 compilato eseguito in una sandbox Node con un finto `app`. 219 test verdi; typecheck e lint verdi.
+- Evento di cambio selezione (§8.4): Illustrator non ne espone uno ai pannelli CEP, quindi si usa il polling dell'impronta.
+
 ## Da fare
-- [ ] Fase 4 — Illustrator: lettura della selezione (Bolt CEP, `extractSelection()`, anteprima live). Serve il PC Windows con Illustrator 2026.
+- [ ] Fase 4: verifica su Windows (guida sopra) e checklist.
+- [ ] Fase 5 — disegno (`drawPlan`, `removeConstruction`, `hasConstruction`).
+
+## Proposte aperte (da decidere)
+- **Flusso «schizzo a mano → foto → Ricalco immagine → Compasso» (idea di Marco, 10/11/2026).** È il caso d'uso principale. Conseguenze:
+  1. calibrare le soglie su loghi *ricalcati* (molti anchor, curve irregolari): servono fixture vere (15 «logo a mano») e forse un preset dedicato «Ricalco» più morbido di Morbida;
+  2. anticipare **«Ricostruisci perfetto»** (Fase 8, §4.3): su una copia, sostituire le curve quasi circolari con archi esatti, raddrizzare le quasi-rette, allineare gli anchor quasi in riga, simmetrizzare. È ciò che rende il logo «preciso e perfetto»;
+  3. anomalie raggruppate per tipo (sui ricalchi saranno decine).
+  Proposta di ordine: MVP (Fasi 4–5) → «Ricostruisci perfetto» subito dopo, prima di Misure/rifinitura.
 
 ## Decisioni prese durante lo sviluppo
 - **Livello Essenziale e pari merito (approvato 10/11/2026):** raggiunto il 60% di L_tot (§6.10), entrano ancora gli elementi con punteggio uguale all'ultimo incluso. Golden aggiornati: 05 (4° cerchio) e 11 (una retta).

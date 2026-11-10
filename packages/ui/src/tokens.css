@@ -77,3 +77,21 @@
   --sz-halo: 3px;
   --sz-halo-pulse: 5px;
 }
+
+/* Tema chiaro: interfacce di Illustrator "chiara" e "media chiara" (§8.5).
+   --c-bg-panel arriva dall'host; qui solo i colori che devono contrastare. */
+:root[data-theme='light'] {
+  --c-bg-card: #e4e4e4;
+  --c-bg-raised: #d2d2d2;
+  --c-border: #c2c2c2;
+  --c-border-strong: #a8a8a8;
+  --c-text: #1d1d1d;
+  --c-text-2: #4d4d4d;
+  --c-text-3: #737373;
+  --c-accent: #0a8fcc;
+  --c-on-accent: #ffffff;
+  --c-accent-dim: #0a8fcc2e;
+  --c-preview-bg: #f4f4f4;
+  --c-preview-logo: #cfcfcf;
+  --c-preview-line: #3a3a3a;
+}

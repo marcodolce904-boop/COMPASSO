@@ -6,3 +6,6 @@ docs
 CLAUDE.md
 fixtures/svg
 fixtures/expected
+apps/illustrator/src/js/lib
+apps/illustrator/src/jsx/lib
+**/dist

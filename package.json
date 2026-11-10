@@ -7,7 +7,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.json --noEmit && pnpm -F @compasso/ui -F harness typecheck",
+    "typecheck": "tsc -p tsconfig.json --noEmit && pnpm -F @compasso/ui -F harness -F illustrator typecheck",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "bench": "tsx scripts/bench.ts",
