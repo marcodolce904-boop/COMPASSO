@@ -136,8 +136,11 @@ export function drawPlan(doc: AiDrawDocument | null, plan: PPlan, env: ColorEnv)
 
   var cmyk = env.isCMYK(doc.documentColorSpace);
   var c = plan.style.color;
-  var stroke =
-    c === 'auto' ? (cmyk ? env.cmyk(0, 0, 0, 60) : env.rgb(122, 122, 122)) : env.rgb(c.r, c.g, c.b);
+  // if/else, NON condizionali annidati: ExtendScript non li sa leggere ("Previsto: :")
+  var stroke: unknown;
+  if (c !== 'auto') stroke = env.rgb(c.r, c.g, c.b);
+  else if (cmyk) stroke = env.cmyk(0, 0, 0, 60);
+  else stroke = env.rgb(122, 122, 122);
   var unitFill = cmyk ? env.cmyk(0, 0, 0, 20) : env.rgb(204, 204, 204);
 
   var root = doc.layers.add(); // il nuovo layer va in cima alla pila

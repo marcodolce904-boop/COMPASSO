@@ -33,7 +33,8 @@ export default tseslint.config(
   {
     // ExtendScript (ES3 dopo Babel): `var` voluto, come nel codice che gira nell'host
     files: ['apps/illustrator/src/jsx/**/*.ts'],
-    rules: { 'no-var': 'off' },
+    // no-nested-ternary: ExtendScript non analizza i condizionali annidati (errore «Previsto: :»)
+    rules: { 'no-var': 'off', 'no-nested-ternary': 'error' },
   },
   {
     // Regola d'oro §5.5: core non importa da ui, dalle app né dal DOM.

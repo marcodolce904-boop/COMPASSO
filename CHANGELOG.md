@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 — 10/11/2026
+
+- **Corretto l'errore che impediva al pannello di funzionare in Illustrator** («Previsto: : (riga 224)»):
+  lo script conteneva un'espressione condizionale annidata che il motore di script di Illustrator non sa leggere.
+  Una regola automatica ora le vieta in tutto il codice per Illustrator.
+
 ## 0.2.2 — 10/11/2026
 
 - **Caricamento dello script di Illustrator verificato**: il pannello controlla che Illustrator risponda e,
