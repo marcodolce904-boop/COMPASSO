@@ -73,8 +73,8 @@ pnpm test && pnpm typecheck && pnpm lint
 pnpm -F illustrator build  # pannello in apps/illustrator/dist/cep
 ```
 
-Una release si crea con un tag: `git tag v0.1.1 && git push origin v0.1.1` → GitHub Actions firma
-`Compasso.zxp` su Windows, compone lo ZIP e pubblica la release.
+Nuova release: aumenta `version` in `apps/illustrator/package.json` e fai push su `main` →
+GitHub Actions firma `Compasso.zxp` su Windows, compone lo ZIP, crea il tag `v<versione>` e pubblica la release.
 Specifica completa: [`docs/SPEC.md`](docs/SPEC.md) · stato: [`docs/STATO.md`](docs/STATO.md).
 
 Copyright © 2026 Marco Dolce — vedi [LICENSE](LICENSE.md) e [componenti di terze parti](THIRD-PARTY-NOTICES.md).

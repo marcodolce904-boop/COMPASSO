@@ -1,18 +1,41 @@
 name: Release
 
-# Un tag «v*» (es. v0.1.0) crea la release scaricabile:
+# Release automatica: a ogni push su main, se la versione di apps/illustrator/package.json
+# non ha ancora una release (tag v<versione>), la crea:
 #  1. su Windows: build e firma del pannello → Compasso.zxp (certificato self-signed);
-#  2. su Linux: ZIP con .zxp + installer a doppio clic + istruzioni, e pubblicazione.
+#  2. su Linux: ZIP con .zxp + installer a doppio clic + istruzioni, tag e pubblicazione.
+# Per una nuova versione basta aumentare "version" in apps/illustrator/package.json.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./apps/illustrator/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"; echo "v$VERSION esiste già: niente da pubblicare"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"; echo "Nuova release v$VERSION"
+          fi
+
   zxp:
+    needs: check
+    if: needs.check.outputs.release == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +53,7 @@ jobs:
           if-no-files-found: error
 
   package:
-    needs: zxp
+    needs: [check, zxp]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,10 +70,11 @@ jobs:
           name: Compasso
           path: release/*
       - name: Pubblica la release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: Compasso ${{ github.ref_name }}
+          tag_name: v${{ needs.check.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Compasso ${{ needs.check.outputs.version }}
           prerelease: true
           files: |
             release/Compasso-Windows-macOS.zip
