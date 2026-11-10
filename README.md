@@ -8,7 +8,7 @@ dell'1%, un anchor fuori riga di 0,3 pt.
 
 ![Compasso: costruzione disegnata e pannello](site/img/costruzione.png)
 
-> **Versione 0.2.0 (anteprima)** — per Adobe Illustrator 2026 e successivi, su **Windows**.
+> **Versione 0.2.1 (anteprima)** — per Adobe Illustrator 2026 e successivi, su **Windows**.
 
 ## Scarica e installa
 

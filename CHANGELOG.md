@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 — 10/11/2026
+
+- **Corretto l'errore «JSON non definito»** all'apertura del pannello: nella 0.2.0 lo script per Illustrator
+  veniva compilato senza la libreria JSON, quindi nessuna funzione rispondeva.
+
 ## 0.2.0 — 10/11/2026
 
 - **Nuovo installer per Windows: un solo file, `Compasso-Setup.exe`.** Doppio clic → Installa → Fine.

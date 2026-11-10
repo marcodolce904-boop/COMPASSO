@@ -102,6 +102,17 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     expect(nonAscii).toBe(0);
   });
 
+  it('include json2: funziona anche senza JSON di sistema, come in Illustrator', () => {
+    const $: Record<string, unknown> = {};
+    const out = runInNewContext(
+      'delete this.JSON; var before = typeof JSON; ' +
+        code +
+        '; [before, typeof JSON.stringify, JSON.stringify({ a: [1, "x"] })]',
+      { $, app: { documents: { length: 0 } }, BridgeTalk: { appName: 'illustrator' } },
+    ) as string[];
+    expect(Array.from(out)).toEqual(['undefined', 'function', '{"a":[1,"x"]}']);
+  });
+
   it('non usa API assenti in ExtendScript (ES3)', () => {
     expect(code).not.toMatch(
       /Object\.(freeze|defineProperty|keys|assign)|Array\.isArray|=>|\blet\b|\bconst\b/,

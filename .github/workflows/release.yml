@@ -66,6 +66,9 @@ jobs:
           if (Select-String -Path (Join-Path $env:EXT_DIR 'main\index.html') -Pattern 'localhost' -Quiet) {
             throw "index.html punta al server di sviluppo"
           }
+          if (-not (Select-String -Path (Join-Path $env:EXT_DIR 'jsx\index.js') -Pattern 'typeof JSON' -SimpleMatch -Quiet)) {
+            throw "jsx/index.js non contiene la libreria JSON (json2)"
+          }
           & $env:ZXPSIGN -verify $env:EXT_DIR
           if ($LASTEXITCODE -ne 0) { throw "firma non valida sulla cartella estratta" }
 
