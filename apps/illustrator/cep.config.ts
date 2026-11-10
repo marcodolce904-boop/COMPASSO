@@ -38,7 +38,7 @@ const config: CEP_Config = {
   zxp: {
     country: 'IT',
     province: 'IT',
-    org: 'Marco Dolce',
+    org: 'MarcoDolce', // senza spazi: vite-cep-plugin non mette tra virgolette gli argomenti di ZXPSignCmd
     password: 'password', // certificato self-signed per uso personale (§8.7)
     tsa: ['http://timestamp.digicert.com/', 'http://timestamp.apple.com/ts01'],
     allowSkipTSA: false,
