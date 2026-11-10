@@ -11,10 +11,12 @@
   import { version } from '../../shared/shared';
   import { createAnalyzer } from './analyzer';
   import { applyHostTheme } from './theme';
+  import { loadHost } from './host';
 
   const POLL_MS = 800; // §8.4: polling leggero dell'impronta della selezione
   const LOADING_DELAY_MS = 300; // §4.6: indicatore solo per analisi lente
   const MANY_ANCHORS = 3000;
+  const HOST_RETRY_MS = 3000;
 
   let lang = $state<Lang>('en');
   let tolerance = $state<TolerancePreset>('normal');
@@ -25,9 +27,11 @@
   let drawn = $state(false);
 
   let fingerprint = '';
+  let hostError = false; // l'avviso mostrato riguarda la comunicazione con Illustrator
   let reading = false;
   let loadingTimer: ReturnType<typeof setTimeout> | undefined;
   let pollTimer: ReturnType<typeof setInterval> | undefined;
+  let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
   const analyzer = createAnalyzer((r) => {
     clearTimeout(loadingTimer);
@@ -62,7 +66,12 @@
     reading = true;
     try {
       const raw = await evalTS('getSelectionFingerprint');
-      const [fp = '', layer] = raw.split('#');
+      if (hostError) {
+        // Illustrator ha risposto: un avviso precedente non è più attuale
+        hostError = false;
+        error = null;
+      }
+      const [fp = '', layer] = String(raw ?? '').split('#');
       drawn = layer === '1';
       if (!force && fp === fingerprint) return;
       fingerprint = fp;
@@ -80,6 +89,7 @@
     } catch (e) {
       // errore dell'host: messaggio comprensibile nel pannello, dettagli in console (§4.6)
       console.error('[compasso] errore di Illustrator', e);
+      hostError = true;
       error = t(lang, 'error.host', { msg: String(e) });
     } finally {
       reading = false;
@@ -105,6 +115,24 @@
       console.error('[compasso] rimozione non riuscita', e);
       error = t(lang, 'error.host', { msg: String(e) });
     }
+  }
+
+  /** Avvio: lo script di Illustrator deve rispondere prima di leggere la selezione. */
+  async function start() {
+    const h = await loadHost();
+    if (!h.ok) {
+      // diagnosi precisa nel pannello; si riprova finché Illustrator non risponde
+      hostError = true;
+      error = t(lang, 'error.hostLoad', { msg: h.detail });
+      retryTimer = setTimeout(() => void start(), HOST_RETRY_MS);
+      return;
+    }
+    if (hostError) {
+      hostError = false;
+      error = null;
+    }
+    void refresh(true);
+    pollTimer = setInterval(() => void refresh(), POLL_MS);
   }
 
   // cambiare tolleranza rianalizza la stessa geometria, senza rileggere il documento
@@ -136,10 +164,12 @@
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) void refresh(true);
     });
-    void refresh(true);
-    pollTimer = setInterval(() => void refresh(), POLL_MS);
+    void start();
   });
-  onDestroy(() => clearInterval(pollTimer));
+  onDestroy(() => {
+    clearInterval(pollTimer);
+    clearTimeout(retryTimer);
+  });
 </script>
 
 <div class="host">

@@ -98,6 +98,8 @@ const en = {
   'error.generic': 'Analysis failed: {msg}',
   'error.dismiss': 'Dismiss',
   'error.host': 'Illustrator did not respond: {msg}',
+  'error.hostLoad':
+    'Compasso could not start its Illustrator script. Please send this message to the developer: {msg}',
   'confirm.manyAnchors':
     'The selection has {n} anchors: the analysis may take a few seconds. Continue?',
   'warning.live-text-outlined': 'Live text was analysed on an outlined copy.',
@@ -215,6 +217,8 @@ const it: Record<StringKey, string> = {
   'error.generic': 'Analisi non riuscita: {msg}',
   'error.dismiss': 'Chiudi',
   'error.host': 'Illustrator non ha risposto: {msg}',
+  'error.hostLoad':
+    'Compasso non riesce ad avviare il suo script in Illustrator. Invia questo messaggio allo sviluppatore: {msg}',
   'confirm.manyAnchors':
     'La selezione ha {n} anchor: l’analisi può richiedere qualche secondo. Continuare?',
   'warning.live-text-outlined':

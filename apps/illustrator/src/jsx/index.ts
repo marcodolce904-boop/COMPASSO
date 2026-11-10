@@ -2,8 +2,23 @@
 // Ingresso ExtendScript (da Bolt CEP): registra le funzioni di Illustrator sotto l'id del pannello.
 import { ns } from '../shared/shared';
 import type { Scripts } from '../shared/es-types';
-import * as ilst from './ilst/ilst';
+import {
+  drawPlan,
+  extractSelection,
+  getDocInfo,
+  getSelectionFingerprint,
+  hasConstruction,
+  removeConstruction,
+} from './ilst/ilst';
 
+// Oggetto esplicito (non `import *`): evita l'oggetto-namespace con `__proto__: null`.
 // La firma pubblica sta in src/shared/es-types (usata dal pannello): qui si verifica che coincida.
-const api: Scripts = ilst;
+var api: Scripts = {
+  drawPlan: drawPlan,
+  extractSelection: extractSelection,
+  getDocInfo: getDocInfo,
+  getSelectionFingerprint: getSelectionFingerprint,
+  hasConstruction: hasConstruction,
+  removeConstruction: removeConstruction,
+};
 ($ as unknown as Record<string, Scripts>)[ns] = api;

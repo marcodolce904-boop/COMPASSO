@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2 — 10/11/2026
+
+- **Caricamento dello script di Illustrator verificato**: il pannello controlla che Illustrator risponda e,
+  se il caricamento standard non riesce, riprova in altri due modi. Se fallisce comunque, mostra il motivo
+  esatto (messaggio e riga) invece di «JSON non definito».
+- Script per Illustrator reso più conservativo (niente `try/finally` senza `catch`, niente `__proto__`).
+- Corretto: un errore comparso una sola volta all'avvio restava visibile anche quando tutto funzionava.
+
 ## 0.2.1 — 10/11/2026
 
 - **Corretto l'errore «JSON non definito»** all'apertura del pannello: nella 0.2.0 lo script per Illustrator

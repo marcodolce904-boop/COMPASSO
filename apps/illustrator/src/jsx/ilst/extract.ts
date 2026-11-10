@@ -197,18 +197,23 @@ export function extractSelection(doc: AiDocument | null): ExtractResult {
     anchors: 0,
     temp: [],
   };
+  var failure: unknown = null;
+  var failed = false;
   try {
     for (var i = 0; i < sel.length; i++) visit(ctx, sel[i], null);
-  } finally {
-    for (var k = 0; k < ctx.temp.length; k++) {
-      try {
-        if (ctx.temp[k].remove) ctx.temp[k].remove!();
-      } catch (e) {
-        // la copia potrebbe essere già stata rimossa: niente da fare
-        void e;
-      }
+  } catch (err) {
+    failed = true;
+    failure = err;
+  }
+  // le copie temporanee del testo vanno eliminate comunque
+  for (var k = 0; k < ctx.temp.length; k++) {
+    try {
+      if (ctx.temp[k].remove) ctx.temp[k].remove!();
+    } catch (e) {
+      void e;
     }
   }
+  if (failed) throw failure;
   if (ctx.paths.length === 0) return { ok: false, reason: 'no-paths' };
   if (ctx.anchors > MANY_ANCHORS) ctx.warn['too-many-anchors'] = true;
   var warnings: XWarning[] = [];

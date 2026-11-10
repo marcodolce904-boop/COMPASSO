@@ -56,11 +56,19 @@ function activeDocument(): AiDocument | null {
 function withDocumentCoordinates<T>(fn: () => T): T {
   var previous = app.coordinateSystem;
   app.coordinateSystem = CoordinateSystem.DOCUMENTCOORDINATESYSTEM;
+  var result: T | undefined;
+  var failure: unknown = null;
+  var failed = false;
+  // try/catch esplicito (niente try/finally): massima compatibilita' con ExtendScript
   try {
-    return fn();
-  } finally {
-    app.coordinateSystem = previous;
+    result = fn();
+  } catch (e) {
+    failed = true;
+    failure = e;
   }
+  app.coordinateSystem = previous;
+  if (failed) throw failure;
+  return result as T;
 }
 
 /** §8.3: geometria della selezione (DocumentGeometry) o il motivo per cui non c'è. */
