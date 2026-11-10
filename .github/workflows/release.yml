@@ -1,0 +1,68 @@
+name: Release
+
+# Un tag «v*» (es. v0.1.0) crea la release scaricabile:
+#  1. su Windows: build e firma del pannello → Compasso.zxp (certificato self-signed);
+#  2. su Linux: ZIP con .zxp + installer a doppio clic + istruzioni, e pubblicazione.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  zxp:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -F illustrator zxp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zxp
+          path: apps/illustrator/dist/zxp/*.zxp
+          if-no-files-found: error
+
+  package:
+    needs: zxp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: zxp
+          path: zxp
+      - run: scripts/package-release.sh "$(ls zxp/*.zxp | head -n 1)" release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Compasso
+          path: release/*
+      - name: Pubblica la release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Compasso ${{ github.ref_name }}
+          prerelease: true
+          files: |
+            release/Compasso-Windows-macOS.zip
+            release/Compasso.zxp
+          body: |
+            **Compasso** per Adobe Illustrator 2026 (v31) e successivi — Windows e macOS.
+
+            ### Installazione (1 minuto)
+            1. Scarica **Compasso-Windows-macOS.zip** qui sotto ed estrai tutto.
+            2. Chiudi Illustrator e fai doppio clic su **Installa Compasso (Windows).bat** o **Installa Compasso (macOS).command**.
+            3. Apri Illustrator → **Finestra → Estensioni → Compasso**.
+
+            Usi già «ZXP Installer»? Scarica solo **Compasso.zxp** e trascinalo nella sua finestra.
+
+            Novità: vedi [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).

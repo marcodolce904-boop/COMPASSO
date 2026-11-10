@@ -60,6 +60,7 @@ export interface AiItem {
   createOutline?: () => AiItem;
   remove?: () => void;
   geometricBounds?: number[];
+  layer?: { name: string };
 }
 export interface AiDocument {
   name?: string;
@@ -129,8 +130,20 @@ function readPath(ctx: Ctx, item: AiItem, glyphId: string | null, style: AiItem)
   ctx.paths.push(path);
 }
 
+/** Layer della costruzione di Compasso: i suoi oggetti non fanno parte del logo. */
+export var CONSTRUCTION_LAYER = 'Compasso — Construction';
+
+function inConstructionLayer(item: AiItem): boolean {
+  var l = item.layer as { name: string; parent?: { name?: string; typename?: string } } | undefined;
+  while (l) {
+    if (l.name === CONSTRUCTION_LAYER) return true;
+    l = l.parent && l.parent.typename === 'Layer' ? (l.parent as { name: string }) : undefined;
+  }
+  return false;
+}
+
 function visit(ctx: Ctx, item: AiItem, glyphId: string | null): void {
-  if (!item || item.hidden) return;
+  if (!item || item.hidden || inConstructionLayer(item)) return;
   var t = item.typename;
   if (t === 'PathItem') {
     readPath(ctx, item, glyphId, item);

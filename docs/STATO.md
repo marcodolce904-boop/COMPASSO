@@ -3,8 +3,9 @@
 Aggiornato da Claude Code a fine fase. Le decisioni stanno in `docs/SPEC.md` §2.
 
 ## Fase corrente
-**Fase 4 — Illustrator: lettura.** Codice pronto e verificato in cloud; manca la **verifica sul PC Windows**
-(guida qui sotto). «Fatto quando»: selezionando un logo in Illustrator l'anteprima è corretta e i numeri
+**Fasi 4–5 — Illustrator: lettura e disegno + release 0.1.0 (anteprima).** Codice pronto e verificato in
+cloud; manca la **verifica in Illustrator**. Per gli utenti: README («Scarica e installa»). Per lo sviluppo:
+guida qui sotto. «Fatto quando»: selezionando un logo in Illustrator l'anteprima è corretta e i numeri
 coincidono con quelli dell'harness sullo stesso SVG.
 
 ### Fase 4 — guida per Windows (Illustrator 2026 v31.0)
@@ -72,9 +73,16 @@ coincidono con quelli dell'harness sullo stesso SVG.
   - test: parità harness ↔ Illustrator su tutte le fixture con tavola fuori origine; casi limite; il bundle ES3 compilato eseguito in una sandbox Node con un finto `app`. 219 test verdi; typecheck e lint verdi.
 - Evento di cambio selezione (§8.4): Illustrator non ne espone uno ai pannelli CEP, quindi si usa il polling dell'impronta.
 
+- [x] Fase 5 (parte cloud): `drawPlan`, `removeConstruction`, `hasConstruction` (§8.1–8.3) in `src/jsx/ilst/draw.ts`: layer «Compasso — Construction» in cima con sotto-layer Circles/Lines/Axes/Markers/Specs, nomi `circle#c3 r=…`, grigio K60 (CMYK) o #7A7A7A (RGB), assi tratteggiati, quadrato x K20 con etichetta, layer bloccato; RIDISEGNA sostituisce, Rimuovi elimina; gli oggetti del layer di costruzione sono esclusi dall'analisi; l'impronta riporta anche la presenza del layer (DISEGNA/RIDISEGNA coerente dopo Ctrl+Z). Testato sul bundle ES3 compilato con un finto DOM.
+- [x] Distribuzione 0.1.0 (anteprima, 10/11/2026):
+  - `installer/`: installer a doppio clic Windows (.bat) e macOS (.command) che installano `Compasso.zxp` con l'installatore ufficiale di Adobe (UPIA); niente modifiche a PlayerDebugMode/registro; alternativa ZXP Installer; LEGGIMI/README;
+  - `.github/workflows/release.yml`: tag `v*` → firma `.zxp` su Windows (self-signed), ZIP su Linux (`scripts/package-release.sh`), release su GitHub con `Compasso-Windows-macOS.zip` e `Compasso.zxp`;
+  - `ci.yml` (test, typecheck, lint a ogni push su main), `pages.yml` (pagina `site/` su GitHub Pages);
+  - README per l'utente, pagina descrittiva `site/index.html`, CHANGELOG, LICENSE (tutti i diritti riservati finché D10 non è decisa), THIRD-PARTY-NOTICES.
+
 ## Da fare
-- [ ] Fase 4: verifica su Windows (guida sopra) e checklist.
-- [ ] Fase 5 — disegno (`drawPlan`, `removeConstruction`, `hasConstruction`).
+- [ ] Verifica in Illustrator 2026 su Windows (e macOS): installazione dallo ZIP, lettura, anteprima, disegno, checklist §10.4.
+- [ ] Rendere il repository pubblico (o scegliere un altro canale, D10) perché chiunque possa scaricare; attivare GitHub Pages.
 
 ## Proposte aperte (da decidere)
 - **Flusso «schizzo a mano → foto → Ricalco immagine → Compasso» (idea di Marco, 10/11/2026).** È il caso d'uso principale. Conseguenze:

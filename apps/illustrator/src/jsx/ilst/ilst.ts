@@ -7,6 +7,46 @@ import {
   type ExtractResult,
 } from './extract';
 import type { DocInfo } from '../../shared/es-types';
+import {
+  drawPlan as draw,
+  findLayer,
+  removeConstruction as remove,
+  type AiDrawDocument,
+  type ColorEnv,
+  type DrawResult,
+  type PPlan,
+} from './draw';
+
+/** Nome del layer di costruzione (§8.1); deve coincidere con LAYER_NAME del core. */
+var LAYER_NAME = 'Compasso — Construction';
+
+function drawDocument(): AiDrawDocument | null {
+  return app.documents.length > 0 ? (app.activeDocument as unknown as AiDrawDocument) : null;
+}
+
+var colorEnv: ColorEnv = {
+  isCMYK: function (space) {
+    return space === DocumentColorSpace.CMYK;
+  },
+  cmyk: function (c, m, y, k) {
+    var col = new CMYKColor();
+    col.cyan = c;
+    col.magenta = m;
+    col.yellow = y;
+    col.black = k;
+    return col;
+  },
+  rgb: function (r, g, b) {
+    var col = new RGBColor();
+    col.red = r;
+    col.green = g;
+    col.blue = b;
+    return col;
+  },
+  now: function () {
+    return new Date().getTime();
+  },
+};
 
 function activeDocument(): AiDocument | null {
   return app.documents.length > 0 ? (app.activeDocument as unknown as AiDocument) : null;
@@ -30,9 +70,14 @@ export const extractSelection = (): ExtractResult => {
   });
 };
 
-/** §8.4: impronta della selezione per il polling. */
+/**
+ * §8.4: impronta della selezione per il polling, più «#1» o «#0» se il layer di costruzione
+ * esiste: una sola chiamata tiene allineato anche il pulsante DISEGNA/RIDISEGNA (es. dopo Ctrl+Z).
+ */
 export const getSelectionFingerprint = (): string => {
-  return selectionFingerprint(activeDocument());
+  var doc = drawDocument();
+  var drawn = doc !== null && findLayer(doc, LAYER_NAME) !== null;
+  return selectionFingerprint(activeDocument()) + (drawn ? '#1' : '#0');
 };
 
 /** §8.3: modalità colore, tavola attiva e unità del documento. */
@@ -45,4 +90,22 @@ export const getDocInfo = (): DocInfo => {
     colorMode: doc.documentColorSpace === DocumentColorSpace.CMYK ? 'cmyk' : 'rgb',
     artboard: doc.artboards.getActiveArtboardIndex(),
   };
+};
+
+/** §8.3: disegna il piano (una sola chiamata per tutto il disegno). */
+export const drawPlan = (plan: PPlan): DrawResult => {
+  return withDocumentCoordinates(function () {
+    return draw(drawDocument(), plan, colorEnv);
+  });
+};
+
+/** §8.3: elimina il layer di costruzione. */
+export const removeConstruction = (): boolean => {
+  return remove(drawDocument(), LAYER_NAME);
+};
+
+/** §8.3: c'è già un layer di costruzione? (il pulsante diventa RIDISEGNA) */
+export const hasConstruction = (): boolean => {
+  var doc = drawDocument();
+  return doc !== null && findLayer(doc, LAYER_NAME) !== null;
 };

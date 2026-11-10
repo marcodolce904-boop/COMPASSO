@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import type { AnalysisResult, DocumentGeometry, TolerancePreset } from '@compasso/core';
+  import type {
+    AnalysisResult,
+    ConstructionPlan,
+    DocumentGeometry,
+    TolerancePreset,
+  } from '@compasso/core';
   import { Panel, t, type Lang, type PanelStatus } from '@compasso/ui';
   import { csi, evalTS, subscribeBackgroundColor } from '../lib/utils/bolt';
   import { version } from '../../shared/shared';
@@ -17,6 +22,7 @@
   let result = $state<AnalysisResult | null>(null);
   let status = $state<PanelStatus>('empty');
   let error = $state<string | null>(null);
+  let drawn = $state(false);
 
   let fingerprint = '';
   let reading = false;
@@ -55,7 +61,9 @@
     if (reading || document.hidden) return;
     reading = true;
     try {
-      const fp = await evalTS('getSelectionFingerprint');
+      const raw = await evalTS('getSelectionFingerprint');
+      const [fp = '', layer] = raw.split('#');
+      drawn = layer === '1';
       if (!force && fp === fingerprint) return;
       fingerprint = fp;
       const res = await evalTS('extractSelection');
@@ -75,6 +83,27 @@
       error = t(lang, 'error.host', { msg: String(e) });
     } finally {
       reading = false;
+    }
+  }
+
+  async function drawConstruction(plan: ConstructionPlan) {
+    try {
+      const r = await evalTS('drawPlan', plan);
+      if (r.ok) drawn = true;
+      console.info(`[compasso] disegnati ${r.count} oggetti in ${r.ms} ms`);
+    } catch (e) {
+      console.error('[compasso] disegno non riuscito', e);
+      error = t(lang, 'error.host', { msg: String(e) });
+    }
+  }
+
+  async function removeConstruction() {
+    try {
+      await evalTS('removeConstruction');
+      drawn = false;
+    } catch (e) {
+      console.error('[compasso] rimozione non riuscita', e);
+      error = t(lang, 'error.host', { msg: String(e) });
     }
   }
 
@@ -108,11 +137,11 @@
     {status}
     {error}
     {version}
-    drawn={false}
+    {drawn}
     bind:lang
     bind:tolerance
-    onDraw={() => (error = t(lang, 'dev.drawSoon'))}
-    onRemove={() => {}}
+    onDraw={drawConstruction}
+    onRemove={removeConstruction}
     onDismissError={() => (error = null)}
   />
 </div>

@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Compasso — la costruzione geometrica del tuo logo</title>
+    <meta
+      name="description"
+      content="Plugin per Adobe Illustrator: deduce dai tracciati del logo cerchi, rette, assi, unità x e area di rispetto, e segnala le imprecisioni invisibili."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23232323'/%3E%3Cg fill='none' stroke='%233ec6ff' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='16' cy='8' r='2.6'/%3E%3Cpath d='M14.6 10.2 8 26M17.4 10.2 24 26M7 21.5c5.5 3 12.5 3 18 0'/%3E%3C/g%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --bg: #1b1b1b;
+        --bg-2: #232323;
+        --bg-3: #2f2f2f;
+        --border: #3a3a3a;
+        --text: #ededed;
+        --text-2: #a9a9a9;
+        --text-3: #7a7a7a;
+        --accent: #3ec6ff;
+        --on-accent: #0b1b24;
+        --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --wrap: 1080px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font: 400 17px/1.6 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--accent);
+      }
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+      .wrap {
+        max-width: var(--wrap);
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+      .caps {
+        font: 600 12px var(--mono);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-2);
+      }
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 0;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font: 700 14px var(--mono);
+        letter-spacing: 0.14em;
+      }
+      nav a.gh {
+        color: var(--text-2);
+        text-decoration: none;
+        font-size: 14px;
+      }
+      /* hero */
+      .hero {
+        padding: 56px 0 40px;
+        display: grid;
+        gap: 28px;
+      }
+      h1 {
+        font: 650 clamp(34px, 6vw, 60px) / 1.05 var(--sans);
+        letter-spacing: -0.02em;
+        max-width: 15ch;
+      }
+      h1 em {
+        font-style: normal;
+        color: var(--accent);
+      }
+      .lead {
+        font-size: clamp(17px, 2.2vw, 20px);
+        color: var(--text-2);
+        max-width: 60ch;
+      }
+      .cta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 14px 20px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 24px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: var(--on-accent);
+        font: 700 14px var(--mono);
+        letter-spacing: 0.1em;
+        text-decoration: none;
+        transition: filter 0.12s;
+      }
+      .btn:hover {
+        filter: brightness(1.08);
+      }
+      .btn:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .meta {
+        color: var(--text-3);
+        font-size: 14px;
+      }
+      .shot {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: 0 30px 80px -30px #000;
+      }
+      section {
+        padding: 72px 0;
+        border-top: 1px solid var(--border);
+      }
+      h2 {
+        font: 650 clamp(26px, 3.6vw, 36px) / 1.15 var(--sans);
+        letter-spacing: -0.01em;
+        margin: 10px 0 28px;
+      }
+      /* passi */
+      .steps {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        counter-reset: s;
+      }
+      .step {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 22px;
+      }
+      .step::before {
+        counter-increment: s;
+        content: counter(s);
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: var(--on-accent);
+        font: 700 14px var(--mono);
+        margin-bottom: 14px;
+      }
+      .step h3 {
+        font-size: 18px;
+        margin-bottom: 6px;
+      }
+      .step p,
+      .feat p,
+      .faq p {
+        color: var(--text-2);
+        font-size: 15.5px;
+      }
+      code {
+        font: 500 0.88em var(--mono);
+        background: var(--bg-3);
+        padding: 1px 6px;
+        border-radius: 4px;
+        color: var(--text);
+      }
+      .note {
+        margin-top: 18px;
+        color: var(--text-3);
+        font-size: 14.5px;
+      }
+      /* funzioni */
+      .feat {
+        display: grid;
+        gap: 32px;
+        grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+        align-items: center;
+        padding: 28px 0;
+      }
+      .feat img {
+        border-radius: 8px;
+        border: 1px solid var(--border);
+      }
+      .feat h3 {
+        font-size: 22px;
+        margin: 8px 0 10px;
+      }
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .tags span {
+        font: 500 12.5px var(--mono);
+        color: var(--text-2);
+        border: 1px solid var(--border);
+        border-radius: 99px;
+        padding: 3px 10px;
+      }
+      .hand {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 8px;
+        padding: 24px;
+      }
+      .hand ol {
+        margin: 10px 0 0 20px;
+        color: var(--text-2);
+      }
+      .faq {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+      .faq h3 {
+        font-size: 16.5px;
+        margin-bottom: 4px;
+      }
+      footer {
+        padding: 36px 0 56px;
+        border-top: 1px solid var(--border);
+        color: var(--text-3);
+        font-size: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 24px;
+        justify-content: space-between;
+      }
+      @media (max-width: 720px) {
+        .feat {
+          grid-template-columns: 1fr;
+        }
+        .feat img {
+          max-width: 320px;
+        }
+        section {
+          padding: 52px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav>
+        <div class="brand">
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+            <g fill="none" stroke="#3ec6ff" stroke-width="2" stroke-linecap="round">
+              <circle cx="16" cy="8" r="2.6" />
+              <path d="M14.6 10.2 8 26M17.4 10.2 24 26M7 21.5c5.5 3 12.5 3 18 0" />
+            </g>
+          </svg>
+          COMPASSO
+        </div>
+        <a class="gh" href="https://github.com/marcodolce904-boop/COMPASSO">GitHub ↗</a>
+      </nav>
+
+      <header class="hero">
+        <p class="caps">Plugin per Adobe Illustrator</p>
+        <h1>La costruzione del tuo logo, <em>dedotta</em> dai suoi tracciati.</h1>
+        <p class="lead">
+          Selezioni il logo e Compasso trova i cerchi che le curve seguono, le rette, gli assi di
+          simmetria, l'unità x e l'area di rispetto. Poi la disegna su un layer dedicato. E ti
+          segnala le imprecisioni che l'occhio non vede.
+        </p>
+        <div class="cta">
+          <a
+            class="btn"
+            href="https://github.com/marcodolce904-boop/COMPASSO/releases/latest/download/Compasso-Windows-macOS.zip"
+            >↓ SCARICA COMPASSO</a
+          >
+          <span class="meta"
+            >Gratis · anteprima 0.1.0 · Windows e macOS · Illustrator 2026 (v31)+</span
+          >
+        </div>
+        <div class="shot">
+          <img
+            src="img/costruzione.png"
+            width="2400"
+            height="1520"
+            alt="Un rettangolo arrotondato con la sua costruzione: quattro cerchi uguali, rette tangenti, assi di simmetria tratteggiati; a destra il pannello di Compasso."
+          />
+        </div>
+      </header>
+    </div>
+
+    <section id="installa">
+      <div class="wrap">
+        <p class="caps">Installazione · 1 minuto</p>
+        <h2>Scarica, doppio clic, fatto.</h2>
+        <div class="steps">
+          <div class="step">
+            <h3>Scarica ed estrai</h3>
+            <p>
+              Scarica
+              <a
+                href="https://github.com/marcodolce904-boop/COMPASSO/releases/latest/download/Compasso-Windows-macOS.zip"
+                >lo ZIP</a
+              >
+              ed estrai tutto in una cartella.
+            </p>
+          </div>
+          <div class="step">
+            <h3>Doppio clic sull'installer</h3>
+            <p>
+              Chiudi Illustrator e apri <code>Installa Compasso (Windows).bat</code> oppure
+              <code>Installa Compasso (macOS).command</code>.
+            </p>
+          </div>
+          <div class="step">
+            <h3>Apri il pannello</h3>
+            <p>
+              In Illustrator: <strong>Finestra → Estensioni → Compasso</strong>. Seleziona il logo.
+            </p>
+          </div>
+        </div>
+        <p class="note">
+          L'installer usa l'installatore ufficiale di Adobe incluso in Creative Cloud. Windows può
+          chiedere conferma («Ulteriori informazioni → Esegui comunque»); su macOS: clic destro →
+          Apri. Usi già
+          <a href="https://aescripts.com/learn/zxp-installer/">ZXP Installer</a>? Scarica solo
+          <a
+            href="https://github.com/marcodolce904-boop/COMPASSO/releases/latest/download/Compasso.zxp"
+            >Compasso.zxp</a
+          >.
+        </p>
+      </div>
+    </section>
+
+    <section id="funzioni">
+      <div class="wrap">
+        <p class="caps">Cosa fa</p>
+        <h2>Tre schede, tutto quello che serve.</h2>
+
+        <div class="feat">
+          <img
+            src="img/pannello-geometria.png"
+            width="642"
+            height="1520"
+            alt="Scheda Geometria del pannello: anteprima live, livelli, spessore linea e marker."
+            loading="lazy"
+          />
+          <div>
+            <p class="caps">Geometria</p>
+            <h3>La costruzione, non una griglia preimpostata</h3>
+            <p>
+              Compasso legge le curve vere del logo: riconosce gli archi anche spezzati in più
+              tratti, unisce i cerchi uguali, trova tangenze, centri comuni e allineamenti. Scegli
+              quanta costruzione vedere e includi o escludi ogni elemento. L'anteprima è live; il
+              documento cambia solo quando premi <strong>Disegna</strong>.
+            </p>
+            <div class="tags">
+              <span>cerchi</span><span>rette</span><span>assi</span><span>tangenze</span
+              ><span>4 livelli</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="feat">
+          <img
+            src="img/pannello-anomalie.png"
+            width="642"
+            height="1520"
+            alt="Scheda Anomalie: elenco delle quasi-coincidenze con il delta in punti."
+            loading="lazy"
+          />
+          <div>
+            <p class="caps">Anomalie</p>
+            <h3>Gli errori invisibili, con il numero esatto</h3>
+            <p>
+              Una curva circolare al 99%, due raggi diversi dell'1%, un anchor fuori riga di 0,3 pt,
+              una simmetria quasi perfetta. Compasso li elenca per importanza e li evidenzia con un
+              clic.
+            </p>
+            <div class="tags">
+              <span>quasi-archi</span><span>raggi</span><span>allineamenti</span
+              ><span>simmetria</span><span>angoli</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="feat">
+          <img
+            src="img/pannello-misure.png"
+            width="642"
+            height="1520"
+            alt="Scheda Misure: unità x, bounding box, raggi, rapporti e area di rispetto."
+            loading="lazy"
+          />
+          <div>
+            <p class="caps">Misure</p>
+            <h3>Unità x e area di rispetto, pronte per il brand book</h3>
+            <p>
+              Lo spessore ricorrente dell'asta diventa l'unità x; da lì l'area di rispetto in
+              multipli di x, i raggi e i rapporti notevoli (aureo, √2, 2, 1,5). Un clic e le misure
+              sono negli appunti.
+            </p>
+            <div class="tags">
+              <span>unità x</span><span>proporzioni</span><span>rapporti</span
+              ><span>copia misure</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="a-mano">
+      <div class="wrap">
+        <div class="hand">
+          <p class="caps">Dal foglio al vettoriale preciso</p>
+          <h2 style="margin-bottom: 8px">Hai disegnato il logo a mano?</h2>
+          <ol>
+            <li>Fotografa lo schizzo e aprilo in Illustrator.</li>
+            <li><strong>Oggetto → Ricalco immagine</strong> per trasformarlo in tracciati.</li>
+            <li>Seleziona il risultato e, in Compasso, ⚙ → Tolleranza <strong>Morbida</strong>.</li>
+            <li>Leggi la costruzione che il disegno «voleva» avere e le anomalie da correggere.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <p class="caps">Domande frequenti</p>
+        <h2>Prima di iniziare</h2>
+        <div class="faq">
+          <div>
+            <h3>Quali versioni di Illustrator?</h3>
+            <p>Illustrator 2026 (v31) e successive, su Windows 10/11 e macOS.</p>
+          </div>
+          <div>
+            <h3>Modifica il mio file?</h3>
+            <p>
+              Solo quando premi Disegna, su un layer bloccato «Compasso — Construction» che rimuovi
+              con un clic.
+            </p>
+          </div>
+          <div>
+            <h3>Raccoglie dati?</h3>
+            <p>No. Lavora solo sul tuo computer, anche offline.</p>
+          </div>
+          <div>
+            <h3>In che lingua?</h3>
+            <p>Inglese o italiano: si cambia dalle impostazioni ⚙ del pannello.</p>
+          </div>
+          <div>
+            <h3>Come lo disinstallo?</h3>
+            <p>Doppio clic su «Disinstalla Compasso» nella cartella dello ZIP.</p>
+          </div>
+          <div>
+            <h3>Cosa arriva dopo?</h3>
+            <p>
+              Costruisci (progressioni di cerchi, griglie, «Ricostruisci perfetto») e Presenta
+              (tavola di presentazione).
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <footer>
+        <span>© 2026 Marco Dolce · Compasso è un'anteprima (beta)</span>
+        <span
+          ><a href="https://github.com/marcodolce904-boop/COMPASSO/blob/main/CHANGELOG.md"
+            >Novità</a
+          >
+          ·
+          <a href="https://github.com/marcodolce904-boop/COMPASSO/releases"
+            >Tutte le versioni</a
+          ></span
+        >
+      </footer>
+    </div>
+  </body>
+</html>
