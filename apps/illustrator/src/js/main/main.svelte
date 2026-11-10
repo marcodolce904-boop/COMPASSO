@@ -116,6 +116,18 @@
 
   onMount(() => {
     if (window.cep) {
+      // lingua iniziale: italiano se Illustrator è in italiano, altrimenti inglese (D9)
+      try {
+        const env = JSON.parse(window.__adobe_cep__.getHostEnvironment() as string);
+        if (
+          String(env.appLocale ?? '')
+            .toLowerCase()
+            .startsWith('it')
+        )
+          lang = 'it';
+      } catch (e) {
+        console.error('[compasso] lingua dell’host non leggibile', e);
+      }
       subscribeBackgroundColor(applyHostTheme);
       for (const ev of ['documentAfterActivate', 'documentAfterDeactivate']) {
         csi.addEventListener(ev, () => refresh(true));

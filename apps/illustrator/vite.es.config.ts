@@ -34,6 +34,7 @@ export const extendscriptConfig = (
         extensions,
         exclude: /node_modules/,
         babelrc: false,
+        comments: false, // bundle solo ASCII: i commenti (con accenti) non servono all'host
         babelHelpers: 'inline',
         presets: ['@babel/preset-env', '@babel/preset-typescript'],
         plugins: ['@babel/plugin-syntax-dynamic-import', '@babel/plugin-proposal-class-properties'],

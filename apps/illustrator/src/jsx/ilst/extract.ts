@@ -131,7 +131,9 @@ function readPath(ctx: Ctx, item: AiItem, glyphId: string | null, style: AiItem)
 }
 
 /** Layer della costruzione di Compasso: i suoi oggetti non fanno parte del logo. */
-export var CONSTRUCTION_LAYER = 'Compasso — Construction';
+// Il trattino lungo (U+2014) si costruisce con fromCharCode: i file ExtendScript devono restare
+// ASCII, altrimenti su Windows Illustrator puo' leggerli con la codifica sbagliata.
+export var CONSTRUCTION_LAYER = 'Compasso ' + String.fromCharCode(8212) + ' Construction';
 
 function inConstructionLayer(item: AiItem): boolean {
   var l = item.layer as { name: string; parent?: { name?: string; typename?: string } } | undefined;

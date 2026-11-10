@@ -96,6 +96,18 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     ].map((a) => ({ anchor: a, leftDirection: a, rightDirection: a })),
   };
 
+  it('è solo ASCII (Illustrator su Windows può leggere male gli altri caratteri)', () => {
+    let nonAscii = 0;
+    for (let i = 0; i < code.length; i++) if (code.charCodeAt(i) > 127) nonAscii++;
+    expect(nonAscii).toBe(0);
+  });
+
+  it('non usa API assenti in ExtendScript (ES3)', () => {
+    expect(code).not.toMatch(
+      /Object\.(freeze|defineProperty|keys|assign)|Array\.isArray|=>|\blet\b|\bconst\b/,
+    );
+  });
+
   it('registra le funzioni sotto l’id del pannello', () => {
     const { api } = host([square]);
     expect(Object.keys(api).sort()).toEqual([

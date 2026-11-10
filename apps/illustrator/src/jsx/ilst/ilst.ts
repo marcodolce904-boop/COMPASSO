@@ -1,6 +1,7 @@
 // Funzioni chiamate dal pannello con evalTS() (Bolt): UNA chiamata per operazione (§5.5).
 // ExtendScript legge e disegna, nient'altro: il calcolo è nel core, nel pannello.
 import {
+  CONSTRUCTION_LAYER,
   extractSelection as extract,
   selectionFingerprint,
   type AiDocument,
@@ -17,8 +18,7 @@ import {
   type PPlan,
 } from './draw';
 
-/** Nome del layer di costruzione (§8.1); deve coincidere con LAYER_NAME del core. */
-var LAYER_NAME = 'Compasso — Construction';
+var LAYER_NAME = CONSTRUCTION_LAYER;
 
 function drawDocument(): AiDrawDocument | null {
   return app.documents.length > 0 ? (app.activeDocument as unknown as AiDrawDocument) : null;
@@ -75,9 +75,15 @@ export const extractSelection = (): ExtractResult => {
  * esiste: una sola chiamata tiene allineato anche il pulsante DISEGNA/RIDISEGNA (es. dopo Ctrl+Z).
  */
 export const getSelectionFingerprint = (): string => {
-  var doc = drawDocument();
-  var drawn = doc !== null && findLayer(doc, LAYER_NAME) !== null;
-  return selectionFingerprint(activeDocument()) + (drawn ? '#1' : '#0');
+  // mai un errore dal polling: durante la modifica di un testo `selection` puo' non essere leggibile
+  try {
+    var doc = drawDocument();
+    var drawn = doc !== null && findLayer(doc, LAYER_NAME) !== null;
+    return selectionFingerprint(activeDocument()) + (drawn ? '#1' : '#0');
+  } catch (e) {
+    void e;
+    return 'busy#0';
+  }
 };
 
 /** §8.3: modalità colore, tavola attiva e unità del documento. */

@@ -27,7 +27,7 @@ coincidono con quelli dell'harness sullo stesso SVG.
 
 ## Ambiente
 - Fasi 1–3: sessione cloud Linux — Node 22, pnpm 10, Git.
-- Illustrator (Fasi 4+): PC Windows dell'autore, **Illustrator 2026 v31.0**.
+- Illustrator (Fasi 4+): PC Windows dell'autore, **Illustrator 2027**.
 
 ## Fatto
 - [x] Fase 0: `docs/SPEC.md`, `CLAUDE.md`, `docs/STATO.md`.
@@ -74,14 +74,17 @@ coincidono con quelli dell'harness sullo stesso SVG.
 - Evento di cambio selezione (§8.4): Illustrator non ne espone uno ai pannelli CEP, quindi si usa il polling dell'impronta.
 
 - [x] Fase 5 (parte cloud): `drawPlan`, `removeConstruction`, `hasConstruction` (§8.1–8.3) in `src/jsx/ilst/draw.ts`: layer «Compasso — Construction» in cima con sotto-layer Circles/Lines/Axes/Markers/Specs, nomi `circle#c3 r=…`, grigio K60 (CMYK) o #7A7A7A (RGB), assi tratteggiati, quadrato x K20 con etichetta, layer bloccato; RIDISEGNA sostituisce, Rimuovi elimina; gli oggetti del layer di costruzione sono esclusi dall'analisi; l'impronta riporta anche la presenza del layer (DISEGNA/RIDISEGNA coerente dopo Ctrl+Z). Testato sul bundle ES3 compilato con un finto DOM.
-- [x] Distribuzione 0.1.0 (anteprima, 10/11/2026):
-  - `installer/`: installer a doppio clic Windows (.bat) e macOS (.command) che installano `Compasso.zxp` con l'installatore ufficiale di Adobe (UPIA); niente modifiche a PlayerDebugMode/registro; alternativa ZXP Installer; LEGGIMI/README;
-  - `.github/workflows/release.yml`: tag `v*` → firma `.zxp` su Windows (self-signed), ZIP su Linux (`scripts/package-release.sh`), release su GitHub con `Compasso-Windows-macOS.zip` e `Compasso.zxp`;
-  - `ci.yml` (test, typecheck, lint a ogni push su main), `pages.yml` (pagina `site/` su GitHub Pages);
-  - README per l'utente, pagina descrittiva `site/index.html`, CHANGELOG, LICENSE (tutti i diritti riservati finché D10 non è decisa), THIRD-PARTY-NOTICES.
+- [x] Distribuzione 0.2.0 (10/11/2026, solo Windows):
+  - `installer/compasso.iss` → **`Compasso-Setup.exe`** (Inno Setup): copia il pannello firmato in `%APPDATA%\Adobe\CEP\extensions\com.marcodolce.compasso`, senza amministratore e senza toccare il registro di Adobe; disinstallazione da «App installate»;
+  - la firma (certificato self-signed, strumento Adobe incluso in Bolt) resta dietro le quinte: Illustrator carica solo pannelli firmati; l'utente non vede né ZXP né altri strumenti;
+  - `.github/workflows/release.yml`: push su `main` con versione nuova → build e firma su Windows, verifica della firma, compilazione dell'installer, **prova di installazione, aggiornamento e disinstallazione**, pubblicazione di `Compasso-Setup.exe` e `Compasso-Diagnostica.bat`; ritiro delle release 0.1.x;
+  - verifica end-to-end del pannello compilato in Chromium con un finto Illustrator che esegue il vero script ES3 (lettura, analisi nel worker, disegno, ridisegno, rimozione, cambio selezione, tema, font);
+  - corretti: nome del layer non ASCII nello script (ora bundle solo ASCII, con test), analisi che poteva restare bloccata se il worker falliva, errori durante la modifica di un testo; lingua iniziale dall'host;
+  - nota: `pnpm -F illustrator build` produce il pannello di sviluppo (punta a localhost:3000); quello distribuibile è `pnpm -F illustrator zxp` (solo Windows/macOS).
 
 ## Da fare
-- [ ] Verifica in Illustrator 2026 su Windows (e macOS): installazione dallo ZIP, lettura, anteprima, disegno, checklist §10.4.
+- [ ] Verifica in Illustrator 2027 su Windows (Marco): `Compasso-Setup.exe`, lettura, anteprima, disegno, checklist §10.4.
+- [ ] Se il pannello firmato non venisse caricato: piano B = PlayerDebugMode (da decidere con Marco).
 - [ ] Rendere il repository pubblico (o scegliere un altro canale, D10) perché chiunque possa scaricare; attivare GitHub Pages.
 
 ## Proposte aperte (da decidere)

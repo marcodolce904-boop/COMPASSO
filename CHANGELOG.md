@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 — 10/11/2026
+
+- **Nuovo installer per Windows: un solo file, `Compasso-Setup.exe`.** Doppio clic → Installa → Fine.
+  Niente ZIP, niente ZXP, niente altri programmi. Si disinstalla da «App installate» di Windows.
+  Ogni release viene installata e disinstallata in automatico su Windows prima di essere pubblicata.
+- Per ora solo Windows (gli installer macOS sono stati rimossi).
+- Corretto: il nome del layer «Compasso — Construction» poteva essere letto male da Illustrator su Windows
+  (trattino lungo), impedendo a Rimuovi/Ridisegna di ritrovare il layer. Lo script per Illustrator ora è solo ASCII.
+- Corretto: se l'analisi in background non rispondeva, il pannello poteva restare su «Analisi…»; ora riparte da sola.
+- Corretto: nessun errore ripetuto mentre si modifica un testo in Illustrator.
+- Il pannello parte in italiano se Illustrator è in italiano.
+- Le release 0.1.0 e 0.1.1 (installer difettosi) sono state ritirate.
+
 ## 0.1.1 — anteprima (beta) · 10/11/2026
 
 - **Installer Windows corretto**: la versione 0.1.0 poteva chiudersi prima di installare (errore nello script).
@@ -21,7 +34,6 @@ Prima versione installabile per Adobe Illustrator 2026 (v31) su Windows e macOS.
 - **Disegna / Ridisegna / Rimuovi** su un layer bloccato «Compasso — Construction» (grigio K60 in CMYK, #7A7A7A in RGB).
 - Elementi includibili/escludibili uno per uno; spessore linee e dimensione marker regolabili.
 - Tolleranza Rigida/Normale/Morbida; interfaccia in inglese e italiano; tema chiaro/scuro come Illustrator.
-- Installer a doppio clic (Windows .bat, macOS .command) che usa l'installatore ufficiale di Adobe.
 
 Limiti noti: COSTRUISCI e PRESENTA arriveranno nelle versioni successive; tracciati aperti con contorno
 analizzati sulla linea centrale; immagini e simboli ignorati.

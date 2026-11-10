@@ -1,9 +1,9 @@
 name: Release
 
 # Release automatica: a ogni push su main, se la versione di apps/illustrator/package.json
-# non ha ancora una release (tag v<versione>), la crea:
-#  1. su Windows: build e firma del pannello → Compasso.zxp (certificato self-signed);
-#  2. su Linux: ZIP con .zxp + installer a doppio clic + istruzioni, tag e pubblicazione.
+# non ha ancora una release (tag v<versione>), la crea su Windows:
+#   build e firma del pannello → cartella firmata → Compasso-Setup.exe (Inno Setup)
+#   → prova di installazione e disinstallazione → pubblicazione.
 # Per una nuova versione basta aumentare "version" in apps/illustrator/package.json.
 on:
   push:
@@ -33,10 +33,14 @@ jobs:
             echo "release=true" >> "$GITHUB_OUTPUT"; echo "Nuova release v$VERSION"
           fi
 
-  zxp:
+  installer:
     needs: check
     if: needs.check.outputs.release == 'true'
     runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      EXT_DIR: apps\illustrator\dist\signed\Compasso
+      ZXPSIGN: apps\illustrator\node_modules\vite-cep-plugin\lib\bin\ZXPSignCmd.exe
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -45,48 +49,98 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -F illustrator zxp
+
+      - name: Build e firma del pannello
+        run: pnpm -F illustrator zxp
+
+      - name: Cartella firmata (il pacchetto firmato, estratto)
+        shell: pwsh
+        run: |
+          $zxp = Get-ChildItem apps\illustrator\dist\zxp\*.zxp | Select-Object -First 1
+          if (-not $zxp) { throw "pacchetto firmato non trovato" }
+          7z x $zxp.FullName "-o$env:EXT_DIR" -y | Out-Null
+          Get-ChildItem $env:EXT_DIR -Force | Format-Table Name
+          foreach ($f in 'CSXS\manifest.xml', 'main\index.html', 'jsx\index.js', 'META-INF\signatures.xml') {
+            if (-not (Test-Path (Join-Path $env:EXT_DIR $f))) { throw "manca $f" }
+          }
+          if (Select-String -Path (Join-Path $env:EXT_DIR 'main\index.html') -Pattern 'localhost' -Quiet) {
+            throw "index.html punta al server di sviluppo"
+          }
+          & $env:ZXPSIGN -verify $env:EXT_DIR
+          if ($LASTEXITCODE -ne 0) { throw "firma non valida sulla cartella estratta" }
+
+      - name: Compila Compasso-Setup.exe
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc "/DAppVersion=$env:VERSION" installer\compasso.iss
+          if ($LASTEXITCODE -ne 0) { throw "compilazione dell'installer fallita" }
+          Copy-Item installer\Compasso-Diagnostica.bat release\
+          Get-ChildItem release
+
+      - name: Prova - installa, verifica, disinstalla
+        shell: pwsh
+        run: |
+          $dest = "$env:APPDATA\Adobe\CEP\extensions\com.marcodolce.compasso"
+          $p = Start-Process release\Compasso-Setup.exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer uscito con codice $($p.ExitCode)" }
+          foreach ($f in 'CSXS\manifest.xml', 'main\index.html', 'jsx\index.js', 'META-INF\signatures.xml') {
+            if (-not (Test-Path (Join-Path $dest $f))) { throw "dopo l'installazione manca $f" }
+          }
+          & $env:ZXPSIGN -verify $dest
+          if ($LASTEXITCODE -ne 0) { throw "firma non valida sulla cartella installata" }
+          Write-Host "Installazione OK in $dest"
+          # reinstallazione sopra la precedente (aggiornamento)
+          $p = Start-Process release\Compasso-Setup.exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "reinstallazione fallita" }
+          & $env:ZXPSIGN -verify $dest
+          if ($LASTEXITCODE -ne 0) { throw "firma non valida dopo l'aggiornamento" }
+          $un = Get-ChildItem "$env:LOCALAPPDATA\Compasso\uninstall\unins*.exe" | Select-Object -First 1
+          if (-not $un) { throw "disinstallatore non trovato" }
+          Start-Process $un.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
+          Start-Sleep -Seconds 5
+          if (Test-Path $dest) { throw "la disinstallazione ha lasciato $dest" }
+          Write-Host "Disinstallazione OK"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: zxp
-          path: apps/illustrator/dist/zxp/*.zxp
+          name: Compasso-Setup
+          path: release/*
           if-no-files-found: error
 
-  package:
-    needs: [check, zxp]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: actions/download-artifact@v4
-        with:
-          name: zxp
-          path: zxp
-      - run: scripts/package-release.sh "$(ls zxp/*.zxp | head -n 1)" release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Compasso
-          path: release/*
+      - name: Rimuovi le vecchie anteprime (0.1.x, con installer difettosi)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          foreach ($t in 'v0.1.0', 'v0.1.1') {
+            gh release delete $t --repo $env:GITHUB_REPOSITORY --cleanup-tag --yes 2>$null
+            Write-Host "release ${t}: rimossa o assente"
+          }
+          exit 0
+
       - name: Pubblica la release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.check.outputs.version }}
           target_commitish: ${{ github.sha }}
           name: Compasso ${{ needs.check.outputs.version }}
-          prerelease: true
+          prerelease: false
+          make_latest: true
           files: |
-            release/Compasso-Windows-macOS.zip
-            release/Compasso.zxp
+            release/Compasso-Setup.exe
+            release/Compasso-Diagnostica.bat
           body: |
-            **Compasso** per Adobe Illustrator 2026 (v31) e successivi — Windows e macOS.
+            **Compasso** per Adobe Illustrator su **Windows** (Illustrator 2026 e successivi).
 
-            ### Installazione (1 minuto)
-            1. Scarica **Compasso-Windows-macOS.zip** qui sotto ed estrai tutto.
-            2. Chiudi Illustrator e fai doppio clic su **Installa Compasso (Windows).bat** o **Installa Compasso (macOS).command**.
-            3. Apri Illustrator → **Finestra → Estensioni → Compasso**.
+            ### Installazione
+            1. Scarica **Compasso-Setup.exe** qui sotto e fai doppio clic.
+               Se Windows mostra «PC protetto»: *Ulteriori informazioni → Esegui comunque*.
+            2. Premi **Installa**, poi **Fine**.
+            3. Apri Illustrator → **Finestra → Estensioni → Compasso** (o *Estensioni (legacy)*).
 
-            Usi già «ZXP Installer»? Scarica solo **Compasso.zxp** e trascinalo nella sua finestra.
+            Per disinstallare: Impostazioni di Windows → App installate → Compasso.
+            Il pannello non compare? Scarica ed esegui **Compasso-Diagnostica.bat** (solo lettura) e invia il file che salva sul Desktop.
 
             Novità: vedi [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).

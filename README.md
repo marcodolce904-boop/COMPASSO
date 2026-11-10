@@ -8,24 +8,19 @@ dell'1%, un anchor fuori riga di 0,3 pt.
 
 ![Compasso: costruzione disegnata e pannello](site/img/costruzione.png)
 
-> **Anteprima (beta) 0.1.1** — per Adobe Illustrator 2026 (v31) e successivi, Windows e macOS.
+> **Versione 0.2.0 (anteprima)** — per Adobe Illustrator 2026 e successivi, su **Windows**.
 
-## Scarica e installa (1 minuto)
+## Scarica e installa
 
-> ⚠️ **Non usare il pulsante verde «Code → Download ZIP»** né «Source code»: contengono il codice, non il plugin.
+1. Scarica [**Compasso-Setup.exe**](../../releases/latest/download/Compasso-Setup.exe) e fai doppio clic.
+   Se Windows mostra «PC protetto»: _Ulteriori informazioni → Esegui comunque_.
+2. Premi **Installa**, poi **Fine**.
+3. Apri Illustrator → **Finestra → Estensioni → Compasso** (in alcune versioni: _Estensioni (legacy)_).
 
-1. **Scarica** [**Compasso-Windows-macOS.zip**](../../releases/latest/download/Compasso-Windows-macOS.zip)
-   (oppure dalla pagina [Releases](../../releases), sezione _Assets_) ed **estrai tutto** lo ZIP.
-2. **Chiudi Illustrator** e fai doppio clic su:
-   - Windows: **`Installa Compasso (Windows).bat`** — se compare «Windows ha protetto il PC»: _Ulteriori informazioni → Esegui comunque_
-   - macOS: **`Installa Compasso (macOS).command`** — se macOS lo blocca: _clic destro → Apri → Apri_
-3. Apri Illustrator → **Finestra → Estensioni → Compasso** (nelle versioni recenti: **Estensioni (legacy)**).
+Non serve altro: niente ZIP da estrarre, niente altri programmi, niente permessi di amministratore.
+Per disinstallare: Impostazioni di Windows → App installate → _Compasso per Adobe Illustrator_.
 
-L'installer usa l'installatore ufficiale di Adobe (incluso in Creative Cloud): non modifica
-impostazioni di sicurezza. Usi già [ZXP Installer](https://aescripts.com/learn/zxp-installer/)?
-Scarica solo [Compasso.zxp](../../releases/latest/download/Compasso.zxp) e trascinalo nella sua finestra.
-
-Per disinstallare: doppio clic su `Disinstalla Compasso (…)` nella stessa cartella.
+> Il pulsante verde «Code» di GitHub scarica il codice sorgente, non il plugin: usa il link qui sopra.
 
 ## Come si usa
 
@@ -44,7 +39,7 @@ Lingua dell'interfaccia: ⚙ → English / Italiano.
 ## Domande frequenti
 
 - **Non vedo Compasso in Finestra → Estensioni.** Riavvia Illustrator e guarda anche in _Estensioni (legacy)_. Su Windows fai doppio clic su `Diagnostica Compasso (Windows).bat` (solo lettura): salva sul Desktop `compasso-diagnostica.txt` da allegare alla segnalazione.
-- **L'installer dice che non trova Creative Cloud.** Usa [ZXP Installer](https://aescripts.com/learn/zxp-installer/) con il file `Compasso.zxp`.
+- **E su macOS?** Per ora Compasso è solo per Windows.
 - **Il documento cambia?** Solo quando premi DISEGNA: tutto finisce sul layer «Compasso — Construction», che puoi eliminare con _Rimuovi_. L'anteprima non tocca il documento.
 - **Raccoglie dati?** No. Funziona solo in locale, anche offline.
 
@@ -75,8 +70,8 @@ pnpm test && pnpm typecheck && pnpm lint
 pnpm -F illustrator build  # pannello in apps/illustrator/dist/cep
 ```
 
-Nuova release: aumenta `version` in `apps/illustrator/package.json` e fai push su `main` →
-GitHub Actions firma `Compasso.zxp` su Windows, compone lo ZIP, crea il tag `v<versione>` e pubblica la release.
+Nuova release: aumenta `version` in `apps/illustrator/package.json` e fai push su `main` → GitHub Actions
+compila e firma il pannello su Windows, crea `Compasso-Setup.exe`, lo prova (installa e disinstalla) e pubblica la release.
 Specifica completa: [`docs/SPEC.md`](docs/SPEC.md) · stato: [`docs/STATO.md`](docs/STATO.md).
 
 Copyright © 2026 Marco Dolce — vedi [LICENSE](LICENSE.md) e [componenti di terze parti](THIRD-PARTY-NOTICES.md).
