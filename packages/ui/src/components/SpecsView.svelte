@@ -10,10 +10,12 @@
     result,
     lang,
     clearspace = $bindable(),
+    showUnit = $bindable(false),
   }: {
     result: AnalysisResult;
     lang: Lang;
     clearspace: { enabled: boolean; multiplier: number };
+    showUnit?: boolean;
   } = $props();
   const s = $derived(result.specs);
   let copied = $state(false);
@@ -78,6 +80,14 @@
 </dl>
 
 {#if s.unitX !== null}
+  <label class="chk" for="{uid}-unit">
+    <input id="{uid}-unit" type="checkbox" bind:checked={showUnit} />
+    <span class="box" aria-hidden="true"
+      >{#if showUnit}<Icon name="check" size={10} />{/if}</span
+    >
+    {t(lang, 'specs.drawUnit')}
+  </label>
+  <p class="muted small">{t(lang, 'specs.drawUnitHint')}</p>
   <div class="sect">
     <b>{t(lang, 'specs.clearspace')}</b><span>{t(lang, 'specs.clearspaceUnit')}</span>
   </div>

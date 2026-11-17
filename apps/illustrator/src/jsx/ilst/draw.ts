@@ -228,11 +228,12 @@ export function drawPlan(doc: AiDrawDocument | null, plan: PPlan, env: ColorEnv)
       u.stroked = false;
       if (pr.label) {
         var tf = layer.textFrames.add();
-        tf.contents = pr.label;
+        // etichetta a destra del quadrato: "x = 12.3 pt", cosi' si capisce cos'e'
+        tf.contents = pr.label + ' = ' + fmt(pr.size) + ' pt';
         tf.name = 'label#' + pr.id;
         tf.textRange.characterAttributes.size = Math.max(4, pr.size * 0.45);
         tf.textRange.characterAttributes.fillColor = stroke;
-        tf.position = [X(pr.x + pr.size * 0.35), Y(pr.y - pr.size * 0.75)];
+        tf.position = [X(pr.x + pr.size * 1.25), Y(pr.y + pr.size * 0.2)];
       }
       count++;
     } else if (pr.type === 'rect') {

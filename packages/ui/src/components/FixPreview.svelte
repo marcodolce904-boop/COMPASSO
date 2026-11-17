@@ -14,6 +14,7 @@
     legend,
     summary,
     busy = false,
+    zoomLabels,
   }: {
     title: string;
     original: DocumentGeometry;
@@ -24,15 +25,117 @@
     legend: string;
     summary: string;
     busy?: boolean;
+    zoomLabels: { in: string; out: string; fit: string; area: string; hint: string };
   } = $props();
+  type View = { x: number; y: number; w: number; h: number };
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 400;
 
   const after = $derived(fixed ?? original);
   const box = $derived(geometryBox(original, after));
-  const vb = $derived(box ? `${box.x} ${box.y} ${box.width} ${box.height}` : '0 0 1 1');
+  // vista adattata al logo (con un piccolo margine) e vista corrente (zoom/spostamento)
+  const fit = $derived<View>(
+    box
+      ? {
+          x: box.x - box.width * 0.04,
+          y: box.y - box.height * 0.04,
+          w: box.width * 1.08,
+          h: box.height * 1.08,
+        }
+      : { x: 0, y: 0, w: 1, h: 1 },
+  );
+  let view = $state<View | null>(null);
+  const cur = $derived(view ?? fit);
+  const zoom = $derived(fit.w / cur.w);
+  const vb = $derived(`${cur.x} ${cur.y} ${cur.w} ${cur.h}`);
+  // nuova selezione → si riparte dalla vista intera
+  $effect(() => {
+    void original;
+    view = null;
+  });
+
+  let svgEl = $state<SVGSVGElement | null>(null);
+  let wrapEl = $state<HTMLDivElement | null>(null);
+
+  /** Punto dello schermo → coordinate del logo. */
+  function toUser(cx: number, cy: number): { x: number; y: number } | null {
+    const m = svgEl?.getScreenCTM();
+    if (!m) return null;
+    const p = new DOMPoint(cx, cy).matrixTransform(m.inverse());
+    return { x: p.x, y: p.y };
+  }
+  function zoomAt(factor: number, p: { x: number; y: number } | null) {
+    const c = cur;
+    const target = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * factor));
+    const f = target / zoom;
+    if (Math.abs(f - 1) < 1e-9) return;
+    const at = p ?? { x: c.x + c.w / 2, y: c.y + c.h / 2 };
+    view = {
+      x: at.x - (at.x - c.x) / f,
+      y: at.y - (at.y - c.y) / f,
+      w: c.w / f,
+      h: c.h / f,
+    };
+  }
+  function panBy(dx: number, dy: number) {
+    const c = cur;
+    view = { ...c, x: c.x + dx, y: c.y + dy };
+  }
+
+  // rotella: zoom attorno al cursore (listener non passivo per bloccare lo scorrimento del pannello)
+  $effect(() => {
+    const el = wrapEl;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      zoomAt(Math.exp(-e.deltaY * 0.0015), toUser(e.clientX, e.clientY));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  });
+
+  // trascinamento: sposta la vista
+  let drag: { id: number; x: number; y: number } | null = null;
+  let dragging = $state(false);
+  function down(e: PointerEvent) {
+    if (e.button !== 0) return;
+    if ((e.target as Element).closest('button')) return; // i pulsanti di zoom non trascinano
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    dragging = true;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+  function move(e: PointerEvent) {
+    if (!drag || drag.id !== e.pointerId) return;
+    const s = svgEl?.getScreenCTM()?.a ?? 1; // pixel per unità del logo
+    panBy(-(e.clientX - drag.x) / s, -(e.clientY - drag.y) / s);
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  }
+  function up(e: PointerEvent) {
+    if (drag?.id === e.pointerId) drag = null;
+    dragging = false;
+  }
+  function key(e: KeyboardEvent) {
+    const step = cur.w * 0.1;
+    const keys: Record<string, () => void> = {
+      '+': () => zoomAt(1.25, null),
+      '=': () => zoomAt(1.25, null),
+      '-': () => zoomAt(0.8, null),
+      '0': () => (view = null),
+      ArrowLeft: () => panBy(-step, 0),
+      ArrowRight: () => panBy(step, 0),
+      ArrowUp: () => panBy(0, -step),
+      ArrowDown: () => panBy(0, step),
+    };
+    const fn = keys[e.key];
+    if (fn) {
+      e.preventDefault();
+      fn();
+    }
+  }
   const filled = $derived(logoShapes(mode === 'before' ? original : after));
   const outline = $derived(mode === 'compare' ? logoShapes(original) : []);
   const moved = $derived(mode === 'compare' && fixed ? movedAnchors(original, fixed) : []);
-  const dot = $derived(box ? Math.max(box.width, box.height) * 0.012 : 1);
+  const dot = $derived((box ? Math.max(box.width, box.height) * 0.012 : 1) / Math.max(1, zoom));
 </script>
 
 <section class="card" aria-busy={busy}>
@@ -51,8 +154,29 @@
       />
     </div>
   </div>
-  <div class="thumb">
-    <svg viewBox={vb} preserveAspectRatio="xMidYMid meet" role="img" aria-label={summary}>
+  <!-- area di zoom/spostamento: gestisce mouse e tastiera (frecce, + − 0) -->
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+  <div
+    class="thumb"
+    class:dragging
+    bind:this={wrapEl}
+    role="application"
+    aria-label={zoomLabels.area}
+    tabindex="0"
+    onpointerdown={down}
+    onpointermove={move}
+    onpointerup={up}
+    onpointercancel={up}
+    ondblclick={() => (view = null)}
+    onkeydown={key}
+  >
+    <svg
+      bind:this={svgEl}
+      viewBox={vb}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={summary}
+    >
       <g class="fill">
         {#each filled as s (s.key)}<path d={s.d} fill-rule="evenodd" />{/each}
       </g>
@@ -63,7 +187,14 @@
         {#each moved as p, i (i)}<circle cx={p.x} cy={p.y} r={dot} />{/each}
       </g>
     </svg>
+    <div class="zoom">
+      <button type="button" aria-label={zoomLabels.out} onclick={() => zoomAt(0.8, null)}>−</button>
+      <span class="pct">{Math.round(zoom * 100)}%</span>
+      <button type="button" aria-label={zoomLabels.in} onclick={() => zoomAt(1.25, null)}>+</button>
+      <button type="button" class="fitb" onclick={() => (view = null)}>{zoomLabels.fit}</button>
+    </div>
   </div>
+  <p class="legend">{zoomLabels.hint}</p>
   {#if mode === 'compare'}<p class="legend">{legend}</p>{/if}
   <p class="summary">{summary}</p>
 </section>
@@ -102,6 +233,52 @@
     border-radius: var(--r-s);
     background: var(--c-preview-bg);
     overflow: hidden;
+    position: relative;
+    cursor: grab;
+    touch-action: none;
+  }
+  .thumb.dragging {
+    cursor: grabbing;
+  }
+  .thumb:focus-visible {
+    outline: 1px solid var(--c-accent);
+    outline-offset: 1px;
+  }
+  .zoom {
+    position: absolute;
+    right: var(--sp-1);
+    bottom: var(--sp-1);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--r-s);
+    background: var(--c-bg-card);
+    cursor: default;
+  }
+  .zoom button {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 var(--sp-1);
+    border: 0;
+    border-radius: var(--r-s);
+    background: transparent;
+    color: var(--c-text);
+    font: 500 var(--fs-s) var(--f-mono);
+    cursor: pointer;
+  }
+  .zoom button:hover {
+    background: var(--c-bg-raised);
+  }
+  .zoom .fitb {
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-caps);
+  }
+  .pct {
+    min-width: 40px;
+    text-align: center;
+    font: 400 var(--fs-xs) var(--f-mono);
+    color: var(--c-text-2);
   }
   svg {
     display: block;

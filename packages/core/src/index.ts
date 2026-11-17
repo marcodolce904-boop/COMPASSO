@@ -23,3 +23,4 @@ export {
   type RefineResult,
   type SymmetryAxis,
 } from './fix/refine';
+export { UNIT_ID } from './rank/rank';

@@ -11,6 +11,7 @@
     type DrawStyle,
     type Level,
     type TolerancePreset,
+    UNIT_ID,
   } from '@compasso/core';
   import { untrack } from 'svelte';
   import { elementGroups, findingDelta, findingMessage, fixSummary } from './labels';
@@ -83,6 +84,9 @@
   let listOpen = $state(false);
   let settingsOpen = $state(false);
   let clearspace = $state({ enabled: false, multiplier: 1 });
+  // campione dell'unità x (quadrato grigio in alto a sinistra): spento finché non lo si chiede
+  let showUnit = $state(false);
+  const planExclude = $derived(showUnit ? excluded : [...excluded, UNIT_ID]);
 
   // --- impaginazione flessibile: il pannello misura se stesso ---------------------------------
   let panelW = $state(320);
@@ -169,7 +173,7 @@
   });
   const currentPlan = $derived(
     result
-      ? makePlan(result, { level, style, include: included, exclude: excluded, clearspace })
+      ? makePlan(result, { level, style, include: included, exclude: planExclude, clearspace })
       : null,
   );
   const visible = $derived(new Set(currentPlan?.primitives.map((p) => p.id) ?? []));
@@ -267,6 +271,13 @@
             legend={t(lang, 'fix.legend')}
             summary={fixText || t(lang, 'preview.analyzing')}
             busy={status === 'loading'}
+            zoomLabels={{
+              in: t(lang, 'fix.zoom.in'),
+              out: t(lang, 'fix.zoom.out'),
+              fit: t(lang, 'fix.zoom.fit'),
+              area: t(lang, 'fix.zoom.area'),
+              hint: t(lang, 'fix.zoom.hint'),
+            }}
           />
         {:else}
           <PreviewCard
@@ -386,7 +397,7 @@
                 hint={t(lang, 'findings.hint')}
               />
             {:else}
-              <SpecsView {result} {lang} bind:clearspace />
+              <SpecsView {result} {lang} bind:clearspace bind:showUnit />
             {/if}
           {/if}
         </div>
