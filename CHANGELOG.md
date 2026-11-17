@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1 — 17/11/2026
+
+- **Niente più quadrato grigio in alto a sinistra**: era il campione dell'**unità x** (lo spessore
+  dell'asta), disegnato di proposito ma senza spiegazione. Ora è spento di default; si attiva da
+  _Misure → Disegna il campione dell'unità x_ e, quando c'è, in Illustrator ha l'etichetta «x = … pt».
+- **Zoom e navigazione nell'anteprima di CORREGGI**: rotella per ingrandire attorno al cursore (fino a
+  40000%), trascina per spostarti, doppio clic o _ADATTA_ per tornare alla vista intera; pulsanti − / +
+  e da tastiera frecce, + − 0.
+
 ## 0.3.0 — 17/11/2026
 
 - **Nuova scheda CORREGGI**: rende perfetto un logo impreciso (per esempio ricalcato da uno schizzo).
