@@ -25,6 +25,22 @@ coincidono con quelli dell'harness sullo stesso SVG.
    tracciati composti, testo vivo (avviso, nessuna copia rimasta), maschere, tema chiaro/scuro.
    Il pulsante DISEGNA mostra «arriva con il prossimo aggiornamento» (Fase 5).
 
+## Lavori da fare (concordati con Marco il 17/11/2026)
+
+In corso: **scheda CORREGGI** (correzione delle imperfezioni con regolazioni a scorrimento e anteprima
+Prima/Dopo/Confronto, correzioni applicate su una copia del logo).
+
+Da riprendere dopo, in quest'ordine di discussione:
+1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,
+   regolazione delle soglie (oggi tarate solo su forme sintetiche) per ridurre i falsi allarmi.
+2. **«Ricostruisci perfetto»** (flusso schizzo → ricalco), su una copia del logo: curve quasi circolari →
+   archi esatti; quasi-rette raddrizzate e anchor allineati; simmetrie corrette. *(Confluisce in buona parte
+   nella scheda CORREGGI.)*
+3. **Rifinitura della v1.0** — impostazioni complete (colore della costruzione, estensione delle rette, nome
+   del layer); casi limite (tracciati aperti, maschere, selezioni enormi); prestazioni; guida d'uso.
+4. **Presentazione e lancio** — scheda PRESENTA (tavola di presentazione del logo, esportazione PNG/SVG/PDF);
+   repository pubblico e pagina web online.
+
 ## Ambiente
 - Fasi 1–3: sessione cloud Linux — Node 22, pnpm 10, Git.
 - Illustrator (Fasi 4+): PC Windows dell'autore, **Illustrator 2027**.
