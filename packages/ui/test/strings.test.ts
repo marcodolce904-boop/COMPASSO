@@ -27,7 +27,7 @@ describe('strings', () => {
       '1 tracciato · 1 cerchio, 0 linee',
     );
     expect(statsText('en', { paths: 1, circles: 2, lines: 1 })).toBe('1 path · 2 circles, 1 line');
-    expect(t('en', 'findings.none')).toBe('No issues — clean construction ✓');
+    expect(t('en', 'findings.none')).toBe('No issues: the construction is clean');
   });
 
   it('parametri mancanti restano visibili', () => {

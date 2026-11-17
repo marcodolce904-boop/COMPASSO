@@ -247,6 +247,7 @@
         drawnPlan = null;
         fixedGeometry = null;
       }}
+      version={__COMPASSO_VERSION__}
       onReport={saveReport}
       host="harness"
     />
