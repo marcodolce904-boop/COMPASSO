@@ -9,6 +9,7 @@ export {
   detectArcs,
   arcTolerance,
   type DetectedArc,
+  type DetectedEllipse,
   type ArcDetection,
   type ArcTolerance,
 } from './fit/arcs';
@@ -24,3 +25,11 @@ export {
   type SymmetryAxis,
 } from './fix/refine';
 export { UNIT_ID } from './rank/rank';
+export {
+  fitEllipse,
+  ellipsePoint,
+  ellipseDistance,
+  nearestParam,
+  toEllipseFrame,
+  type EllipseFit,
+} from './fit/ellipse';

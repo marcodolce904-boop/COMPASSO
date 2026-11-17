@@ -4,7 +4,8 @@
 // Le tolleranze sono in pt (l'interfaccia le propone in base a D, la diagonale del logo).
 
 import type { DocumentGeometry, PathData, Segment, Vec2 } from '../model';
-import { detectArcs, type DetectedArc } from '../fit/arcs';
+import { detectArcs, type DetectedArc, type DetectedEllipse } from '../fit/arcs';
+import { ellipsePoint, fitEllipse, nearestParam } from '../fit/ellipse';
 import { fitCircleTaubin } from '../fit/taubin';
 import { normalizeGeometry } from '../normalize';
 import { UnionFind } from '../primitives/unionFind';
@@ -16,6 +17,11 @@ export interface RefineOptions {
   strength: number;
   /** Curve quasi circolari → archi esatti (scarto radiale massimo ammesso, pt). */
   arcs: { enabled: boolean; tolerance: number };
+  /**
+   * Curve quasi ovali → ovali esatti (scarto massimo, pt). Con `toCircle` l'ovale diventa un
+   * cerchio perfetto (raggio = media dei semiassi), stesso centro.
+   */
+  ellipses: { enabled: boolean; tolerance: number; toCircle: boolean };
   /** Cerchi con raggi quasi uguali → stesso raggio (differenza massima, pt). */
   radii: { enabled: boolean; tolerance: number };
   /** Cerchi quasi concentrici → stesso centro (distanza massima dei centri, pt). */
@@ -35,6 +41,8 @@ export interface RefineOptions {
 export interface RefineReport {
   /** Tratti di curva resi archi esatti. */
   arcs: number;
+  /** Ovali resi esatti (o trasformati in cerchi). */
+  ellipses: number;
   /** Cerchi a cui è stato uniformato il raggio. */
   radii: number;
   /** Cerchi a cui è stato uniformato il centro. */
@@ -71,6 +79,7 @@ export function refineDefaults(geom: DocumentGeometry): { D: number; options: Re
     options: {
       strength: 1,
       arcs: { enabled: true, tolerance: pt(0.008) },
+      ellipses: { enabled: true, tolerance: pt(0.008), toCircle: false },
       radii: { enabled: true, tolerance: pt(0.015) },
       centers: { enabled: true, tolerance: pt(0.01) },
       lines: { enabled: true, angle: 2 },
@@ -95,11 +104,16 @@ interface WPath {
   closed: boolean;
   nodes: Node[];
 }
+/** Cerchio di lavoro; con `ry` e `rot` è un ovale (r = semiasse maggiore). */
 interface Circle0 {
   cx: number;
   cy: number;
   r: number;
   weight: number;
+  ry?: number;
+  rot?: number;
+  /** Nato da un ovale (anche se trasformato in cerchio): conta tra gli ovali nel riepilogo. */
+  oval?: boolean;
 }
 interface Run {
   path: number;
@@ -109,6 +123,30 @@ interface Run {
 }
 
 const EPS = 1e-9;
+const isEllipse = (c: Circle0) => c.ry !== undefined;
+
+/** Coordinate "unitarie": il cerchio/ovale diventa il cerchio di raggio 1 centrato nell'origine. */
+function toU(p: Vec2, c: Circle0): Vec2 {
+  const dx = p.x - c.cx;
+  const dy = p.y - c.cy;
+  if (!isEllipse(c)) return { x: dx / c.r, y: dy / c.r };
+  const cs = Math.cos(c.rot!);
+  const sn = Math.sin(c.rot!);
+  return { x: (dx * cs + dy * sn) / c.r, y: (-dx * sn + dy * cs) / c.ry! };
+}
+/** Parte lineare della trasformazione inversa (per vettori, es. le maniglie). */
+function vecFromU(v: Vec2, c: Circle0): Vec2 {
+  if (!isEllipse(c)) return { x: v.x * c.r, y: v.y * c.r };
+  const cs = Math.cos(c.rot!);
+  const sn = Math.sin(c.rot!);
+  const u = v.x * c.r;
+  const w = v.y * c.ry!;
+  return { x: u * cs - w * sn, y: u * sn + w * cs };
+}
+function fromU(u: Vec2, c: Circle0): Vec2 {
+  const v = vecFromU(u, c);
+  return { x: c.cx + v.x, y: c.cy + v.y };
+}
 const round2 = (v: number) => Math.round(v * 100) / 100;
 const cp = (v: Vec2): Vec2 => ({ x: v.x, y: v.y });
 const dist = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -148,6 +186,30 @@ function toPath(w: WPath): PathData {
     );
   }
   return { ...w.src, segments };
+}
+
+/** Punti fitti lungo un tracciato dato come nodi (32 campioni per tratto). */
+function sampleNodes(nodes: Node[], closed: boolean): Vec2[] {
+  const out: Vec2[] = [];
+  const count = closed ? nodes.length : nodes.length - 1;
+  for (let i = 0; i < count; i++) {
+    const a = nodes[i]!;
+    const b = nodes[(i + 1) % nodes.length]!;
+    for (let k = 0; k < 32; k++) {
+      const t = k / 32;
+      const u = 1 - t;
+      const w0 = u * u * u;
+      const w1 = 3 * u * u * t;
+      const w2 = 3 * u * t * t;
+      const w3 = t * t * t;
+      out.push({
+        x: w0 * a.p.x + w1 * a.hout.x + w2 * b.hin.x + w3 * b.p.x,
+        y: w0 * a.p.y + w1 * a.hout.y + w2 * b.hin.y + w3 * b.p.y,
+      });
+    }
+  }
+  if (!closed && nodes.length) out.push(cp(nodes[nodes.length - 1]!.p));
+  return out;
 }
 
 /** Sposta un anchor portandosi dietro le sue maniglie (la forma locale resta la stessa). */
@@ -199,6 +261,7 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
   const structural = opts.clean.enabled && strength >= 0.999;
   const report: RefineReport = {
     arcs: 0,
+    ellipses: 0,
     radii: 0,
     centers: 0,
     lines: 0,
@@ -220,11 +283,17 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
   const runs: Run[] = [];
   const circles: Circle0[] = [];
   const nearlyStraight = new Set<string>();
-  if (opts.arcs.enabled || opts.lines.enabled) {
+  const ellOn = opts.ellipses.enabled && opts.ellipses.tolerance > 0;
+  if (opts.arcs.enabled || opts.lines.enabled || ellOn) {
     const tol = Math.max(opts.arcs.tolerance, 1e-6 * D);
-    const { arcs, nearlyStraight: ns } = detectArcs(ng, { strict: tol, wide: tol });
+    const {
+      arcs,
+      nearlyStraight: ns,
+      ellipses,
+    } = detectArcs(ng, { strict: tol, wide: tol, ellipse: ellOn ? opts.ellipses.tolerance : 0 });
     for (const r of ns) nearlyStraight.add(`${r.pathId}:${r.index}`);
     if (opts.arcs.enabled) collectCircles(arcs, work, runs, circles, D, tol);
+    if (ellOn) collectEllipses(ellipses, work, runs, circles, opts.ellipses.toCircle);
   }
 
   // 2. Rette quasi dritte → rette.
@@ -242,6 +311,18 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
 
   // 3–4. Simmetria, angoli esatti e allineamenti si ripetono insieme finché valgono tutti:
   //      ognuno da solo romperebbe un po' gli altri (es. la simmetria sposta un lato a 45°).
+  // anchor interni a un arco/ovale da ricostruire: non si allineano (tornano comunque sulla curva)
+  const inCurve = new Set<Node>();
+  if (opts.arcs.enabled || ellOn) {
+    for (const r of runs) {
+      const ns = runNodes(work[r.path]!, r);
+      const w = work[r.path]!;
+      const full = w.closed && ns.length - 1 === segCount(w);
+      ns.forEach((n, i) => {
+        if (full || (i > 0 && i < ns.length - 1)) inCurve.add(n);
+      });
+    }
+  }
   const angleTol = (opts.lines.angle * Math.PI) / 180;
   const symOn = opts.symmetry.enabled && opts.symmetry.tolerance > 0;
   const alignOn = opts.align.enabled && opts.align.tolerance > 0;
@@ -252,7 +333,7 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
     if (symOn && (iter === 0 || fixedAxis)) {
       const sres = symmetrize(
         allNodes(),
-        iter === 0 ? circles : [],
+        iter === 0 ? circles.filter((c) => !isEllipse(c)) : [],
         opts.symmetry.tolerance,
         opts.symmetry.axis,
         fixedAxis,
@@ -271,7 +352,11 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
     }
     if (alignOn) {
       for (const ax of ['y', 'x'] as const) {
-        const r = alignAxis(allNodes(), ax, opts.align.tolerance);
+        const r = alignAxis(
+          allNodes().filter((n) => !inCurve.has(n)),
+          ax,
+          opts.align.tolerance,
+        );
         r.moved.forEach((n) => counted.aligned.add(n));
         moved += r.shift;
       }
@@ -284,7 +369,10 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
 
   // 5. Cerchi: raggi uguali, centri comuni.
   if (opts.radii.enabled && opts.radii.tolerance > 0)
-    report.radii += unifyRadii(circles, opts.radii.tolerance);
+    report.radii += unifyRadii(
+      circles.filter((c) => !isEllipse(c)),
+      opts.radii.tolerance,
+    );
   if (opts.centers.enabled && opts.centers.tolerance > 0)
     report.centers += unifyCenters(circles, opts.centers.tolerance);
 
@@ -297,12 +385,12 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
     for (const c of circles) {
       c.cx = snap(c.cx);
       c.cy = snap(c.cy);
-      if (opts.grid.radii) c.r = Math.max(g, snap(c.r));
+      if (opts.grid.radii && !isEllipse(c)) c.r = Math.max(g, snap(c.r));
     }
   }
 
   // 7. Archi esatti sui cerchi (dopo gli spostamenti: gli anchor tornano sul cerchio).
-  if (opts.arcs.enabled) report.arcs += rebuildArcs(work, runs, circles, structural, report);
+  if (runs.length) rebuildArcs(work, runs, circles, structural, report);
 
   // 8. Pulizia: rette consecutive allineate → una sola retta.
   if (structural) report.removedAnchors += mergeCollinear(work);
@@ -332,10 +420,11 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
         if (d > 1e-6 || dist(n.hin, o.hin) > 1e-6 || dist(n.hout, o.hout) > 1e-6) changed = true;
       });
     } else {
-      // struttura cambiata: spostamento massimo = distanza di ogni nuovo anchor dal tracciato originale
+      // struttura cambiata: spostamento massimo = distanza di ogni nuovo anchor dalla CURVA originale
+      const before = sampleNodes(orig, w.closed);
       for (const n of w.nodes) {
         let best = Infinity;
-        for (const o of orig) best = Math.min(best, dist(n.p, o.p));
+        for (const o of before) best = Math.min(best, dist(n.p, o));
         if (best < Infinity && best > report.maxShift) report.maxShift = best;
       }
     }
@@ -343,7 +432,11 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
   });
   report.maxShift = round2(report.maxShift * 1000) / 1000;
 
-  return { geometry: { ...geom, paths: work.map(toPath) }, report };
+  // tracciati scartati dalla normalizzazione (solo segmenti degeneri): restano come sono,
+  // così nella copia corretta non manca nessun pezzo
+  const byId = new Map(work.map((w) => [w.src.id, toPath(w)]));
+  const paths = geom.paths.map((p) => byId.get(p.id) ?? p);
+  return { geometry: { ...geom, paths }, report };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -440,6 +533,48 @@ function collectCircles(
       circles[target]!.weight += c.weight;
     }
     for (const i of g) runs.push({ ...own[i]!, circle: target });
+  }
+}
+
+/** Ovali rilevati → ovali di lavoro (o cerchi, con `toCircle`) e tratti da ricostruire. */
+function collectEllipses(
+  found: DetectedEllipse[],
+  work: WPath[],
+  runs: Run[],
+  circles: Circle0[],
+  toCircle: boolean,
+) {
+  for (const found0 of found) {
+    const path = work.findIndex((w) => w.src.id === found0.pathId);
+    if (path < 0) continue;
+    // stima dagli anchor e dai punti a metà tratto: su un arco esatto (k = 4/3·tan(φ/4)) stanno
+    // proprio sull'ovale, quindi un ovale già esatto viene ritrovato identico (idempotenza)
+    const w = work[path]!;
+    const run: Run = { path, from: found0.from, to: found0.to, circle: -1 };
+    const nodes = runNodes(w, run);
+    const pts: Vec2[] = [];
+    for (let i = 0; i < nodes.length; i++) {
+      const a = nodes[i]!;
+      pts.push(cp(a.p));
+      const b = nodes[i + 1];
+      if (b)
+        pts.push({
+          x: (a.p.x + 3 * a.hout.x + 3 * b.hin.x + b.p.x) / 8,
+          y: (a.p.y + 3 * a.hout.y + 3 * b.hin.y + b.p.y) / 8,
+        });
+    }
+    const re = fitEllipse(pts);
+    const close =
+      re !== null &&
+      Math.hypot(re.cx - found0.cx, re.cy - found0.cy) <= 0.05 * found0.rx &&
+      Math.abs(re.rx - found0.rx) <= 0.05 * found0.rx &&
+      Math.abs(re.ry - found0.ry) <= 0.05 * found0.rx;
+    const e = close ? { ...found0, ...re } : found0;
+    const c: Circle0 = toCircle
+      ? { cx: e.cx, cy: e.cy, r: (e.rx + e.ry) / 2, weight: e.length, oval: true }
+      : { cx: e.cx, cy: e.cy, r: e.rx, ry: e.ry, rot: e.rotation, weight: e.length, oval: true };
+    circles.push(c);
+    runs.push({ ...run, circle: circles.length - 1 });
   }
 }
 
@@ -681,31 +816,50 @@ function unifyCenters(circles: Circle0[], tol: number): number {
   return count;
 }
 
-/** Maniglie esatte di un arco di cerchio da `a` a `b` (stesso verso del tratto originale). */
+/**
+ * Maniglie esatte di un arco di cerchio (o di ovale) da `a` a `b`, nello stesso verso del tratto
+ * originale. Sull'ovale si lavora sul cerchio unitario e si riporta indietro: le Bézier sono
+ * invarianti per trasformazioni affini, quindi l'arco resta esatto.
+ */
 function exactArc(a: Node, b: Node, c: Circle0, dir: number) {
-  const a0 = Math.atan2(a.p.y - c.cy, a.p.x - c.cx);
-  const a1 = Math.atan2(b.p.y - c.cy, b.p.x - c.cx);
+  const ua = toU(a.p, c);
+  const ub = toU(b.p, c);
+  const a0 = Math.atan2(ua.y, ua.x);
+  const a1 = Math.atan2(ub.y, ub.x);
   let d = a1 - a0;
   if (dir > 0) while (d <= 1e-12) d += 2 * Math.PI;
   else while (d >= -1e-12) d -= 2 * Math.PI;
   if (Math.abs(d) > 2 * Math.PI - 1e-9) d = dir * 2 * Math.PI;
   const k = (4 / 3) * Math.tan(d / 4);
-  a.hout = { x: a.p.x - k * (a.p.y - c.cy), y: a.p.y + k * (a.p.x - c.cx) };
-  b.hin = { x: b.p.x + k * (b.p.y - c.cy), y: b.p.y - k * (b.p.x - c.cx) };
+  const ho = vecFromU({ x: -k * ua.y, y: k * ua.x }, c);
+  const hi = vecFromU({ x: k * ub.y, y: -k * ub.x }, c);
+  a.hout = { x: a.p.x + ho.x, y: a.p.y + ho.y };
+  b.hin = { x: b.p.x + hi.x, y: b.p.y + hi.y };
 }
 
+/** Punto del cerchio/ovale più vicino a p. */
 const onCircle = (p: Vec2, c: Circle0): Vec2 => {
+  if (isEllipse(c)) {
+    const e = { cx: c.cx, cy: c.cy, rx: c.r, ry: c.ry!, rotation: c.rot! };
+    return ellipsePoint(e, nearestParam(p, e));
+  }
   const d = Math.hypot(p.x - c.cx, p.y - c.cy) || 1;
   return { x: c.cx + ((p.x - c.cx) * c.r) / d, y: c.cy + ((p.y - c.cy) * c.r) / d };
+};
+/** Punto del cerchio/ovale all'angolo `ang` (sul cerchio unitario). */
+const atAngle = (ang: number, c: Circle0): Vec2 => fromU({ x: Math.cos(ang), y: Math.sin(ang) }, c);
+const angleOf = (p: Vec2, c: Circle0): number => {
+  const u = toU(p, c);
+  return Math.atan2(u.y, u.x);
 };
 
 /** Verso di percorrenza del tratto attorno al centro (+1 o −1). */
 function travelDir(a: Node, c: Circle0): number {
-  const rx = a.p.x - c.cx;
-  const ry = a.p.y - c.cy;
-  const tx = a.hout.x - a.p.x;
-  const ty = a.hout.y - a.p.y;
-  return rx * ty - ry * tx >= 0 ? 1 : -1;
+  const u = toU(a.p, c);
+  const h = toU(a.hout, c);
+  const tx = h.x - u.x;
+  const ty = h.y - u.y;
+  return u.x * ty - u.y * tx >= 0 ? 1 : -1;
 }
 
 function rebuildArcs(
@@ -714,8 +868,7 @@ function rebuildArcs(
   circles: Circle0[],
   structural: boolean,
   report: RefineReport,
-): number {
-  let count = 0;
+): void {
   // per tracciato, dall'ultimo tratto al primo: le rimozioni non spostano gli indici ancora da fare
   const byPath = new Map<number, Run[]>();
   for (const r of runs) {
@@ -723,6 +876,11 @@ function rebuildArcs(
     if (list) list.push(r);
     else byPath.set(r.path, [r]);
   }
+  const tally = (c: Circle0, n: number) => {
+    if (n <= 0) return;
+    if (c.oval) report.ellipses++;
+    else report.arcs += n;
+  };
   for (const [pi, list] of byPath) {
     const w = work[pi]!;
     list.sort((a, b) => b.from - a.from);
@@ -738,22 +896,21 @@ function rebuildArcs(
       const nodeIdx = [...idx, (run.to + 1) % n];
       const dir = travelDir(w.nodes[idx[0]!]!, c);
       const wraps = run.to < run.from;
-      const closedLoop = w.closed && idx.length === segs; // cerchio completo
+      const closedLoop = w.closed && idx.length === segs; // cerchio/ovale completo
       // ricostruzione con il minimo di tratti (≤ 90° ciascuno), se ammessa e senza giro sull'inizio
       if (structural && !wraps && !closedLoop) {
         const first = w.nodes[nodeIdx[0]!]!;
         const last = w.nodes[nodeIdx[nodeIdx.length - 1]!]!;
         moveNode(first, onCircle(first.p, c));
         moveNode(last, onCircle(last.p, c));
-        const a0 = Math.atan2(first.p.y - c.cy, first.p.x - c.cx);
-        let total = Math.atan2(last.p.y - c.cy, last.p.x - c.cx) - a0;
+        const a0 = angleOf(first.p, c);
+        let total = angleOf(last.p, c) - a0;
         if (dir > 0) while (total <= 1e-12) total += 2 * Math.PI;
         else while (total >= -1e-12) total -= 2 * Math.PI;
         const m = Math.max(1, Math.ceil(Math.abs(total) / (Math.PI / 2) - 1e-6));
         const inner: Node[] = [];
         for (let s = 1; s < m; s++) {
-          const ang = a0 + (total * s) / m;
-          const p = { x: c.cx + c.r * Math.cos(ang), y: c.cy + c.r * Math.sin(ang) };
+          const p = atAngle(a0 + (total * s) / m, c);
           inner.push({ p, hin: cp(p), hout: cp(p) });
         }
         const removed = nodeIdx.length - 2;
@@ -766,7 +923,7 @@ function rebuildArcs(
           removed !== inner.length ||
           dist(first.hout, h0.out) > 1e-6 ||
           dist(last.hin, h0.in) > 1e-6;
-        if (changed) count += chain.length - 1;
+        if (changed) tally(c, chain.length - 1);
         continue;
       }
       const before = nodeIdx.map((k) => {
@@ -774,6 +931,7 @@ function rebuildArcs(
         return { p: cp(nd.p), hin: cp(nd.hin), hout: cp(nd.hout) };
       });
       for (const k of nodeIdx) moveNode(w.nodes[k]!, onCircle(w.nodes[k]!.p, c));
+      let count = 0;
       for (let s = 0; s < idx.length; s++) {
         const a = w.nodes[nodeIdx[s]!]!;
         const b = w.nodes[nodeIdx[s + 1]!]!;
@@ -788,21 +946,21 @@ function rebuildArcs(
         if (changed) count++;
       }
       if (structural && closedLoop && segs > 4) {
-        // cerchio completo con troppi anchor: 4 quarti a partire dal primo anchor
-        const a0 = Math.atan2(w.nodes[0]!.p.y - c.cy, w.nodes[0]!.p.x - c.cx);
+        // cerchio/ovale completo con troppi anchor: 4 quarti a partire dal primo anchor
+        const a0 = angleOf(w.nodes[0]!.p, c);
         const nodes: Node[] = [];
         for (let s = 0; s < 4; s++) {
-          const ang = a0 + (dir * s * Math.PI) / 2;
-          const p = { x: c.cx + c.r * Math.cos(ang), y: c.cy + c.r * Math.sin(ang) };
+          const p = atAngle(a0 + (dir * s * Math.PI) / 2, c);
           nodes.push({ p, hin: cp(p), hout: cp(p) });
         }
         for (let s = 0; s < 4; s++) exactArc(nodes[s]!, nodes[(s + 1) % 4]!, c, dir);
         report.removedAnchors += segs - 4;
         w.nodes = nodes;
+        count = Math.max(count, 1);
       }
+      tally(c, count);
     }
   }
-  return count;
 }
 
 /** Due rette consecutive quasi allineate → una sola retta (l'anchor in mezzo sparisce). */

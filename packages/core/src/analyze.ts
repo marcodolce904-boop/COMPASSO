@@ -4,6 +4,7 @@ import { detectArcs } from './fit/arcs';
 import { normalizeGeometry } from './normalize';
 import { tolerances } from './tolerance';
 import { canonicalCircles } from './primitives/circles';
+import { canonicalEllipses } from './primitives/ellipses';
 import { clusterLines, lineSegments, normalForm } from './primitives/lines';
 import { buildRows, rowMakesGuide, rowPoints, type Row } from './primitives/rows';
 import { findRelations, nearRows } from './relations/relations';
@@ -28,8 +29,9 @@ export function analyze(
   const glyph = (id: string) => glyphOf.get(id) ?? id;
 
   // 1. archi e cerchi
-  const { arcs, nearlyStraight } = detectArcs(ng, tol.arc);
+  const { arcs, nearlyStraight, ellipses: foundEllipses } = detectArcs(ng, tol.arc);
   const circles = canonicalCircles(arcs, tol);
+  const ellipses = canonicalEllipses(foundEllipses, tol);
 
   // 2. rette (i quasi-dritti con r > 5·D entrano come corde)
   const extra = nearlyStraight.map((ref) => {
@@ -147,7 +149,7 @@ export function analyze(
   }
 
   // 6. punteggi, specs, findings, livelli
-  const scores = scoreElements(circles, lines, sym.axes, relations, bbox, D);
+  const scores = scoreElements(circles, lines, sym.axes, relations, bbox, D, ellipses);
   const concentric = relations
     .filter((r) => r.kind === 'concentric')
     .map((r) => r.refs.map((id) => circles.find((c) => c.id === id)!) as [Circle, Circle]);
@@ -158,6 +160,7 @@ export function analyze(
   );
   const levels = buildLevels({
     circles,
+    ellipses,
     lines,
     axes: sym.axes,
     relations,
@@ -170,10 +173,12 @@ export function analyze(
       paths: paths.length,
       anchors: anchors.length,
       circles: circles.length,
+      ellipses: ellipses.length,
       lines: lines.length,
       axes: sym.axes.length,
     },
     circles,
+    ellipses,
     lines,
     axes: sym.axes,
     relations,

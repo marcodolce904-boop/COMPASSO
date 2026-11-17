@@ -36,6 +36,19 @@ export function plan(result: AnalysisResult, opts: PlanOptions): ConstructionPla
     if (visible.has(c.id))
       out.push({ type: 'circle', id: c.id, cx: c.cx, cy: c.cy, r: c.r, group: 'circles' });
   }
+  for (const e of result.ellipses ?? []) {
+    if (visible.has(e.id))
+      out.push({
+        type: 'ellipse',
+        id: e.id,
+        cx: e.cx,
+        cy: e.cy,
+        rx: e.rx,
+        ry: e.ry,
+        rotation: e.rotation,
+        group: 'circles',
+      });
+  }
   for (const l of result.lines) {
     if (!visible.has(l.id)) continue;
     const seg = clipLine(l.theta, l.rho, extent);
@@ -46,7 +59,7 @@ export function plan(result: AnalysisResult, opts: PlanOptions): ConstructionPla
     const seg = clipLine(a.theta, a.rho, extent);
     if (seg) out.push({ type: 'line', id: a.id, a: seg[0], b: seg[1], group: 'axes' });
   }
-  for (const c of result.circles) {
+  for (const c of [...result.circles, ...(result.ellipses ?? [])]) {
     if (visible.has(centerMarkerId(c.id)) && visible.has(c.id)) {
       out.push({
         type: 'marker',

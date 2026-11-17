@@ -37,6 +37,18 @@ export interface Circle {
   refs: SegmentRef[];
   score: number;
 }
+/** Ovale (ellisse): semiassi rx ≥ ry, rotazione dell'asse maggiore in [0, π) radianti. */
+export interface Ellipse {
+  id: string;
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+  rotation: number;
+  support: number;
+  refs: SegmentRef[];
+  score: number;
+}
 export interface GuideLine {
   id: string;
   theta: number;
@@ -104,8 +116,16 @@ export type Level = 'essential' | 'structure' | 'detail' | 'full';
 export type TolerancePreset = 'strict' | 'normal' | 'loose';
 
 export interface AnalysisResult {
-  stats: { paths: number; anchors: number; circles: number; lines: number; axes: number };
+  stats: {
+    paths: number;
+    anchors: number;
+    circles: number;
+    ellipses: number;
+    lines: number;
+    axes: number;
+  };
   circles: Circle[];
+  ellipses: Ellipse[];
   lines: GuideLine[];
   axes: Axis[];
   relations: Relation[];
@@ -128,6 +148,16 @@ export interface DrawStyle {
 
 export type Primitive =
   | { type: 'circle'; id: string; cx: number; cy: number; r: number; group: 'circles' }
+  | {
+      type: 'ellipse';
+      id: string;
+      cx: number;
+      cy: number;
+      rx: number;
+      ry: number;
+      rotation: number;
+      group: 'circles';
+    }
   | { type: 'line'; id: string; a: Vec2; b: Vec2; group: 'lines' | 'axes' }
   | { type: 'marker'; id: string; at: Vec2; shape: 'cross' | 'square'; group: 'markers' }
   | { type: 'unit'; id: string; x: number; y: number; size: number; label: string; group: 'specs' }

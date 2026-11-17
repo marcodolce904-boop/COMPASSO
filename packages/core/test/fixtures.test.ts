@@ -37,6 +37,6 @@ describe.each(FIXTURES)('fixture $file', (fx) => {
 
   it('è deterministico', () => {
     const again = detectArcs(normalizeGeometry(parseSvg(svg).paths), arcTolerance(geom.D));
-    expect(again).toEqual({ arcs, nearlyStraight: [] });
+    expect(again).toEqual({ arcs, nearlyStraight: [], ellipses: [] });
   });
 });

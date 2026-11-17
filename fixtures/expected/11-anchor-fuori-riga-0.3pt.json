@@ -3,10 +3,12 @@
     "paths": 3,
     "anchors": 12,
     "circles": 0,
+    "ellipses": 0,
     "lines": 11,
     "axes": 0
   },
   "circles": [],
+  "ellipses": [],
   "lines": [
     {
       "id": "l1",

@@ -3,6 +3,7 @@
     "paths": 1,
     "anchors": 2,
     "circles": 1,
+    "ellipses": 0,
     "lines": 0,
     "axes": 0
   },
@@ -22,6 +23,7 @@
       "score": 0.6
     }
   ],
+  "ellipses": [],
   "lines": [],
   "axes": [],
   "relations": [],

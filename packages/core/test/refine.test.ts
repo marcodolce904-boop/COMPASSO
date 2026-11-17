@@ -8,7 +8,10 @@ import {
   refineDefaults,
   type DocumentGeometry,
   type RefineOptions,
+  ellipseDistance,
+  fitEllipse,
 } from '../src';
+import { circleFn, ellipseFn, geo, traced } from './helpers/traced';
 
 const load = (file: string) =>
   parseSvg(readFileSync(join(__dirname, '..', '..', '..', 'fixtures', 'svg', file), 'utf8'));
@@ -19,6 +22,7 @@ function only(geom: DocumentGeometry, patch: Partial<RefineOptions>): RefineOpti
   const off: RefineOptions = {
     ...options,
     arcs: { ...options.arcs, enabled: false },
+    ellipses: { ...options.ellipses, enabled: false },
     radii: { ...options.radii, enabled: false },
     centers: { ...options.centers, enabled: false },
     lines: { ...options.lines, enabled: false },
@@ -221,5 +225,97 @@ describe('refine: le 8 correzioni', () => {
     expect(analyze(g).findings.length).toBeGreaterThan(0);
     const r = refine(g, refineDefaults(g).options);
     expect(analyze(r.geometry).findings).toEqual([]);
+  });
+});
+
+describe('refine: ovali', () => {
+  const oval = () => geo([traced(ellipseFn(200, 150, 120, 60, 0.4), 16, 0.4, 7, 'o')]);
+  const ctrl = (g: DocumentGeometry) => {
+    // anchor e punti a metà di ogni tratto: su un arco esatto stanno sull'ovale
+    const pts = [];
+    for (const p of g.paths)
+      for (const s of p.segments) {
+        pts.push(s.p0);
+        if (s.kind === 'cubic')
+          pts.push({
+            x: (s.p0.x + 3 * s.c1.x + 3 * s.c2.x + s.p1.x) / 8,
+            y: (s.p0.y + 3 * s.c1.y + 3 * s.c2.y + s.p1.y) / 8,
+          });
+      }
+    return pts;
+  };
+
+  it('un ovale ricalcato diventa un ovale esatto', () => {
+    const g = oval();
+    const r = refine(g, only(g, { ellipses: refineDefaults(g).options.ellipses }));
+    expect(r.report.ellipses).toBe(1);
+    const pts = ctrl(r.geometry);
+    const e = fitEllipse(pts)!;
+    expect(e.rx).toBeCloseTo(120, 0);
+    expect(e.ry).toBeCloseTo(60, 0);
+    for (const p of pts) expect(ellipseDistance(p, e)).toBeLessThan(1e-6);
+  });
+
+  it('pulizia: ovale completo con 4 anchor, idempotente', () => {
+    const g = oval();
+    const { options } = refineDefaults(g);
+    const r1 = refine(g, options);
+    expect(r1.geometry.paths[0]!.segments).toHaveLength(4);
+    const r2 = refine(r1.geometry, options);
+    expect(r2.report.changedPaths).toBe(0);
+    expect(r2.report.ellipses).toBe(0);
+  });
+
+  it('«trasforma in cerchi»: l’ovale diventa un cerchio perfetto', () => {
+    const g = geo([traced(ellipseFn(100, 100, 66, 54, 0), 12, 0.2, 3, 'o')]);
+    const base = refineDefaults(g).options.ellipses;
+    const r = refine(g, only(g, { ellipses: { ...base, toCircle: true } }));
+    expect(r.report.ellipses).toBe(1);
+    const cs = analyze(r.geometry).circles;
+    expect(cs).toHaveLength(1);
+    const c = cs[0]!;
+    expect(Math.hypot(c.cx - 100, c.cy - 100)).toBeLessThan(0.5);
+    expect(c.r).toBeCloseTo(60, 0);
+    const ds = ctrl(r.geometry).map((p) => Math.hypot(p.x - c.cx, p.y - c.cy));
+    expect(Math.max(...ds) - Math.min(...ds)).toBeLessThan(1e-6);
+  });
+
+  it('un cerchio ricalcato non diventa un ovale', () => {
+    const g = geo([traced(circleFn(100, 100, 80), 16, 0.3, 5, 'c')]);
+    const r = refine(g, refineDefaults(g).options);
+    expect(r.report.ellipses).toBe(0);
+    expect(r.report.arcs).toBeGreaterThan(0);
+  });
+});
+
+describe('refine: nessun pezzo mancante', () => {
+  it('tracciati degeneri o aperti restano nella copia corretta', () => {
+    const g = parseSvg(
+      '<svg><path d="M0 0 L 100 0 L 100 100 Z"/><path d="M50 50 L 50 50"/>' +
+        '<path d="M0 120 C 30 150 70 150 100 120" fill="none" stroke="#000"/></svg>',
+    );
+    const r = refine(g, refineDefaults(g).options);
+    expect(r.geometry.paths.map((p) => p.id)).toEqual(g.paths.map((p) => p.id));
+  });
+  it('tutti i loghi di prova: stessi tracciati, nessun tracciato vuoto', () => {
+    for (const f of [
+      '01-cerchio-4-cubiche.svg',
+      '03-arco-3-cubiche-irregolari.svg',
+      '04-quasi-cerchio-1.5pct.svg',
+      '05-rettangolo-arrotondato.svg',
+      '06-lettera-o.svg',
+      '09-marchio-simmetrico.svg',
+      '10-marchio-quasi-simmetrico.svg',
+      '11-anchor-fuori-riga-0.3pt.svg',
+      '12-diagonali-parallele.svg',
+    ]) {
+      const g = load(f);
+      const r = refine(g, refineDefaults(g).options);
+      expect(
+        r.geometry.paths.map((p) => p.id),
+        f,
+      ).toEqual(g.paths.map((p) => p.id));
+      for (const p of r.geometry.paths) expect(p.segments.length, f).toBeGreaterThan(0);
+    }
   });
 });

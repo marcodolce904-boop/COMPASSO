@@ -4,6 +4,12 @@ import type { Tolerances } from '../tolerance';
 import { UnionFind } from './unionFind';
 
 const LOW_WEIGHT = 0.25; // peso degli archi sotto gli 8° (§6.3.4)
+const NEAR_WEIGHT = 0.5; // peso di un quasi-arco ampio (disegno impreciso di un cerchio)
+/**
+ * Un quasi-arco di almeno 90° su più segmenti (un tratto disegnato a mano) dà comunque il suo
+ * cerchio: è il cerchio che il disegno «voleva». Un singolo segmento deformato no.
+ */
+const NEAR_MIN_SWEEP = Math.PI / 2;
 
 const refOrder = (a: SegmentRef, b: SegmentRef) =>
   a.pathId < b.pathId ? -1 : a.pathId > b.pathId ? 1 : a.index - b.index;
@@ -14,7 +20,11 @@ const refOrder = (a: SegmentRef, b: SegmentRef) =>
  * Id `c1, c2…` in ordine di supporto decrescente.
  */
 export function canonicalCircles(arcs: DetectedArc[], tol: Tolerances): Circle[] {
-  const real = arcs.filter((a) => a.quality === 'arc');
+  const real = arcs.filter(
+    (a) =>
+      a.quality === 'arc' ||
+      (a.quality === 'near-arc' && a.sweep >= NEAR_MIN_SWEEP && a.refs.length >= 2),
+  );
   const uf = new UnionFind(real.length);
   for (let i = 0; i < real.length; i++) {
     for (let j = i + 1; j < real.length; j++) {
@@ -37,7 +47,8 @@ export function canonicalCircles(arcs: DetectedArc[], tol: Tolerances): Circle[]
     const refs: SegmentRef[] = [];
     for (const i of g) {
       const a = real[i]!;
-      const wi = a.length * (a.lowWeight ? LOW_WEIGHT : 1);
+      const wi =
+        a.length * (a.lowWeight ? LOW_WEIGHT : 1) * (a.quality === 'near-arc' ? NEAR_WEIGHT : 1);
       w += wi;
       cx += a.cx * wi;
       cy += a.cy * wi;
