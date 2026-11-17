@@ -146,14 +146,70 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     const { api } = host([square]);
     expect(Object.keys(api).sort()).toEqual([
       'applyFix',
+      'createTracePaths',
       'drawPlan',
       'extractSelection',
       'getDocInfo',
+      'getSelectedImage',
       'getSelectionFingerprint',
       'hasConstruction',
       'removeConstruction',
       'revertFix',
     ]);
+  });
+
+  it('getSelectedImage: file collegato e posizione sulla tavola (Y in giù)', () => {
+    const placed = {
+      typename: 'PlacedItem',
+      file: { fsName: 'C:\\schizzi\\volpe.jpg' },
+      geometricBounds: [10, 90, 60, 40],
+    };
+    const { api, app } = host([placed]);
+    expect(api['getSelectedImage']!()).toEqual({
+      ok: true,
+      path: 'C:\\schizzi\\volpe.jpg',
+      bounds: { x: 10, y: 10, width: 50, height: 50 },
+    });
+    expect(app.coordinateSystem).toBe('ARTBOARD');
+    const embedded = {
+      typename: 'RasterItem',
+      get file(): never {
+        throw new Error('immagine incorporata');
+      },
+      geometricBounds: [0, 100, 10, 90],
+    };
+    expect(host([embedded]).api['getSelectedImage']!()).toEqual({ ok: false, reason: 'embedded' });
+    expect(host([square]).api['getSelectedImage']!()).toEqual({ ok: false, reason: 'not-image' });
+  });
+
+  it('createTracePaths: layer «Compasso — Ricalco», tratti neri, selezionati', () => {
+    const { api, app } = host([]);
+    const paths = [
+      {
+        id: 't0',
+        closed: false,
+        nodes: [
+          { a: [10, 10], l: [10, 10], r: [10, 10] },
+          { a: [90, 10], l: [90, 10], r: [90, 10] },
+        ],
+      },
+    ];
+    const r = api['createTracePaths']!(paths, { filled: false, strokeWidth: 2.5 }) as {
+      ok: boolean;
+      paths: number;
+    };
+    expect(r).toEqual({ ok: true, paths: 1 });
+    const layer = (app.activeDocument.layers as unknown as Rec[])[0]!;
+    expect(layer['name']).toBe('Compasso — Ricalco');
+    const item = (layer['items'] as Rec[])[0]!;
+    // coordinate documento: tavola [0,100,100,0] → y = 100 − 10
+    expect(item['pts']).toEqual([
+      [10, 90],
+      [90, 90],
+    ]);
+    expect(item['stroked']).toBe(true);
+    expect(item['strokeWidth']).toBe(2.5);
+    expect(item['selected']).toBe(true);
   });
 
   it('extractSelection: Y invertita, coordinate ripristinate', () => {

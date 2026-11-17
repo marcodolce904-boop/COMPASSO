@@ -31,6 +31,11 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.browser } },
   },
   {
+    // versione del plugin iniettata da Vite nell'harness (vite.config.ts → define)
+    files: ['apps/harness/**'],
+    languageOptions: { globals: { __COMPASSO_VERSION__: 'readonly' } },
+  },
+  {
     // ExtendScript (ES3 dopo Babel): `var` voluto, come nel codice che gira nell'host
     files: ['apps/illustrator/src/jsx/**/*.ts'],
     // no-nested-ternary: ExtendScript non analizza i condizionali annidati (errore «Previsto: :»)

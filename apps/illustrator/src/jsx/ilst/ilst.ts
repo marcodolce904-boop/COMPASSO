@@ -26,6 +26,15 @@ import {
   type PPlan,
 } from './draw';
 
+import {
+  createTrace,
+  selectedImage,
+  type AiTraceDocument,
+  type CreateTraceResult,
+  type SelectedImage,
+  type TraceStyle,
+} from './tracejsx';
+
 var LAYER_NAME = CONSTRUCTION_LAYER;
 
 function drawDocument(): AiDrawDocument | null {
@@ -154,4 +163,26 @@ export const applyFix = (paths: FixPath[]): ApplyFixResult => {
 /** CORREGGI: elimina la copia corretta e rimostra l'originale. */
 export const revertFix = (): number => {
   return revertFixIn(drawDocument() as unknown as AiFixDocument | null);
+};
+
+/** RICALCA: l'immagine selezionata (file collegato) e la sua posizione sulla tavola. */
+export const getSelectedImage = (): SelectedImage => {
+  return withDocumentCoordinates(function () {
+    return selectedImage(drawDocument() as unknown as AiTraceDocument | null);
+  });
+};
+
+/** RICALCA: crea i tracciati ricalcati su un layer dedicato. */
+export const createTracePaths = (paths: FixPath[], style: TraceStyle): CreateTraceResult => {
+  return withDocumentCoordinates(function () {
+    var doc = drawDocument();
+    var black: unknown;
+    if (doc && colorEnv.isCMYK(doc.documentColorSpace)) black = colorEnv.cmyk(0, 0, 0, 100);
+    else black = colorEnv.rgb(0, 0, 0);
+    return createTrace(doc as unknown as AiTraceDocument | null, paths, style, {
+      black: black,
+      smooth: PointType.SMOOTH,
+      corner: PointType.CORNER,
+    });
+  });
 };

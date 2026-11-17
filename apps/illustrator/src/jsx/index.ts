@@ -4,9 +4,11 @@ import { ns } from '../shared/shared';
 import type { Scripts } from '../shared/es-types';
 import {
   applyFix,
+  createTracePaths,
   drawPlan,
   extractSelection,
   getDocInfo,
+  getSelectedImage,
   getSelectionFingerprint,
   hasConstruction,
   removeConstruction,
@@ -17,9 +19,11 @@ import {
 // La firma pubblica sta in src/shared/es-types (usata dal pannello): qui si verifica che coincida.
 var api: Scripts = {
   applyFix: applyFix,
+  createTracePaths: createTracePaths,
   drawPlan: drawPlan,
   extractSelection: extractSelection,
   getDocInfo: getDocInfo,
+  getSelectedImage: getSelectedImage,
   getSelectionFingerprint: getSelectionFingerprint,
   hasConstruction: hasConstruction,
   removeConstruction: removeConstruction,

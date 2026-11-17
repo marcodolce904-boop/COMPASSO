@@ -34,6 +34,7 @@
   import Toast from './components/Toast.svelte';
   import FixPreview, { type FixMode } from './components/FixPreview.svelte';
   import FixControls from './components/FixControls.svelte';
+  import TracePanel, { type TraceReady, type TraceSource } from './components/TracePanel.svelte';
 
   export type PanelStatus = 'empty' | 'loading' | 'ready' | 'error';
 
@@ -59,6 +60,14 @@
     onReport?: (report: CompassoReport) => Promise<string> | string;
     /** Host che produce la segnalazione. */
     host?: CompassoReport['host'];
+    /** RICALCA: l'immagine da ricalcare (null = da scegliere). */
+    traceSource?: TraceSource | null;
+    /** RICALCA: scelta dell'immagine (selezione o file); assente = scheda nascosta. */
+    onPickImage?: () => void;
+    pickImageLabel?: string;
+    traceMessage?: string;
+    /** RICALCA: crea i tracciati ricalcati nel documento. */
+    onCreateTrace?: (r: TraceReady) => void;
   }
   let {
     geometry = null,
@@ -77,7 +86,13 @@
     onRevertFix = () => {},
     onReport,
     host = 'harness',
+    traceSource = null,
+    onPickImage,
+    pickImageLabel = '',
+    traceMessage = '',
+    onCreateTrace = () => {},
   }: Props = $props();
+  let traceOut = $state<TraceReady | null>(null);
 
   // Segnala un problema
   let reportMsg = $state('');
@@ -108,7 +123,7 @@
 
   // stato del pannello (valori predefiniti del §4.2)
   const DEFAULTS = { stroke: 0.75, marker: 8 };
-  let mainTab = $state<'inspect' | 'fix' | 'present'>('inspect');
+  let mainTab = $state<'trace' | 'inspect' | 'fix' | 'present'>('inspect');
   let sub = $state<'findings' | 'geometry' | 'specs'>('geometry');
   let level = $state<Level>('structure');
   let strokeWidth = $state(DEFAULTS.stroke);
@@ -300,6 +315,7 @@
   <TabBar
     bind:value={mainTab}
     tabs={[
+      ...(onPickImage ? [{ value: 'trace', label: t(lang, 'tab.trace') }] : []),
       { value: 'inspect', label: t(lang, 'tab.inspect') },
       { value: 'fix', label: t(lang, 'tab.fix') },
       { value: 'present', label: t(lang, 'tab.present') },
@@ -309,6 +325,16 @@
   <div class="body" class:wide style="--h-thumb:{thumbH}px">
     {#if mainTab === 'present'}
       <EmptyState title={t(lang, 'tab.soon')} hint={t(lang, 'tab.soonHint')} />
+    {:else if mainTab === 'trace' && onPickImage}
+      <TracePanel
+        {wide}
+        {lang}
+        source={traceSource}
+        pickLabel={pickImageLabel}
+        onPick={onPickImage}
+        message={traceMessage}
+        bind:output={traceOut}
+      />
     {:else}
       <div class="col main">
         {#if mainTab === 'fix' && geometry}
@@ -468,7 +494,15 @@
   </div>
 
   <footer class="ftr">
-    {#if mainTab === 'fix'}
+    {#if mainTab === 'trace'}
+      <div class="actions">
+        <PrimaryButton
+          label={t(lang, 'trace.create')}
+          disabled={!traceOut || !traceSource}
+          onclick={() => traceOut && onCreateTrace(traceOut)}
+        />
+      </div>
+    {:else if mainTab === 'fix'}
       <p class="stats">{t(lang, 'fix.onCopy')}</p>
       <div class="actions">
         <PrimaryButton label={t(lang, 'fix.apply')} disabled={!canApply} onclick={applyFix} />

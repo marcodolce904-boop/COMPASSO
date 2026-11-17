@@ -62,7 +62,13 @@ function smoothNode(n: FixNode): boolean {
   return Math.abs(cross) < 0.01 && dot < 0;
 }
 
-function writePath(item: AiItem, fp: FixPath, left: number, top: number, env: FixEnv): void {
+export function writePath(
+  item: AiItem,
+  fp: FixPath,
+  left: number,
+  top: number,
+  env: { smooth: unknown; corner: unknown },
+): void {
   var toDoc = function (p: number[]): number[] {
     return [left + p[0], top - p[1]];
   };

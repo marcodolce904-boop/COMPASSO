@@ -4,3 +4,5 @@ export { default as ConstructionSvg } from './components/ConstructionSvg.svelte'
 export * from './strings';
 export * from './labels';
 export * from './preview';
+export { loadRaster, type LoadedImage } from './raster';
+export type { TraceSource, TraceReady } from './components/TracePanel.svelte';

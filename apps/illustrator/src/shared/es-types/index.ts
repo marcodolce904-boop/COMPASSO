@@ -3,6 +3,7 @@
 import type { ExtractResult } from '../../jsx/ilst/extract';
 import type { DrawResult, PPlan } from '../../jsx/ilst/draw';
 import type { ApplyFixResult, FixPath } from '../../jsx/ilst/fix';
+import type { CreateTraceResult, SelectedImage, TraceStyle } from '../../jsx/ilst/tracejsx';
 
 export interface DocInfo {
   open: boolean;
@@ -20,4 +21,6 @@ export type Scripts = {
   hasConstruction: () => boolean;
   applyFix: (paths: FixPath[]) => ApplyFixResult;
   revertFix: () => number;
+  getSelectedImage: () => SelectedImage;
+  createTracePaths: (paths: FixPath[], style: TraceStyle) => CreateTraceResult;
 };

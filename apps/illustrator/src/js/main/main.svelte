@@ -14,6 +14,8 @@
   import { loadHost } from './host';
   import { toFixPaths } from './fixpaths';
   import { saveReportFile } from './report-file';
+  import { pickImageFile } from './trace-source';
+  import { loadRaster, type TraceReady, type TraceSource } from '@compasso/ui';
 
   const POLL_MS = 800; // §8.4: polling leggero dell'impronta della selezione
   const LOADING_DELAY_MS = 300; // §4.6: indicatore solo per analisi lente
@@ -136,6 +138,41 @@
     }
   }
 
+  // --- RICALCA ---
+  let traceSource = $state<TraceSource | null>(null);
+  let traceMessage = $state('');
+  async function pickImage() {
+    try {
+      const sel = await evalTS('getSelectedImage');
+      const r = pickImageFile(sel, t(lang, 'trace.chooseFile'));
+      if (r.image) {
+        const loaded = await loadRaster(r.image.blob);
+        const b = r.image.bounds;
+        // sopra l'immagine selezionata; da file, in alto a sinistra con il lato lungo a 500 pt
+        const place = b
+          ? { x: b.x, y: b.y, scale: b.width / loaded.image.width }
+          : { x: 0, y: 0, scale: 500 / Math.max(loaded.image.width, loaded.image.height) };
+        traceSource = { loaded, place, name: r.image.name };
+        traceMessage = '';
+      } else if (r.reason)
+        traceMessage = t(lang, `trace.error.${r.reason}` as 'trace.error.embedded');
+    } catch (e) {
+      console.error('[compasso] immagine non letta', e);
+      traceMessage = t(lang, 'trace.error.read', { msg: String(e) });
+    }
+  }
+  async function createTrace(r: TraceReady) {
+    try {
+      const res = await evalTS('createTracePaths', toFixPaths(r.geometry), r.style);
+      traceMessage = t(lang, 'trace.created', { n: res.paths });
+      void refresh(true); // i tracciati creati sono selezionati: si analizzano subito
+    } catch (e) {
+      console.error('[compasso] tracciati non creati', e);
+      hostError = true;
+      error = t(lang, 'error.host', { msg: String(e) });
+    }
+  }
+
   async function removeConstruction() {
     try {
       await evalTS('removeConstruction');
@@ -217,6 +254,11 @@
     onApplyFix={applyFix}
     onRevertFix={revertFix}
     onReport={(r) => saveReportFile(r)}
+    {traceSource}
+    {traceMessage}
+    onPickImage={pickImage}
+    pickImageLabel={t(lang, 'trace.useSelected')}
+    onCreateTrace={createTrace}
     host="illustrator"
     onDismissError={() => (error = null)}
   />

@@ -8,6 +8,9 @@
   import {
     ConstructionSvg,
     Panel,
+    loadRaster,
+    type TraceReady,
+    type TraceSource,
     emptyHighlight,
     t,
     viewBoxFor,
@@ -92,6 +95,30 @@
     baseGeometry = rep ? rep.geometry : null;
     if (rep) tolerance = rep.tolerance;
     svgText = rep ? '' : text;
+  }
+  // RICALCA: immagine dello schizzo scelta dal disco
+  let traceSource = $state<TraceSource | null>(null);
+  let traceMessage = $state('');
+  let imageInput: HTMLInputElement;
+  async function openImage(file: File | undefined) {
+    if (!file) return;
+    try {
+      const loaded = await loadRaster(file);
+      // il lato lungo diventa 600 pt sulla tavola
+      const scale = 600 / Math.max(loaded.image.width, loaded.image.height);
+      traceSource = { loaded, place: { x: 0, y: 0, scale }, name: file.name };
+      traceMessage = '';
+    } catch (e) {
+      traceMessage = t(lang, 'trace.error.read', { msg: String(e) });
+    }
+  }
+  function createTrace(r: TraceReady) {
+    drawnPlan = null;
+    fixedGeometry = null;
+    baseGeometry = r.geometry;
+    svgText = '';
+    fixture = '';
+    traceMessage = t(lang, 'trace.created', { n: r.geometry.paths.length });
   }
   /** Segnala un problema: nel browser il file si scarica. */
   function saveReport(rep: CompassoReport): string {
@@ -179,6 +206,13 @@
         hidden
         onchange={(e) => openFile(e.currentTarget.files?.[0])}
       />
+      <input
+        bind:this={imageInput}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        hidden
+        onchange={(e) => openImage(e.currentTarget.files?.[0])}
+      />
       <label class="fx">
         {t(lang, 'harness.fixture')}
         <select bind:value={fixture} onchange={pickFixture}>
@@ -249,6 +283,11 @@
       }}
       version={__COMPASSO_VERSION__}
       onReport={saveReport}
+      {traceSource}
+      {traceMessage}
+      onPickImage={() => imageInput.click()}
+      pickImageLabel={t(lang, 'trace.chooseFile')}
+      onCreateTrace={createTrace}
       host="harness"
     />
   </aside>
