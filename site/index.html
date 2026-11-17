@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Compasso — la costruzione geometrica del tuo logo</title>
+    <title>Compasso: dallo schizzo al logo geometrico</title>
     <meta
       name="description"
-      content="Plugin per Adobe Illustrator: deduce dai tracciati del logo cerchi, rette, assi, unità x e area di rispetto, e segnala le imprecisioni invisibili."
+      content="Plugin per Adobe Illustrator: ricalca gli schizzi a matita con linee pulite e il minimo di anchor, deduce la costruzione geometrica del logo e ne corregge le imprecisioni."
     />
     <link
       rel="icon"
@@ -20,12 +20,13 @@
         --border: #3a3a3a;
         --text: #ededed;
         --text-2: #a9a9a9;
-        --text-3: #7a7a7a;
+        --text-3: #8a8a8a;
         --accent: #3ec6ff;
         --on-accent: #0b1b24;
-        --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-        --wrap: 1080px;
+        --mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, monospace;
+        --sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+        --wrap: 1120px;
+        --r: 10px;
       }
       * {
         box-sizing: border-box;
@@ -51,17 +52,11 @@
         margin: 0 auto;
         padding: 0 16px;
       }
-      .caps {
-        font: 600 12px var(--mono);
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--text-2);
-      }
       nav {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 20px 0;
+        height: 68px;
       }
       .brand {
         display: flex;
@@ -73,27 +68,32 @@
       nav a.gh {
         color: var(--text-2);
         text-decoration: none;
-        font-size: 14px;
+        font-size: 15px;
       }
-      /* hero */
+      nav a.gh:hover {
+        color: var(--text);
+      }
+      /* apertura */
       .hero {
-        padding: 56px 0 40px;
+        padding: 48px 0 32px;
         display: grid;
-        gap: 28px;
+        gap: 22px;
+      }
+      .eyebrow {
+        font: 600 12px var(--mono);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-2);
       }
       h1 {
-        font: 650 clamp(34px, 6vw, 60px) / 1.05 var(--sans);
+        font: 650 clamp(34px, 5.6vw, 58px) / 1.08 var(--sans);
         letter-spacing: -0.02em;
-        max-width: 15ch;
-      }
-      h1 em {
-        font-style: normal;
-        color: var(--accent);
+        max-width: 21ch;
       }
       .lead {
-        font-size: clamp(17px, 2.2vw, 20px);
+        font-size: clamp(17px, 2vw, 19px);
         color: var(--text-2);
-        max-width: 60ch;
+        max-width: 58ch;
       }
       .cta {
         display: flex;
@@ -105,17 +105,23 @@
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        padding: 15px 24px;
+        padding: 14px 24px;
         border-radius: 6px;
         background: var(--accent);
         color: var(--on-accent);
         font: 700 14px var(--mono);
         letter-spacing: 0.1em;
         text-decoration: none;
-        transition: filter 0.12s;
+        white-space: nowrap;
+        transition:
+          filter 0.15s,
+          transform 0.15s;
       }
       .btn:hover {
         filter: brightness(1.08);
+      }
+      .btn:active {
+        transform: translateY(1px);
       }
       .btn:focus-visible,
       a:focus-visible {
@@ -124,115 +130,153 @@
       }
       .meta {
         color: var(--text-3);
-        font-size: 14px;
+        font-size: 14.5px;
       }
-      .shot {
-        border-radius: 10px;
+      /* prima / dopo */
+      .compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .compare figure {
+        border-radius: var(--r);
         overflow: hidden;
         border: 1px solid var(--border);
-        box-shadow: 0 30px 80px -30px #000;
+        background: var(--bg-2);
+      }
+      .compare figcaption {
+        padding: 10px 14px;
+        font-size: 14px;
+        color: var(--text-2);
+      }
+      .compare figcaption b {
+        color: var(--text);
+        font-weight: 600;
       }
       section {
-        padding: 72px 0;
+        padding: 80px 0;
         border-top: 1px solid var(--border);
       }
       h2 {
-        font: 650 clamp(26px, 3.6vw, 36px) / 1.15 var(--sans);
+        font: 650 clamp(26px, 3.4vw, 36px) / 1.15 var(--sans);
         letter-spacing: -0.01em;
-        margin: 10px 0 28px;
-      }
-      /* passi */
-      .steps {
-        display: grid;
-        gap: 16px;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        counter-reset: s;
-      }
-      .step {
-        background: var(--bg-2);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 22px;
-      }
-      .step::before {
-        counter-increment: s;
-        content: counter(s);
-        display: grid;
-        place-items: center;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        background: var(--accent);
-        color: var(--on-accent);
-        font: 700 14px var(--mono);
         margin-bottom: 14px;
+        max-width: 24ch;
       }
-      .step h3 {
-        font-size: 18px;
+      .sub {
+        color: var(--text-2);
+        max-width: 60ch;
+      }
+      /* flusso */
+      .flow {
+        list-style: none;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+        margin-top: 36px;
+        border-top: 1px solid var(--border);
+      }
+      .flow li {
+        padding: 22px 24px 4px 0;
+      }
+      .flow li + li {
+        padding-left: 24px;
+        border-left: 1px solid var(--border);
+      }
+      .flow h3 {
+        font: 700 15px var(--mono);
+        letter-spacing: 0.08em;
+        color: var(--accent);
         margin-bottom: 6px;
       }
-      .step p,
-      .feat p,
-      .faq p {
+      .flow p,
+      .split p,
+      .faq p,
+      .gallery figcaption {
         color: var(--text-2);
         font-size: 15.5px;
       }
-      code {
-        font: 500 0.88em var(--mono);
-        background: var(--bg-3);
-        padding: 1px 6px;
-        border-radius: 4px;
+      /* funzione larga: testo stretto a sinistra, schermata grande a destra */
+      .split {
+        display: grid;
+        gap: 40px;
+        align-items: center;
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+      }
+      .split.flip {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
+      }
+      .split .shot {
+        border-radius: var(--r);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: 0 30px 70px -30px rgb(0 0 0 / 0.6);
+      }
+      .split ul {
+        margin: 16px 0 0 18px;
+        color: var(--text-2);
+        font-size: 15.5px;
+      }
+      .split li + li {
+        margin-top: 6px;
+      }
+      /* galleria */
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+        margin-top: 36px;
+      }
+      .gallery img {
+        border-radius: var(--r);
+        border: 1px solid var(--border);
+      }
+      .gallery figcaption {
+        margin-top: 12px;
+      }
+      .gallery figcaption b {
+        display: block;
+        color: var(--text);
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      /* installazione */
+      .install {
+        list-style: none;
+        counter-reset: s;
+        display: grid;
+        gap: 14px;
+        margin-top: 24px;
+        max-width: 640px;
+      }
+      .install li {
+        counter-increment: s;
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 12px;
+        align-items: baseline;
+        color: var(--text-2);
+      }
+      .install li::before {
+        content: counter(s);
+        font: 700 15px var(--mono);
+        color: var(--accent);
+      }
+      .install strong {
         color: var(--text);
       }
       .note {
-        margin-top: 18px;
+        margin-top: 20px;
         color: var(--text-3);
         font-size: 14.5px;
-      }
-      /* funzioni */
-      .feat {
-        display: grid;
-        gap: 32px;
-        grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
-        align-items: center;
-        padding: 28px 0;
-      }
-      .feat img {
-        border-radius: 8px;
-        border: 1px solid var(--border);
-      }
-      .feat h3 {
-        font-size: 22px;
-        margin: 8px 0 10px;
-      }
-      .tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 14px;
-      }
-      .tags span {
-        font: 500 12.5px var(--mono);
-        color: var(--text-2);
-        border: 1px solid var(--border);
-        border-radius: 99px;
-        padding: 3px 10px;
-      }
-      .hand {
-        background: var(--bg-2);
-        border: 1px solid var(--border);
-        border-left: 3px solid var(--accent);
-        border-radius: 8px;
-        padding: 24px;
-      }
-      .hand ol {
-        margin: 10px 0 0 20px;
-        color: var(--text-2);
+        max-width: 64ch;
       }
       .faq {
         display: grid;
-        gap: 18px;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 26px 40px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 28px;
       }
       .faq h3 {
         font-size: 16.5px;
@@ -248,15 +292,48 @@
         gap: 8px 24px;
         justify-content: space-between;
       }
-      @media (max-width: 720px) {
-        .feat {
+      footer nav {
+        height: auto;
+        gap: 20px;
+      }
+      @media (max-width: 860px) {
+        .split,
+        .split.flip {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 24px;
+        }
+        .split.flip .shot {
+          max-width: min(380px, 100%);
+        }
+        .gallery {
           grid-template-columns: 1fr;
         }
-        .feat img {
-          max-width: 320px;
+        .gallery figure {
+          max-width: min(380px, 100%);
+        }
+        .flow {
+          grid-template-columns: 1fr;
+        }
+        .flow li + li {
+          padding-left: 0;
+          border-left: 0;
+          border-top: 1px solid var(--border);
+        }
+        .faq {
+          grid-template-columns: 1fr;
         }
         section {
-          padding: 52px 0;
+          padding: 56px 0;
+        }
+      }
+      @media (max-width: 560px) {
+        .compare {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .btn {
+          transition: none;
         }
       }
     </style>
@@ -273,170 +350,216 @@
           </svg>
           COMPASSO
         </div>
-        <a class="gh" href="https://github.com/marcodolce904-boop/COMPASSO">GitHub ↗</a>
+        <a class="gh" href="https://github.com/marcodolce904-boop/COMPASSO">GitHub</a>
       </nav>
 
       <header class="hero">
-        <p class="caps">Plugin per Adobe Illustrator</p>
-        <h1>La costruzione del tuo logo, <em>dedotta</em> dai suoi tracciati.</h1>
+        <p class="eyebrow">Plugin per Adobe Illustrator</p>
+        <h1>Dal tuo schizzo a un logo geometrico preciso.</h1>
         <p class="lead">
-          Selezioni il logo e Compasso trova i cerchi che le curve seguono, le rette, gli assi di
-          simmetria, l'unità x e l'area di rispetto. Poi la disegna su un layer dedicato. E ti
-          segnala le imprecisioni che l'occhio non vede.
+          Compasso ricalca il disegno a matita con linee pulite e il minimo di anchor, trova la
+          costruzione nascosta nel logo e ne corregge le imprecisioni. Tutto dentro Illustrator.
         </p>
         <div class="cta">
           <a
             class="btn"
             href="https://github.com/marcodolce904-boop/COMPASSO/releases/latest/download/Compasso-Setup.exe"
-            >↓ SCARICA COMPASSO</a
+            >SCARICA COMPASSO</a
           >
-          <span class="meta"
-            >Gratis · versione 0.4.0 · Windows · Illustrator 2026 e successivi</span
-          >
+          <span class="meta">Gratis, per Windows con Illustrator 2026 o successivi.</span>
         </div>
-        <div class="shot">
-          <img
-            src="img/costruzione.png"
-            width="2400"
-            height="1520"
-            alt="Un rettangolo arrotondato con la sua costruzione: quattro cerchi uguali, rette tangenti, assi di simmetria tratteggiati; a destra il pannello di Compasso."
-          />
+        <div class="compare">
+          <figure>
+            <img
+              src="img/schizzo.jpg"
+              width="1400"
+              height="900"
+              alt="Schizzo a matita con tratti ripassati: una A attraversata da una coda sinuosa, un fulmine e un cerchio."
+            />
+            <figcaption><b>Lo schizzo</b>, fotografato: tratti ripassati più volte.</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="img/ricalco.svg"
+              width="1400"
+              height="900"
+              alt="Lo stesso disegno ricalcato da Compasso: linee nette, spigoli vivi, curve morbide con pochi punti di ancoraggio."
+            />
+            <figcaption>
+              <b>Ricalcato da Compasso</b>: 3 tracciati, 24 anchor, rette dritte e spigoli esatti.
+            </figcaption>
+          </figure>
         </div>
       </header>
     </div>
 
+    <section id="flusso">
+      <div class="wrap">
+        <h2>Ricalca, analizza, correggi.</h2>
+        <p class="sub">
+          Le schede del pannello seguono il lavoro su un logo, dal foglio al file finale.
+        </p>
+        <ol class="flow">
+          <li>
+            <h3>RICALCA</h3>
+            <p>
+              Le tante passate di matita diventano una sola linea pulita. Rette dritte, curve
+              sinuose, spigoli esatti, il minimo di anchor.
+            </p>
+          </li>
+          <li>
+            <h3>ANALIZZA</h3>
+            <p>
+              Cerchi, ovali, rette, assi di simmetria e unità x che le forme seguono. Più le
+              quasi-coincidenze che l'occhio non vede.
+            </p>
+          </li>
+          <li>
+            <h3>CORREGGI</h3>
+            <p>
+              Archi e ovali esatti, raggi uguali, simmetria, allineamenti. Su una copia, con
+              l'anteprima prima e dopo.
+            </p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="ricalca">
+      <div class="wrap split">
+        <div>
+          <h2>Il ricalco che pensa come un designer.</h2>
+          <p>
+            Selezioni la foto dello schizzo in Illustrator e Compasso ne ricava i tracciati con
+            pochi punti, ben distribuiti.
+          </p>
+          <ul>
+            <li>I tratti ripassati più volte si fondono in un'unica linea.</li>
+            <li>Gli spigoli restano vivi, anche le punte più acute.</li>
+            <li>Le forme chiuse si chiudono, anche se la matita si è fermata un soffio prima.</li>
+            <li>Sporco, puntini e ombre del foglio vengono ignorati.</li>
+          </ul>
+        </div>
+        <img
+          class="shot"
+          src="img/pannello-ricalca.png"
+          width="2202"
+          height="1720"
+          alt="Scheda Ricalca del pannello, larga: a sinistra l'anteprima con lo schizzo e le linee ricalcate, a destra le regolazioni."
+          loading="lazy"
+        />
+      </div>
+    </section>
+
+    <section id="correggi">
+      <div class="wrap split flip">
+        <div>
+          <h2>Un logo quasi perfetto diventa perfetto.</h2>
+          <p>
+            Ogni correzione ha il suo interruttore e la sua tolleranza. Il confronto mostra in
+            azzurro l'originale e i punti spostati, e lo zoom arriva fino al singolo anchor.
+          </p>
+          <ul>
+            <li>Archi e ovali esatti, oppure ovali trasformati in cerchi.</li>
+            <li>Raggi uguali, centri comuni, rette a 0°, 45° e 90°.</li>
+            <li>Simmetria, allineamenti, griglia e meno anchor.</li>
+            <li>Un clic su una forma la esclude dalla correzione.</li>
+          </ul>
+        </div>
+        <img
+          class="shot"
+          src="img/pannello-correggi.png"
+          width="642"
+          height="1720"
+          alt="Scheda Correggi: anteprima a confronto tra originale e corretto, interruttori e tolleranze delle correzioni."
+          loading="lazy"
+        />
+      </div>
+    </section>
+
+    <section id="analizza">
+      <div class="wrap">
+        <h2>La costruzione che il logo nasconde.</h2>
+        <p class="sub">
+          Compasso legge le curve vere e le disegna su un layer dedicato, che rimuovi con un clic.
+        </p>
+        <div class="gallery">
+          <figure>
+            <img
+              src="img/pannello-geometria.png"
+              width="642"
+              height="1720"
+              alt="Vista Geometria: anteprima con cerchi e rette di costruzione, livelli e spessori."
+              loading="lazy"
+            />
+            <figcaption>
+              <b>Geometria</b>
+              Cerchi, ovali, rette e assi, in quattro livelli di dettaglio.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="img/pannello-anomalie.png"
+              width="642"
+              height="1720"
+              alt="Vista Anomalie: le quasi-coincidenze con lo scarto in punti."
+              loading="lazy"
+            />
+            <figcaption>
+              <b>Anomalie</b>
+              Un raggio diverso dell'1%, un anchor fuori riga di 0,3 pt.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="img/pannello-misure.png"
+              width="642"
+              height="1720"
+              alt="Vista Misure: unità x, raggi, rapporti e area di rispetto."
+              loading="lazy"
+            />
+            <figcaption>
+              <b>Misure</b>
+              Unità x, rapporti notevoli e area di rispetto per il brand book.
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
     <section id="installa">
       <div class="wrap">
-        <p class="caps">Installazione · 1 minuto</p>
-        <h2>Un file, due clic.</h2>
-        <div class="steps">
-          <div class="step">
-            <h3>Scarica</h3>
-            <p>
-              Scarica
+        <h2>Installazione in un minuto.</h2>
+        <ol class="install">
+          <li>
+            <span
+              >Scarica
               <a
                 href="https://github.com/marcodolce904-boop/COMPASSO/releases/latest/download/Compasso-Setup.exe"
                 >Compasso-Setup.exe</a
               >
-              e fai doppio clic.
-            </p>
-          </div>
-          <div class="step">
-            <h3>Installa</h3>
-            <p>
-              Premi <strong>Installa</strong>, poi <strong>Fine</strong>. Nessun altro programma da
-              scaricare.
-            </p>
-          </div>
-          <div class="step">
-            <h3>Apri il pannello</h3>
-            <p>
-              In Illustrator: <strong>Finestra → Estensioni → Compasso</strong>. Seleziona il logo.
-            </p>
-          </div>
-        </div>
+              e aprilo con un doppio clic.</span
+            >
+          </li>
+          <li>
+            <span>Premi <strong>Installa</strong>, poi <strong>Fine</strong>.</span>
+          </li>
+          <li>
+            <span
+              >In Illustrator apri <strong>Finestra › Estensioni › Compasso</strong> e seleziona il
+              logo o lo schizzo.</span
+            >
+          </li>
+        </ol>
         <p class="note">
-          Se Windows mostra «PC protetto», scegli «Ulteriori informazioni → Esegui comunque». Per
-          disinstallare: Impostazioni di Windows → App installate → Compasso.
+          Se Windows mostra «PC protetto», scegli «Ulteriori informazioni» e poi «Esegui comunque».
+          Per disinstallare: Impostazioni di Windows, App installate, Compasso.
         </p>
-      </div>
-    </section>
-
-    <section id="funzioni">
-      <div class="wrap">
-        <p class="caps">Cosa fa</p>
-        <h2>Tre schede, tutto quello che serve.</h2>
-
-        <div class="feat">
-          <img
-            src="img/pannello-geometria.png"
-            width="642"
-            height="1520"
-            alt="Scheda Geometria del pannello: anteprima live, livelli, spessore linea e marker."
-            loading="lazy"
-          />
-          <div>
-            <p class="caps">Geometria</p>
-            <h3>La costruzione, non una griglia preimpostata</h3>
-            <p>
-              Compasso legge le curve vere del logo: riconosce gli archi anche spezzati in più
-              tratti, unisce i cerchi uguali, trova tangenze, centri comuni e allineamenti. Scegli
-              quanta costruzione vedere e includi o escludi ogni elemento. L'anteprima è live; il
-              documento cambia solo quando premi <strong>Disegna</strong>.
-            </p>
-            <div class="tags">
-              <span>cerchi</span><span>rette</span><span>assi</span><span>tangenze</span
-              ><span>4 livelli</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="feat">
-          <img
-            src="img/pannello-anomalie.png"
-            width="642"
-            height="1520"
-            alt="Scheda Anomalie: elenco delle quasi-coincidenze con il delta in punti."
-            loading="lazy"
-          />
-          <div>
-            <p class="caps">Anomalie</p>
-            <h3>Gli errori invisibili, con il numero esatto</h3>
-            <p>
-              Una curva circolare al 99%, due raggi diversi dell'1%, un anchor fuori riga di 0,3 pt,
-              una simmetria quasi perfetta. Compasso li elenca per importanza e li evidenzia con un
-              clic.
-            </p>
-            <div class="tags">
-              <span>quasi-archi</span><span>raggi</span><span>allineamenti</span
-              ><span>simmetria</span><span>angoli</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="feat">
-          <img
-            src="img/pannello-misure.png"
-            width="642"
-            height="1520"
-            alt="Scheda Misure: unità x, bounding box, raggi, rapporti e area di rispetto."
-            loading="lazy"
-          />
-          <div>
-            <p class="caps">Misure</p>
-            <h3>Unità x e area di rispetto, pronte per il brand book</h3>
-            <p>
-              Lo spessore ricorrente dell'asta diventa l'unità x; da lì l'area di rispetto in
-              multipli di x, i raggi e i rapporti notevoli (aureo, √2, 2, 1,5). Un clic e le misure
-              sono negli appunti.
-            </p>
-            <div class="tags">
-              <span>unità x</span><span>proporzioni</span><span>rapporti</span
-              ><span>copia misure</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="a-mano">
-      <div class="wrap">
-        <div class="hand">
-          <p class="caps">Dal foglio al vettoriale preciso</p>
-          <h2 style="margin-bottom: 8px">Hai disegnato il logo a mano?</h2>
-          <ol>
-            <li>Fotografa lo schizzo e aprilo in Illustrator.</li>
-            <li><strong>Oggetto → Ricalco immagine</strong> per trasformarlo in tracciati.</li>
-            <li>Seleziona il risultato e, in Compasso, ⚙ → Tolleranza <strong>Morbida</strong>.</li>
-            <li>Leggi la costruzione che il disegno «voleva» avere e le anomalie da correggere.</li>
-          </ol>
-        </div>
       </div>
     </section>
 
     <section id="faq">
       <div class="wrap">
-        <p class="caps">Domande frequenti</p>
         <h2>Prima di iniziare</h2>
         <div class="faq">
           <div>
@@ -446,28 +569,31 @@
           <div>
             <h3>Modifica il mio file?</h3>
             <p>
-              Solo quando premi Disegna, su un layer bloccato «Compasso — Construction» che rimuovi
-              con un clic.
+              Solo quando lo chiedi: costruzione e ricalco vanno su layer dedicati, le correzioni su
+              una copia. L'originale resta, e si ripristina con un clic.
+            </p>
+          </div>
+          <div>
+            <h3>Che immagini posso ricalcare?</h3>
+            <p>
+              Foto o scansioni in JPEG o PNG, inserite in Illustrator come immagini collegate o
+              scelte dal disco. Più il foglio è uniforme, migliore è il risultato.
             </p>
           </div>
           <div>
             <h3>Raccoglie dati?</h3>
-            <p>No. Lavora solo sul tuo computer, anche offline.</p>
+            <p>
+              No. Lavora solo sul tuo computer, anche offline. «Segnala un problema» salva un file
+              sul Desktop: decidi tu se mandarlo.
+            </p>
           </div>
           <div>
             <h3>In che lingua?</h3>
-            <p>Inglese o italiano: si cambia dalle impostazioni ⚙ del pannello.</p>
-          </div>
-          <div>
-            <h3>Come lo disinstallo?</h3>
-            <p>Da Impostazioni di Windows → App installate → Compasso.</p>
+            <p>Italiano o inglese, dalle impostazioni del pannello.</p>
           </div>
           <div>
             <h3>Cosa arriva dopo?</h3>
-            <p>
-              Costruisci (progressioni di cerchi, griglie, «Ricostruisci perfetto») e Presenta
-              (tavola di presentazione).
-            </p>
+            <p>Presenta: la tavola di presentazione del logo con la sua costruzione.</p>
           </div>
         </div>
       </div>
@@ -475,16 +601,11 @@
 
     <div class="wrap">
       <footer>
-        <span>© 2026 Marco Dolce · Compasso è un'anteprima (beta)</span>
-        <span
-          ><a href="https://github.com/marcodolce904-boop/COMPASSO/blob/main/CHANGELOG.md"
-            >Novità</a
-          >
-          ·
-          <a href="https://github.com/marcodolce904-boop/COMPASSO/releases"
-            >Tutte le versioni</a
-          ></span
-        >
+        <span>© 2026 Marco Dolce. Compasso è in anteprima.</span>
+        <nav>
+          <a href="https://github.com/marcodolce904-boop/COMPASSO/blob/main/CHANGELOG.md">Novità</a>
+          <a href="https://github.com/marcodolce904-boop/COMPASSO/releases">Tutte le versioni</a>
+        </nav>
       </footer>
     </div>
   </body>
