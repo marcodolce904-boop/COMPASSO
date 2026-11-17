@@ -34,6 +34,12 @@ Fatto (0.4.0): **ovali** (modello `Ellipse`, fit diretto di Fitzgibbon/Halíř�
 geometrica vera) in analisi, livelli, piano, anteprima, disegno ExtendScript e CORREGGI (con «ovali → cerchi»);
 riconoscimento per tratti lisci interi (cerchio unico → greedy → ovale → quasi-cerchio) contro la
 frammentazione dei ricalchi; test `traced.test.ts` con loghi ricalcati sintetici.
+Fatto (0.5.0): **RICALCA** (`core/src/trace`: soglia adattiva + Otsu, chiusura, asole sottili,
+Zhang–Suen, grafo dei tratti con punte acute e incroci, ricucitura degli spazi, ricampionamento,
+media gaussiana, spigoli, rette ai minimi quadrati con spigoli esatti, Schneider, orientamento);
+velocità (simmetria su griglia); «Segnala un problema» + `fixtures/reports`; esclusione di forme in
+CORREGGI. Da fare: provare RICALCA su schizzi veri di Marco e tarare i valori predefiniti; GitHub
+Pages non attivo (il sito in `site/` non è online).
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

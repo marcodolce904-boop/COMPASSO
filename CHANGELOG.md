@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0 — 17/11/2026
+
+- **Nuova scheda RICALCA**: da uno schizzo a matita (foto o scansione) a tracciati puliti col minimo
+  di anchor, senza passare dal Ricalco immagine di Illustrator. Le tante passate di matita diventano
+  una sola linea; i punti vengono ricampionati a distanza costante e mediati con i vicini; gli spigoli
+  si riconoscono dal cambio di direzione e restano vivi (anche le punte acute); i lati dritti diventano
+  rette che si incontrano nel punto esatto; le curve usano il minimo di Bézier. Le forme quasi chiuse
+  si chiudono, sporco e ombre del foglio vengono ignorati, le forme sono orientate in senso orario
+  (i buchi antiorario). Modalità **Linee** o **Forme piene**; anteprima con zoom; **CREA TRACCIATI**
+  sul layer «Compasso Ricalco», già pronti per CORREGGI.
+- **Molto più veloce sui ricalchi grandi**: con 5000 anchor la correzione passa da 11 s a 0,5 s e
+  l'analisi da 7 s a 2 s.
+- **Segnala un problema** (⚙): salva un file con selezione e risultato da mandare; ogni file diventa un
+  test fisso del progetto.
+- CORREGGI: **clic su una forma per escluderla** dalla correzione; avviso quando una correzione sposta
+  il disegno di oltre l'1%.
+- Pagina del progetto rinnovata (prima/dopo del ricalco, schermate nuove).
+
 ## 0.4.0 — 17/11/2026
 
 - **Ovali**: Compasso riconosce gli ovali (anche ruotati), li elenca tra gli elementi

@@ -1,14 +1,16 @@
 # Compasso
 
-**La costruzione geometrica del tuo logo, dedotta dai suoi tracciati.**
-Plugin per Adobe Illustrator: selezioni il logo, Compasso trova i cerchi che le curve seguono,
-le rette, gli assi di simmetria, l'unità x e l'area di rispetto, e la disegna su un layer dedicato.
-In più ti segnala le imprecisioni invisibili: una curva circolare al 99%, due raggi diversi
+**Dal tuo schizzo a un logo geometrico preciso.**
+Plugin per Adobe Illustrator: ricalca il disegno a matita con linee pulite e il minimo di anchor,
+trova la costruzione nascosta nel logo (cerchi, ovali, rette, assi di simmetria, unità x, area di
+rispetto) e ne corregge le imprecisioni invisibili: una curva circolare al 99%, due raggi diversi
 dell'1%, un anchor fuori riga di 0,3 pt.
 
-![Compasso: costruzione disegnata e pannello](site/img/costruzione.png)
+| Lo schizzo                                | Ricalcato da Compasso (3 tracciati, 24 anchor)    |
+| ----------------------------------------- | ------------------------------------------------- |
+| ![Schizzo a matita](site/img/schizzo.jpg) | ![Ricalco con linee pulite](site/img/ricalco.svg) |
 
-> **Versione 0.4.0 (anteprima)** — per Adobe Illustrator 2026 e successivi, su **Windows**.
+> **Versione 0.5.0 (anteprima)** — per Adobe Illustrator 2026 e successivi, su **Windows**.
 
 ## Scarica e installa
 
@@ -26,6 +28,7 @@ Per disinstallare: Impostazioni di Windows → App installate → _Compasso per 
 
 |                                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Ricalca](site/img/pannello-ricalca.png)     | **RICALCA** — seleziona la foto dello schizzo (inserita e collegata) oppure scegli il file: le passate di matita diventano una sola linea pulita, con rette dritte, spigoli esatti e curve col minimo di anchor. Regoli sensibilità, fusione dei tratti, levigatezza e numero di anchor; **CREA TRACCIATI** li mette sul layer «Compasso Ricalco», già selezionati per CORREGGI.                                                                |
 | ![Geometria](site/img/pannello-geometria.png) | **1. Seleziona il logo** — tracciati, gruppi, tracciati composti o testo. L'anteprima si aggiorna da sola.<br><br>**2. Scegli il livello** — Essenziale, Struttura, Dettaglio o Tutto; regola spessore delle linee e marker. Dall'elenco _Elementi_ includi o escludi ogni cerchio e retta.<br><br>**3. DISEGNA COSTRUZIONE** — la costruzione va sul layer bloccato «Compasso — Construction». _RIDISEGNA_ la aggiorna, _Rimuovi_ la cancella. |
 | ![Anomalie](site/img/pannello-anomalie.png)   | **Anomalie** — le quasi-coincidenze, ordinate per importanza: quasi-archi, raggi quasi uguali, centri quasi coincidenti, quasi-tangenze, anchor fuori riga, quasi-simmetrie, angoli quasi a 45°/90°. Un clic le evidenzia nell'anteprima.                                                                                                                                                                                                       |
 | ![Misure](site/img/pannello-misure.png)       | **Misure** — unità x (spessore dell'asta) con affidabilità, proporzioni, raggi e rapporti notevoli (aureo, √2…), area di rispetto in multipli di x, _Copia misure_.                                                                                                                                                                                                                                                                             |
@@ -33,9 +36,12 @@ Per disinstallare: Impostazioni di Windows → App installate → _Compasso per 
 
 Allarga il pannello per avere anteprime più grandi: oltre una certa larghezza i comandi vanno su due colonne.
 
-**Logo disegnato a mano?** Fotografalo, vettorializzalo con _Oggetto → Ricalco immagine_, poi
-selezionalo e imposta ⚙ → **Tolleranza → Morbida**: Compasso ti mostra la costruzione che il
-disegno «voleva» avere e dove si discosta. Poi passa a **CORREGGI** per renderlo perfetto.
+**Logo disegnato a mano?** Fotografalo, inseriscilo in Illustrator (_File → Inserisci_, collegato),
+selezionalo e usa **RICALCA**. Poi **ANALIZZA** ti mostra la costruzione che il disegno «voleva»
+avere e **CORREGGI** lo rende perfetto.
+
+**Qualcosa non va?** ⚙ → **Segnala un problema** salva sul Desktop un file con la selezione e il
+risultato (niente viene inviato da solo): mandalo e diventa un test fisso del progetto.
 
 Lingua dell'interfaccia: ⚙ → English / Italiano.
 
