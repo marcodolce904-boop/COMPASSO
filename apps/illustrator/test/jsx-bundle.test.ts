@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 // Esegue l'ExtendScript COMPILATO da Bolt (ES3) con un finto `app`: verifica il bundle reale.
@@ -111,6 +112,22 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
       { $, app: { documents: { length: 0 } }, BridgeTalk: { appName: 'illustrator' } },
     ) as string[];
     expect(Array.from(out)).toEqual(['undefined', 'function', '{"a":[1,"x"]}']);
+  });
+
+  it('nessun condizionale annidato nel ramo «vero» (ExtendScript: «Previsto: :»)', () => {
+    // ExtendScript non sa leggere `a ? b ? x : y : z` senza parentesi; nel ramo «falso»
+    // (catene else-if, usate anche da json2) invece funziona.
+    const src = ts.createSourceFile('index.js', code, ts.ScriptTarget.ES5, true, ts.ScriptKind.JS);
+    const bad: string[] = [];
+    const walk = (n: ts.Node): void => {
+      if (ts.isConditionalExpression(n) && ts.isConditionalExpression(n.whenTrue)) {
+        const line = src.getLineAndCharacterOfPosition(n.getStart()).line + 1;
+        bad.push(`riga ${line}: ${n.getText().slice(0, 80)}`);
+      }
+      ts.forEachChild(n, walk);
+    };
+    walk(src);
+    expect(bad).toEqual([]);
   });
 
   it('non usa API assenti in ExtendScript (ES3)', () => {

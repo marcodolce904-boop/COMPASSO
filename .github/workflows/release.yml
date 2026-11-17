@@ -33,8 +33,26 @@ jobs:
             echo "release=true" >> "$GITHUB_OUTPUT"; echo "Nuova release v$VERSION"
           fi
 
-  installer:
+  verify:
     needs: check
+    if: needs.check.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # lo script per Illustrator della build distribuibile, poi tutti i test (anche quelli sul bundle)
+      - run: cd apps/illustrator && NODE_ENV=production ZXP_PACKAGE=true npx vite build --watch false || true
+      - run: test -f apps/illustrator/dist/cep/jsx/index.js
+      - run: pnpm test
+      - run: pnpm lint
+
+  installer:
+    needs: [check, verify]
     if: needs.check.outputs.release == 'true'
     runs-on: windows-latest
     env:

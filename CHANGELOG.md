@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4 — 17/11/2026
+
+- Il messaggio di errore indica la **versione di Compasso** che sta girando (così si capisce subito se
+  Illustrator usa ancora uno script vecchio).
+- Nuovo controllo automatico sullo script per Illustrator: blocca la release se ricompare un'espressione
+  che il motore di Illustrator non sa leggere (la causa dell'errore «Previsto: :»).
+- La release viene pubblicata solo se tutti i test passano.
+
 ## 0.2.3 — 10/11/2026
 
 - **Corretto l'errore che impediva al pannello di funzionare in Illustrator** («Previsto: : (riga 224)»):

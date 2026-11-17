@@ -3,7 +3,7 @@
 // risponda davvero e, se serve, si riprova in altri due modi. In caso di fallimento si
 // restituisce un messaggio preciso (motivo e riga) da mostrare nel pannello.
 import { csi } from '../lib/utils/bolt';
-import { ns } from '../../shared/shared';
+import { ns, version } from '../../shared/shared';
 
 const run = (script: string): Promise<string> =>
   new Promise((resolve) => csi.evalScript(script, (res: string) => resolve(String(res))));
@@ -55,5 +55,5 @@ export async function loadHost(): Promise<{ ok: true } | { ok: false; detail: st
     console.error(`[compasso] host non pronto (tentativo ${attempt})`, notes);
     await wait(600);
   }
-  return { ok: false, detail: notes.join(' · ') };
+  return { ok: false, detail: `Compasso ${version} · ` + notes.join(' · ') };
 }
