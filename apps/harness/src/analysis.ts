@@ -2,7 +2,9 @@ import type { AnalysisResult, DocumentGeometry, TolerancePreset } from '@compass
 
 export interface AnalysisRequest {
   id: number;
-  svg: string;
+  /** SVG da leggere, oppure (dopo una correzione) la geometria già pronta. */
+  svg?: string;
+  geometry?: DocumentGeometry;
   tolerance: TolerancePreset;
 }
 export type AnalysisResponse =

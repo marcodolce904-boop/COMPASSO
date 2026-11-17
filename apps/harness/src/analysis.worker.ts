@@ -3,10 +3,10 @@ import { analyze, parseSvg } from '@compasso/core';
 import type { AnalysisRequest, AnalysisResponse } from './analysis';
 
 self.onmessage = (e: MessageEvent<AnalysisRequest>) => {
-  const { id, svg, tolerance } = e.data;
+  const { id, svg, geometry: given, tolerance } = e.data;
   let msg: AnalysisResponse;
   try {
-    const geometry = parseSvg(svg);
+    const geometry = given ?? parseSvg(svg ?? '');
     const result = analyze(geometry, { tolerance });
     msg = { id, ok: true, geometry, result };
   } catch (err) {

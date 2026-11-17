@@ -34,6 +34,7 @@
   let lang = $state<Lang>('it');
   let tolerance = $state<TolerancePreset>('normal');
   let svgText = $state<string | null>(null);
+  let fixedGeometry = $state<DocumentGeometry | null>(null); // CORREGGI: logo corretto applicato
   let fixture = $state('');
   let geometry = $state<DocumentGeometry | null>(null);
   let result = $state<AnalysisResult | null>(null);
@@ -64,22 +65,26 @@
     }
   };
 
-  function analyse(svg: string, tol: TolerancePreset) {
+  function analyse(source: { svg: string } | { geometry: DocumentGeometry }, tol: TolerancePreset) {
     const id = ++requestId;
     clearTimeout(loadingTimer);
     loadingTimer = setTimeout(() => {
       if (id === requestId) status = 'loading';
     }, LOADING_DELAY_MS);
-    worker.postMessage({ id, svg, tolerance: tol } satisfies AnalysisRequest);
+    worker.postMessage({ id, ...source, tolerance: tol } satisfies AnalysisRequest);
   }
 
   // nuova sorgente o nuova tolleranza → nuova analisi; il layer disegnato resta finché non si ridisegna
   $effect(() => {
-    if (svgText !== null) analyse(svgText, tolerance);
+    if (svgText === null) return;
+    if (fixedGeometry)
+      analyse({ geometry: $state.snapshot(fixedGeometry) as DocumentGeometry }, tolerance);
+    else analyse({ svg: svgText }, tolerance);
   });
 
   function load(text: string) {
     drawnPlan = null;
+    fixedGeometry = null;
     svgText = text;
   }
   function pickFixture() {
@@ -114,6 +119,24 @@
     return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
   });
   const noHighlight = emptyHighlight();
+
+  // larghezza del pannello, regolabile trascinando la maniglia
+  const PANEL_MIN = 280;
+  const PANEL_MAX = 1100;
+  let panelWidth = $state(320);
+  function startResize(e: PointerEvent) {
+    const startX = e.clientX;
+    const startW = panelWidth;
+    const move = (ev: PointerEvent) => {
+      panelWidth = Math.min(PANEL_MAX, Math.max(PANEL_MIN, startW + (startX - ev.clientX)));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
 </script>
 
 <svelte:window
@@ -176,7 +199,17 @@
     {#if dragging}<div class="drop">{t(lang, 'harness.dropActive')}</div>{/if}
   </main>
 
-  <aside class="side">
+  <!-- maniglia: trascina per allargare il pannello (come in Illustrator) -->
+  <button
+    class="splitter"
+    aria-label={t(lang, 'harness.resize')}
+    onpointerdown={startResize}
+    onkeydown={(e) => {
+      if (e.key === 'ArrowLeft') panelWidth = Math.min(PANEL_MAX, panelWidth + 20);
+      if (e.key === 'ArrowRight') panelWidth = Math.max(PANEL_MIN, panelWidth - 20);
+    }}
+  ></button>
+  <aside class="side" style="width:{panelWidth}px">
     <Panel
       {geometry}
       {result}
@@ -188,6 +221,15 @@
       onDraw={(p) => (drawnPlan = p)}
       onRemove={() => (drawnPlan = null)}
       onDismissError={() => (error = null)}
+      fixApplied={fixedGeometry !== null}
+      onApplyFix={(g) => {
+        drawnPlan = null;
+        fixedGeometry = g;
+      }}
+      onRevertFix={() => {
+        drawnPlan = null;
+        fixedGeometry = null;
+      }}
     />
   </aside>
 </div>
@@ -277,8 +319,20 @@
     font: 500 var(--fs-l) var(--f-sans);
     pointer-events: none;
   }
+  .splitter {
+    padding: 0;
+    border: 0;
+    width: var(--sp-1);
+    flex: none;
+    cursor: col-resize;
+    background: var(--c-border);
+  }
+  .splitter:hover,
+  .splitter:focus-visible {
+    background: var(--c-accent);
+    outline: none;
+  }
   .side {
-    width: var(--w-panel);
     flex: none;
     height: 100%;
     border-left: 1px solid var(--c-border);

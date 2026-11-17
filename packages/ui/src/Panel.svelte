@@ -1,7 +1,11 @@
 <script lang="ts">
   import {
     plan as makePlan,
+    refine,
+    refineDefaults,
     type AnalysisResult,
+    type RefineOptions,
+    type RefineResult,
     type ConstructionPlan,
     type DocumentGeometry,
     type DrawStyle,
@@ -9,7 +13,7 @@
     type TolerancePreset,
   } from '@compasso/core';
   import { untrack } from 'svelte';
-  import { elementGroups, findingDelta, findingMessage } from './labels';
+  import { elementGroups, findingDelta, findingMessage, fixSummary } from './labels';
   import { highlightFor, viewBoxFor } from './preview';
   import { statsText, t, type Lang } from './strings';
   import Header from './components/Header.svelte';
@@ -24,6 +28,8 @@
   import TextButton from './components/TextButton.svelte';
   import EmptyState from './components/EmptyState.svelte';
   import Toast from './components/Toast.svelte';
+  import FixPreview, { type FixMode } from './components/FixPreview.svelte';
+  import FixControls from './components/FixControls.svelte';
 
   export type PanelStatus = 'empty' | 'loading' | 'ready' | 'error';
 
@@ -39,6 +45,12 @@
     onDraw: (plan: ConstructionPlan) => void;
     onRemove: () => void;
     onDismissError?: () => void;
+    /** CORREGGI: è presente una copia corretta (l'originale è nascosto). */
+    fixApplied?: boolean;
+    /** CORREGGI: applica la geometria corretta (l'host la scrive su una copia). */
+    onApplyFix?: (geometry: DocumentGeometry) => void;
+    /** CORREGGI: elimina la copia corretta e rimette l'originale. */
+    onRevertFix?: () => void;
   }
   let {
     geometry = null,
@@ -52,11 +64,14 @@
     onDraw,
     onRemove,
     onDismissError = () => {},
+    fixApplied = false,
+    onApplyFix = () => {},
+    onRevertFix = () => {},
   }: Props = $props();
 
   // stato del pannello (valori predefiniti del §4.2)
   const DEFAULTS = { stroke: 0.75, marker: 8 };
-  let mainTab = $state('inspect');
+  let mainTab = $state<'inspect' | 'fix' | 'present'>('inspect');
   let sub = $state<'findings' | 'geometry' | 'specs'>('geometry');
   let level = $state<Level>('structure');
   let strokeWidth = $state(DEFAULTS.stroke);
@@ -68,6 +83,71 @@
   let listOpen = $state(false);
   let settingsOpen = $state(false);
   let clearspace = $state({ enabled: false, multiplier: 1 });
+
+  // --- impaginazione flessibile: il pannello misura se stesso ---------------------------------
+  let panelW = $state(320);
+  let panelH = $state(720);
+  const WIDE = 620; // da questa larghezza: anteprima a sinistra, controlli a destra
+  const wide = $derived(panelW >= WIDE);
+  // altezza dell'anteprima: cresce con il pannello (stretto: ~38% dell'altezza; largo: quasi tutta)
+  const thumbH = $derived(
+    Math.round(wide ? Math.max(220, panelH - 250) : Math.min(560, Math.max(176, panelH * 0.38))),
+  );
+
+  // --- CORREGGI ---------------------------------------------------------------------------------
+  let fixOptions = $state<RefineOptions | null>(null);
+  let fixDefaults = $state<RefineOptions | null>(null);
+  let fixD = $state(100);
+  let fixMode = $state<FixMode>('compare');
+  let fixResult = $state<RefineResult | null>(null);
+
+  // nuova selezione: valori predefiniti proporzionati al logo; le scelte dell'utente restano,
+  // le tolleranze in pt si riscalano sulla nuova dimensione
+  $effect(() => {
+    const g = geometry;
+    untrack(() => {
+      if (!g) return;
+      const d = refineDefaults(g);
+      fixDefaults = d.options;
+      if (!fixOptions) {
+        fixOptions = structuredClone(d.options);
+      } else if (Math.abs(d.D / fixD - 1) > 0.01) {
+        const k = d.D / fixD;
+        fixOptions.arcs.tolerance *= k;
+        fixOptions.radii.tolerance *= k;
+        fixOptions.centers.tolerance *= k;
+        fixOptions.align.tolerance *= k;
+        fixOptions.symmetry.tolerance *= k;
+      }
+      fixD = d.D;
+    });
+  });
+
+  // correzione calcolata dal vivo (con un piccolo ritardo mentre si trascina una barra)
+  $effect(() => {
+    const g = geometry;
+    const o = fixOptions ? ($state.snapshot(fixOptions) as RefineOptions) : null;
+    if (mainTab !== 'fix' || !g || !o) return;
+    const id = setTimeout(() => {
+      try {
+        fixResult = refine(g, o);
+      } catch (e) {
+        console.error('[compasso] correzione non riuscita', e);
+        fixResult = null;
+      }
+    }, 40);
+    return () => clearTimeout(id);
+  });
+  const fixText = $derived(fixResult ? fixSummary(lang, fixResult.report) : '');
+  const canApply = $derived(
+    status === 'ready' && fixResult !== null && fixResult.report.changedPaths > 0,
+  );
+  function applyFix() {
+    if (fixResult) onApplyFix(fixResult.geometry);
+  }
+  function resetFix() {
+    if (fixDefaults) fixOptions = structuredClone($state.snapshot(fixDefaults) as RefineOptions);
+  }
 
   // un nuovo risultato azzera le scelte manuali
   $effect(() => {
@@ -127,7 +207,7 @@
   }
 </script>
 
-<div class="panel">
+<div class="panel" bind:clientWidth={panelW} bind:clientHeight={panelH}>
   <Header
     name={t(lang, 'app.name')}
     {version}
@@ -161,130 +241,184 @@
   <TabBar
     bind:value={mainTab}
     tabs={[
-      { value: 'build', label: t(lang, 'tab.build') },
       { value: 'inspect', label: t(lang, 'tab.inspect') },
+      { value: 'fix', label: t(lang, 'tab.fix') },
       { value: 'present', label: t(lang, 'tab.present') },
     ]}
   />
 
-  <div class="body">
-    {#if mainTab !== 'inspect'}
+  <div class="body" class:wide style="--h-thumb:{thumbH}px">
+    {#if mainTab === 'present'}
       <EmptyState title={t(lang, 'tab.soon')} hint={t(lang, 'tab.soonHint')} />
     {:else}
-      <PreviewCard
-        title={t(lang, 'preview.title')}
-        {stats}
-        {geometry}
-        plan={currentPlan}
-        {viewBox}
-        {highlight}
-        busy={status === 'loading'}
-        label={stats}
-      />
-      {#each geometry?.warnings ?? [] as w (w)}
-        <p class="warning">{t(lang, `warning.${w}`)}</p>
-      {/each}
-      {#if error}
-        <Toast message={error} dismissLabel={t(lang, 'error.dismiss')} onDismiss={onDismissError} />
-      {/if}
-
-      {#if !result}
-        <EmptyState
-          title={status === 'loading' ? t(lang, 'preview.analyzing') : t(lang, 'empty.selection')}
-          hint={status === 'loading' ? '' : t(lang, 'empty.hint')}
-        />
-      {:else}
-        <Segmented
-          ariaLabel={t(lang, 'sub.aria')}
-          bind:value={sub}
-          options={[
-            { value: 'findings', label: t(lang, 'sub.findings'), badge: result.findings.length },
-            { value: 'geometry', label: t(lang, 'sub.geometry') },
-            { value: 'specs', label: t(lang, 'sub.specs') },
-          ]}
-        />
-        {#if sub === 'geometry'}
-          <Segmented
-            ariaLabel={t(lang, 'level.aria')}
-            bind:value={level}
-            dense
-            options={(['essential', 'structure', 'detail', 'full'] as const).map((l) => ({
-              value: l,
-              label: t(lang, `level.${l}`),
-            }))}
-          />
-          <div class="sect">
-            <b>{t(lang, 'display.title')}</b><span>{t(lang, 'display.reset')}</span>
-          </div>
-          <Slider
-            label={t(lang, 'display.stroke')}
-            bind:value={strokeWidth}
-            min={0.25}
-            max={3}
-            step={0.05}
-            defaultValue={DEFAULTS.stroke}
-            unit="pt"
-          />
-          <Slider
-            label={t(lang, 'display.marker')}
-            bind:value={markerSize}
-            min={2}
-            max={20}
-            step={0.1}
-            defaultValue={DEFAULTS.marker}
-            unit="pt"
-            digits={1}
-          />
-          {#if groups}
-            <ElementList
-              title={t(lang, 'elements.title', { n: elementCount })}
-              {groups}
-              groupLabels={{
-                circles: t(lang, 'group.circles'),
-                lines: t(lang, 'group.lines'),
-                axes: t(lang, 'group.axes'),
-                rows: t(lang, 'group.rows'),
-              }}
-              {visible}
-              bind:open={listOpen}
-              bind:hoverId
-              showLabel={(name) => t(lang, 'el.show', { name })}
-              hideLabel={(name) => t(lang, 'el.hide', { name })}
-              onToggle={toggle}
-            />
-          {/if}
-        {:else if sub === 'findings'}
-          <FindingList
-            findings={result.findings}
-            bind:selected={selectedFinding}
-            message={(f) => findingMessage(lang, f)}
-            delta={findingDelta}
-            severityLabel={(s) => t(lang, `severity.${s}`)}
-            emptyText={t(lang, 'findings.none')}
-            hint={t(lang, 'findings.hint')}
+      <div class="col main">
+        {#if mainTab === 'fix' && geometry}
+          <FixPreview
+            title={t(lang, 'fix.preview')}
+            original={geometry}
+            fixed={fixResult?.geometry ?? null}
+            bind:mode={fixMode}
+            modeLabels={{
+              after: t(lang, 'fix.mode.after'),
+              compare: t(lang, 'fix.mode.compare'),
+              before: t(lang, 'fix.mode.before'),
+            }}
+            modeAria={t(lang, 'fix.mode.aria')}
+            legend={t(lang, 'fix.legend')}
+            summary={fixText || t(lang, 'preview.analyzing')}
+            busy={status === 'loading'}
           />
         {:else}
-          <SpecsView {result} {lang} bind:clearspace />
+          <PreviewCard
+            title={t(lang, 'preview.title')}
+            {stats}
+            {geometry}
+            plan={currentPlan}
+            {viewBox}
+            {highlight}
+            busy={status === 'loading'}
+            label={stats}
+          />
         {/if}
+        {#each geometry?.warnings ?? [] as w (w)}
+          <p class="warning">{t(lang, `warning.${w}`)}</p>
+        {/each}
+        {#if error}
+          <Toast
+            message={error}
+            dismissLabel={t(lang, 'error.dismiss')}
+            onDismiss={onDismissError}
+          />
+        {/if}
+        {#if !result}
+          <EmptyState
+            title={status === 'loading' ? t(lang, 'preview.analyzing') : t(lang, 'empty.selection')}
+            hint={status === 'loading' ? '' : t(lang, 'empty.hint')}
+          />
+        {/if}
+      </div>
+
+      {#if result}
+        <div class="col side">
+          {#if mainTab === 'fix'}
+            {#if fixOptions && fixDefaults}
+              <FixControls
+                bind:options={fixOptions}
+                defaults={fixDefaults}
+                D={fixD}
+                report={fixResult?.report ?? null}
+                {lang}
+                onReset={resetFix}
+              />
+            {/if}
+          {:else}
+            <Segmented
+              ariaLabel={t(lang, 'sub.aria')}
+              bind:value={sub}
+              options={[
+                {
+                  value: 'findings',
+                  label: t(lang, 'sub.findings'),
+                  badge: result.findings.length,
+                },
+                { value: 'geometry', label: t(lang, 'sub.geometry') },
+                { value: 'specs', label: t(lang, 'sub.specs') },
+              ]}
+            />
+            {#if sub === 'geometry'}
+              <Segmented
+                ariaLabel={t(lang, 'level.aria')}
+                bind:value={level}
+                dense
+                options={(['essential', 'structure', 'detail', 'full'] as const).map((l) => ({
+                  value: l,
+                  label: t(lang, `level.${l}`),
+                }))}
+              />
+              <div class="sect">
+                <b>{t(lang, 'display.title')}</b><span>{t(lang, 'display.reset')}</span>
+              </div>
+              <Slider
+                label={t(lang, 'display.stroke')}
+                bind:value={strokeWidth}
+                min={0.25}
+                max={3}
+                step={0.05}
+                defaultValue={DEFAULTS.stroke}
+                unit="pt"
+              />
+              <Slider
+                label={t(lang, 'display.marker')}
+                bind:value={markerSize}
+                min={2}
+                max={20}
+                step={0.1}
+                defaultValue={DEFAULTS.marker}
+                unit="pt"
+                digits={1}
+              />
+              {#if groups}
+                <ElementList
+                  title={t(lang, 'elements.title', { n: elementCount })}
+                  {groups}
+                  groupLabels={{
+                    circles: t(lang, 'group.circles'),
+                    lines: t(lang, 'group.lines'),
+                    axes: t(lang, 'group.axes'),
+                    rows: t(lang, 'group.rows'),
+                  }}
+                  {visible}
+                  bind:open={listOpen}
+                  bind:hoverId
+                  showLabel={(name) => t(lang, 'el.show', { name })}
+                  hideLabel={(name) => t(lang, 'el.hide', { name })}
+                  onToggle={toggle}
+                />
+              {/if}
+            {:else if sub === 'findings'}
+              <FindingList
+                findings={result.findings}
+                bind:selected={selectedFinding}
+                message={(f) => findingMessage(lang, f)}
+                delta={findingDelta}
+                severityLabel={(s) => t(lang, `severity.${s}`)}
+                emptyText={t(lang, 'findings.none')}
+                hint={t(lang, 'findings.hint')}
+              />
+            {:else}
+              <SpecsView {result} {lang} bind:clearspace />
+            {/if}
+          {/if}
+        </div>
       {/if}
     {/if}
   </div>
 
   <footer class="ftr">
-    <p class="stats">{stats}</p>
-    <div class="actions">
-      {#if drawn}
-        <PrimaryButton label={t(lang, 'btn.redraw')} disabled={!ready} onclick={draw} />
-        <TextButton label={t(lang, 'btn.remove')} tone="muted" onclick={onRemove} />
-      {:else}
-        <PrimaryButton
-          label={status === 'loading' ? t(lang, 'btn.loading') : t(lang, 'btn.draw')}
-          disabled={!ready}
-          loading={status === 'loading'}
-          onclick={draw}
-        />
-      {/if}
-    </div>
+    {#if mainTab === 'fix'}
+      <p class="stats">{t(lang, 'fix.onCopy')}</p>
+      <div class="actions">
+        <PrimaryButton label={t(lang, 'fix.apply')} disabled={!canApply} onclick={applyFix} />
+        {#if fixApplied}
+          <TextButton label={t(lang, 'fix.revert')} tone="muted" onclick={onRevertFix} />
+        {/if}
+      </div>
+    {:else}
+      <p class="stats">{stats}</p>
+      <div class="actions">
+        {#if drawn}
+          <PrimaryButton label={t(lang, 'btn.redraw')} disabled={!ready} onclick={draw} />
+          <TextButton label={t(lang, 'btn.remove')} tone="muted" onclick={onRemove} />
+        {:else}
+          <PrimaryButton
+            label={status === 'loading' ? t(lang, 'btn.loading') : t(lang, 'btn.draw')}
+            disabled={!ready}
+            loading={status === 'loading'}
+            onclick={draw}
+          />
+        {/if}
+      </div>
+    {/if}
   </footer>
 </div>
 
@@ -338,6 +472,23 @@
     flex-direction: column;
     gap: var(--sp-3);
     padding: var(--sp-3);
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    min-width: 0;
+  }
+  /* pannello largo: anteprima a sinistra (ferma), controlli a destra (scorrono) */
+  .body.wide {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(var(--w-panel-min), 1fr);
+    align-items: start;
+    overflow: hidden;
+  }
+  .body.wide .col {
+    max-height: 100%;
+    overflow-y: auto;
   }
   .sect {
     display: flex;

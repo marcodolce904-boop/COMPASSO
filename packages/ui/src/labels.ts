@@ -1,4 +1,4 @@
-import type { AnalysisResult, Finding, GuideLine } from '@compasso/core';
+import type { AnalysisResult, Finding, GuideLine, RefineReport } from '@compasso/core';
 import { num, t, type Lang, type Params } from './strings';
 
 const deg = (rad: number) => (rad * 180) / Math.PI;
@@ -93,4 +93,23 @@ export function findingMessage(lang: Lang, f: Finding): string {
 /** Delta del finding con unità: «0.80 pt», «0.73°». */
 export function findingDelta(f: Finding): string {
   return f.unit === 'deg' ? `${f.delta.toFixed(2)}°` : `${f.delta.toFixed(2)} ${f.unit}`;
+}
+
+/** Riepilogo delle correzioni: «4 archi · 2 allineati · spostamento max 0,97 pt». */
+export function fixSummary(lang: Lang, r: RefineReport): string {
+  const parts: string[] = [];
+  const add = (n: number, key: Parameters<typeof t>[1]) => {
+    if (n > 0) parts.push(t(lang, key, { n }));
+  };
+  add(r.arcs, 'fix.summary.arcs');
+  add(r.radii, 'fix.summary.radii');
+  add(r.centers, 'fix.summary.centers');
+  add(r.lines, 'fix.summary.lines');
+  add(r.aligned, 'fix.summary.aligned');
+  add(r.symmetric, 'fix.summary.symmetric');
+  add(r.gridded, 'fix.summary.gridded');
+  add(r.removedAnchors, 'fix.summary.removed');
+  if (parts.length === 0 || r.changedPaths === 0) return t(lang, 'fix.none');
+  parts.push(t(lang, 'fix.summary.shift', { d: num(lang, r.maxShift, 2) }));
+  return parts.join(' · ');
 }

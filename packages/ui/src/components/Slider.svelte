@@ -8,6 +8,7 @@
     defaultValue,
     unit,
     digits = 2,
+    format,
   }: {
     label: string;
     value: number;
@@ -17,10 +18,12 @@
     defaultValue: number;
     unit: string;
     digits?: number;
+    /** Testo del valore (es. percentuale); se assente: valore con `digits` decimali + unità. */
+    format?: (v: number) => string;
   } = $props();
   const uid = $props.id();
   const pct = $derived(((value - min) / (max - min)) * 100);
-  const text = $derived(`${value.toFixed(digits)} ${unit}`);
+  const text = $derived(format ? format(value) : `${value.toFixed(digits)} ${unit}`);
 </script>
 
 <div class="sl">

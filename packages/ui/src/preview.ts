@@ -180,3 +180,41 @@ export function ratioText(lang: Lang, b: { width: number; height: number }): str
     ? `1 : ${num(lang, b.height / b.width, 2)}`
     : `${num(lang, b.width / b.height, 2)} : 1`;
 }
+
+/** Riquadro che contiene uno o più loghi (punti e maniglie), con un margine del 4%. */
+export function geometryBox(...geoms: (DocumentGeometry | null | undefined)[]): Box | null {
+  let x0 = Infinity,
+    y0 = Infinity,
+    x1 = -Infinity,
+    y1 = -Infinity;
+  for (const g of geoms) {
+    for (const p of g?.paths ?? []) {
+      for (const s of p.segments) {
+        const pts = s.kind === 'line' ? [s.p0, s.p1] : [s.p0, s.c1, s.c2, s.p1];
+        for (const q of pts) {
+          x0 = Math.min(x0, q.x);
+          y0 = Math.min(y0, q.y);
+          x1 = Math.max(x1, q.x);
+          y1 = Math.max(y1, q.y);
+        }
+      }
+    }
+  }
+  if (!Number.isFinite(x0)) return null;
+  const w = Math.max(x1 - x0, 1e-6);
+  const h = Math.max(y1 - y0, 1e-6);
+  const m = 0.04 * Math.max(w, h);
+  return { x: x0 - m, y: y0 - m, width: w + 2 * m, height: h + 2 * m };
+}
+
+/** Anchor dell'originale che la correzione ha spostato (oltre `min` pt). */
+export function movedAnchors(
+  before: DocumentGeometry,
+  after: DocumentGeometry,
+  min = 0.05,
+): Vec2[] {
+  const a = before.paths.flatMap((p) => p.segments.map((s) => s.p0));
+  const b = after.paths.flatMap((p) => p.segments.map((s) => s.p0));
+  if (a.length * b.length > 4_000_000) return [];
+  return a.filter((p) => !b.some((q) => Math.hypot(p.x - q.x, p.y - q.y) <= min));
+}
