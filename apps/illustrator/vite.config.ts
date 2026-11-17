@@ -22,6 +22,10 @@ const isMetaPackage = process.env.ZIP_PACKAGE === 'true';
 const isPackage = process.env.ZXP_PACKAGE === 'true' || isMetaPackage;
 const isServe = process.env.SERVE_PANEL === 'true';
 const action = process.env.BOLT_ACTION;
+// svelte-check (pnpm typecheck) legge questa configurazione tramite vitePreprocess: in quel caso
+// niente effetti collaterali, altrimenti riscriverebbe dist/ in modalità sviluppo (pannello che
+// cerca localhost:3000) e ricompilerebbe lo script ExtendScript.
+const configOnly = process.argv.some((a) => /svelte-check/.test(a));
 
 const input: { [key: string]: string } = {};
 cepConfig.panels.map((panel) => {
@@ -42,11 +46,11 @@ const config: CepOptions = {
   packages: cepConfig.installModules || [],
 };
 
-if (action) runAction(config, action);
+if (action && !configOnly) runAction(config, action);
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [svelte(), cep(config)],
+  plugins: configOnly ? [svelte()] : [svelte(), cep(config)],
   resolve: {
     alias: [{ find: '@esTypes', replacement: path.resolve(__dirname, 'src') }],
   },
@@ -85,11 +89,12 @@ export default defineConfig({
 
 // rollup es3 build
 const outPathExtendscript = path.join('dist', cepDist, 'jsx', 'index.js');
-extendscriptConfig(
-  `src/jsx/index.ts`,
-  outPathExtendscript,
-  cepConfig,
-  extensions,
-  isProduction,
-  isPackage,
-);
+if (!configOnly)
+  extendscriptConfig(
+    `src/jsx/index.ts`,
+    outPathExtendscript,
+    cepConfig,
+    extensions,
+    isProduction,
+    isPackage,
+  );

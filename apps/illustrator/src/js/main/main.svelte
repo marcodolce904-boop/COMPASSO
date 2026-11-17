@@ -113,10 +113,23 @@
     }
   }
 
+  /**
+   * Risultato di una funzione di Illustrator: se non è un `{ ok: true, … }` (es. un errore
+   * dello script, che arriva come oggetto con message/line) diventa un errore leggibile.
+   */
+  function hostOk<T extends { ok: boolean; reason?: string }>(r: T | Record<string, unknown>): T {
+    if (r && typeof r === 'object' && (r as T).ok === true) return r as T;
+    const o = (r ?? {}) as { message?: string; line?: number; reason?: string };
+    const msg = o.message
+      ? `${o.message}${o.line ? ` (riga ${o.line})` : ''}`
+      : (o.reason ?? JSON.stringify(r));
+    throw new Error(`Compasso ${version}: ${msg}`);
+  }
+
   async function applyFix(g: DocumentGeometry) {
     try {
-      const r = await evalTS('applyFix', toFixPaths(g));
-      if (r.ok) fixApplied = true;
+      const r = hostOk(await evalTS('applyFix', toFixPaths(g)));
+      fixApplied = true;
       console.info(`[compasso] correzioni applicate a ${r.paths} tracciati in ${r.ms} ms`);
       void refresh(true); // la copia corretta è selezionata: si rianalizza subito
     } catch (e) {
@@ -163,13 +176,13 @@
   }
   async function createTrace(r: TraceReady) {
     try {
-      const res = await evalTS('createTracePaths', toFixPaths(r.geometry), r.style);
+      const res = hostOk(await evalTS('createTracePaths', toFixPaths(r.geometry), r.style));
       traceMessage = t(lang, 'trace.created', { n: res.paths });
       void refresh(true); // i tracciati creati sono selezionati: si analizzano subito
     } catch (e) {
       console.error('[compasso] tracciati non creati', e);
-      hostError = true;
-      error = t(lang, 'error.host', { msg: String(e) });
+      // nella scheda RICALCA l'errore si legge sotto l'anteprima
+      traceMessage = t(lang, 'error.host', { msg: String(e) });
     }
   }
 
