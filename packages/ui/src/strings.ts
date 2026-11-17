@@ -17,7 +17,11 @@ const en = {
   'fix.zoom.out': 'Zoom out',
   'fix.zoom.fit': 'FIT',
   'fix.zoom.area': 'Correction preview: wheel to zoom, drag to move, double click to fit',
-  'fix.zoom.hint': 'Wheel: zoom · drag: move · double click: fit',
+  'fix.zoom.hint': 'Wheel to zoom, drag to move, click a shape to exclude it, double click to fit',
+  'fix.exclude.count': '{n} excluded from the correction',
+  'fix.exclude.clear': 'Include all',
+  'fix.bigShift':
+    'Careful: some parts move by {d} pt, more than 1% of the logo. Check the comparison.',
   'fix.none': 'Nothing to correct with these tolerances ✓',
   'fix.summary.arcs': '{n} arcs',
   'fix.summary.ellipses': '{n} ovals',
@@ -205,7 +209,12 @@ const it: Record<StringKey, string> = {
   'fix.zoom.fit': 'ADATTA',
   'fix.zoom.area':
     'Anteprima delle correzioni: rotella per lo zoom, trascina per spostarti, doppio clic per adattare',
-  'fix.zoom.hint': 'Rotella: zoom · trascina: sposta · doppio clic: adatta',
+  'fix.zoom.hint':
+    'Rotella per lo zoom, trascina per spostarti, clic su una forma per escluderla, doppio clic per adattare',
+  'fix.exclude.count': '{n} esclusi dalla correzione',
+  'fix.exclude.clear': 'Includi tutto',
+  'fix.bigShift':
+    "Attenzione: alcune parti si spostano di {d} pt, oltre l'1% del logo. Controlla il confronto.",
   'fix.none': 'Nessuna correzione con queste tolleranze ✓',
   'fix.summary.arcs': '{n} archi',
   'fix.summary.ellipses': '{n} ovali',

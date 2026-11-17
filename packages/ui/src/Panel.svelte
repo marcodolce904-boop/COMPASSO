@@ -19,7 +19,7 @@
   import { untrack } from 'svelte';
   import { elementGroups, findingDelta, findingMessage, fixSummary } from './labels';
   import { highlightFor, viewBoxFor } from './preview';
-  import { statsText, t, type Lang } from './strings';
+  import { num, statsText, t, type Lang } from './strings';
   import Header from './components/Header.svelte';
   import TabBar from './components/TabBar.svelte';
   import PreviewCard from './components/PreviewCard.svelte';
@@ -161,6 +161,7 @@
         fixOptions.symmetry.tolerance *= k;
       }
       fixD = d.D;
+      fixOptions.exclude = []; // gli id dei tracciati valgono solo per questa selezione
     });
   });
 
@@ -180,6 +181,17 @@
     return () => clearTimeout(id);
   });
   const fixText = $derived(fixResult ? fixSummary(lang, fixResult.report) : '');
+  const fixWarning = $derived(
+    fixResult && fixResult.report.maxShift > 0.01 * fixD
+      ? t(lang, 'fix.bigShift', { d: num(lang, fixResult.report.maxShift, 1) })
+      : '',
+  );
+  function toggleExclude(key: string | null) {
+    if (!fixOptions) return;
+    const cur = fixOptions.exclude ?? [];
+    if (key === null) fixOptions.exclude = [];
+    else fixOptions.exclude = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+  }
   const canApply = $derived(
     status === 'ready' && fixResult !== null && fixResult.report.changedPaths > 0,
   );
@@ -321,6 +333,13 @@
               area: t(lang, 'fix.zoom.area'),
               hint: t(lang, 'fix.zoom.hint'),
             }}
+            excluded={fixOptions?.exclude ?? []}
+            onToggleExclude={toggleExclude}
+            excludeLabels={{
+              count: t(lang, 'fix.exclude.count', { n: fixOptions?.exclude?.length ?? 0 }),
+              clear: t(lang, 'fix.exclude.clear'),
+            }}
+            warning={fixWarning}
           />
         {:else}
           <PreviewCard

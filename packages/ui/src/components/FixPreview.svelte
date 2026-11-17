@@ -15,6 +15,10 @@
     summary,
     busy = false,
     zoomLabels,
+    excluded = [],
+    onToggleExclude = () => {},
+    excludeLabels,
+    warning = '',
   }: {
     title: string;
     original: DocumentGeometry;
@@ -26,7 +30,14 @@
     summary: string;
     busy?: boolean;
     zoomLabels: { in: string; out: string; fit: string; area: string; hint: string };
+    /** Forme escluse dalla correzione (chiave = glifo o tracciato). */
+    excluded?: string[];
+    onToggleExclude?: (key: string | null) => void;
+    excludeLabels: { count: string; clear: string };
+    /** Avviso (es. spostamenti grandi). */
+    warning?: string;
   } = $props();
+  const excludedSet = $derived(new Set(excluded));
   type View = { x: number; y: number; w: number; h: number };
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 400;
@@ -97,9 +108,13 @@
   // trascinamento: sposta la vista
   let drag: { id: number; x: number; y: number } | null = null;
   let dragging = $state(false);
+  // clic (senza trascinare) su una forma: la esclude dalla correzione, o la riammette
+  let press: { x: number; y: number; key: string | null } | null = null;
   function down(e: PointerEvent) {
     if (e.button !== 0) return;
     if ((e.target as Element).closest('button')) return; // i pulsanti di zoom non trascinano
+    const shape = (e.target as Element).closest('[data-key]');
+    press = { x: e.clientX, y: e.clientY, key: shape ? shape.getAttribute('data-key') : null };
     drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
     dragging = true;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -113,6 +128,9 @@
   function up(e: PointerEvent) {
     if (drag?.id === e.pointerId) drag = null;
     dragging = false;
+    if (press && press.key && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 4)
+      onToggleExclude(press.key);
+    press = null;
   }
   function key(e: KeyboardEvent) {
     const step = cur.w * 0.1;
@@ -180,8 +198,10 @@
       <g class="fill">
         {#each filled as s (s.key)}<path
             d={s.d}
+            data-key={s.key}
             fill-rule="evenodd"
             class:line={!s.filled}
+            class:excluded={excludedSet.has(s.key)}
             style={s.filled ? '' : `stroke-width:${s.strokeWidth}`}
           />{/each}
       </g>
@@ -201,7 +221,16 @@
   </div>
   <p class="legend">{zoomLabels.hint}</p>
   {#if mode === 'compare'}<p class="legend">{legend}</p>{/if}
+  {#if excluded.length}
+    <p class="legend excl">
+      {excludeLabels.count}
+      <button type="button" class="link" onclick={() => onToggleExclude(null)}
+        >{excludeLabels.clear}</button
+      >
+    </p>
+  {/if}
   <p class="summary">{summary}</p>
+  {#if warning}<p class="warn" role="status">{warning}</p>{/if}
 </section>
 
 <style>
@@ -292,6 +321,35 @@
   }
   .fill path {
     fill: var(--c-preview-logo);
+  }
+  /* forme escluse dalla correzione: attenuate e tratteggiate */
+  .fill path.excluded {
+    opacity: 0.35;
+    stroke: var(--c-text-2);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+    vector-effect: non-scaling-stroke;
+  }
+  .fill path {
+    cursor: pointer;
+  }
+  .outline,
+  .moved {
+    pointer-events: none;
+  }
+  .excl .link {
+    margin-left: var(--sp-1);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--c-accent);
+    font: inherit;
+    cursor: pointer;
+  }
+  .warn {
+    font: 400 var(--fs-xs) / var(--lh-text) var(--f-sans);
+    color: var(--c-warn);
+    text-align: center;
   }
   /* tracciati solo a contorno (linee aperte): si disegnano come linee, non come forme piene */
   .fill path.line {

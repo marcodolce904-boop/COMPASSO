@@ -319,3 +319,19 @@ describe('refine: nessun pezzo mancante', () => {
     }
   });
 });
+
+describe('refine: elementi esclusi', () => {
+  it('un tracciato o un glifo escluso resta identico, gli altri si correggono', () => {
+    const g = geo([
+      traced(circleFn(100, 100, 50), 16, 0.4, 1, 'a'),
+      { ...traced(circleFn(300, 100, 50), 16, 0.4, 2, 'b'), glyphId: 'g1' },
+    ]);
+    const { options } = refineDefaults(g);
+    const r = refine(g, { ...options, exclude: ['a', 'g1'] });
+    expect(r.geometry.paths).toEqual(g.paths);
+    expect(r.report.changedPaths).toBe(0);
+    const r2 = refine(g, { ...options, exclude: ['g1'] });
+    expect(r2.geometry.paths[1]).toEqual(g.paths[1]);
+    expect(r2.geometry.paths[0]).not.toEqual(g.paths[0]);
+  });
+});

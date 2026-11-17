@@ -36,6 +36,11 @@ export interface RefineOptions {
   grid: { enabled: boolean; step: number; radii: boolean };
   /** Meno anchor: archi ricostruiti con il minimo di tratti, rette consecutive allineate unite. */
   clean: { enabled: boolean };
+  /**
+   * Elementi esclusi dalla correzione: id di tracciato o di glifo (tracciato composto, lettera).
+   * Restano identici all'originale e non vengono spostati da simmetria, allineamenti o griglia.
+   */
+  exclude?: string[];
 }
 
 export interface RefineReport {
@@ -256,7 +261,10 @@ function clusters1d<T>(items: T[], value: (t: T) => number, tol: number): T[][] 
 export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResult {
   const ng = normalizeGeometry(geom.paths);
   const D = ng.D || 1;
-  const work = ng.paths.map(toWork);
+  const excluded = new Set(opts.exclude ?? []);
+  const isExcluded = (p: PathData) =>
+    excluded.has(p.id) || (!!p.glyphId && excluded.has(p.glyphId));
+  const work = ng.paths.filter((p) => !isExcluded(p)).map(toWork);
   const strength = Math.max(0, Math.min(1, opts.strength));
   const structural = opts.clean.enabled && strength >= 0.999;
   const report: RefineReport = {
