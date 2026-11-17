@@ -28,6 +28,9 @@
   export interface TraceReady {
     geometry: DocumentGeometry;
     style: { filled: boolean; strokeWidth: number };
+    /** Regolazioni usate (per la segnalazione di un problema). */
+    options: TraceOptions;
+    perfect: boolean;
   }
 
   let {
@@ -93,6 +96,8 @@
         output = {
           geometry: g,
           style: { filled: o.mode === 'shapes', strokeWidth: Math.max(0.25, out.strokeWidth) },
+          options: o as TraceOptions,
+          perfect: p,
         };
       } catch (e) {
         console.error('[compasso] ricalco non riuscito', e);

@@ -9,6 +9,7 @@
     ConstructionSvg,
     Panel,
     loadRaster,
+    rasterUrl,
     type TraceReady,
     type TraceSource,
     emptyHighlight,
@@ -18,7 +19,7 @@
     type Lang,
     type PanelStatus,
   } from '@compasso/ui';
-  import { parseReport, reportFileName, type CompassoReport } from '@compasso/core';
+  import { parseReport, rasterOfGray, reportFileName, type CompassoReport } from '@compasso/core';
   import type { AnalysisRequest, AnalysisResponse } from './analysis';
 
   // fixture del repository, incluse come testo
@@ -92,9 +93,10 @@
     drawnPlan = null;
     fixedGeometry = null;
     const rep = text.trimStart().startsWith('{') ? parseReport(text) : null;
-    baseGeometry = rep ? rep.geometry : null;
+    baseGeometry = rep && rep.geometry.paths.length ? rep.geometry : null;
     if (rep) tolerance = rep.tolerance;
     svgText = rep ? '' : text;
+    if (rep?.trace) void openReportSketch(rep);
   }
   // RICALCA: immagine dello schizzo scelta dal disco
   let traceSource = $state<TraceSource | null>(null);
@@ -111,6 +113,18 @@
     } catch (e) {
       traceMessage = t(lang, 'trace.error.read', { msg: String(e) });
     }
+  }
+  /** Segnalazione con schizzo: si riapre in RICALCA com'era. */
+  async function openReportSketch(rep: CompassoReport) {
+    const tr = rep.trace!;
+    const image = rasterOfGray(tr.width, tr.height, tr.gray);
+    const url = await rasterUrl(image);
+    traceSource = {
+      loaded: { image, url, naturalWidth: tr.width, naturalHeight: tr.height },
+      place: { ...tr.place },
+      name: `segnalazione ${rep.createdAt.slice(0, 10)}`,
+    };
+    traceMessage = '';
   }
   function createTrace(r: TraceReady) {
     drawnPlan = null;

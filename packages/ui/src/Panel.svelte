@@ -3,12 +3,14 @@
     plan as makePlan,
     refine,
     refineDefaults,
+    traceDefaults,
     type AnalysisResult,
     type RefineOptions,
     type RefineReport,
     type RefineResult,
     type CompassoReport,
     buildReport,
+    grayOf,
     type ConstructionPlan,
     type DocumentGeometry,
     type DrawStyle,
@@ -97,13 +99,15 @@
   // Segnala un problema
   let reportMsg = $state('');
   async function sendReport() {
-    if (!geometry || !onReport) return;
+    if ((!geometry && !traceSource) || !onReport) return;
+    const empty: DocumentGeometry = { source: 'svg', paths: [], warnings: [] };
+    const ts = traceSource;
     const rep = buildReport({
       version,
       createdAt: new Date().toISOString(),
       host,
       tolerance,
-      geometry: $state.snapshot(geometry) as DocumentGeometry,
+      geometry: geometry ? ($state.snapshot(geometry) as DocumentGeometry) : empty,
       result: result ? ($state.snapshot(result) as AnalysisResult) : null,
       fix:
         fixResult && fixOptions
@@ -112,6 +116,27 @@
               report: $state.snapshot(fixResult.report) as RefineReport,
             }
           : null,
+      trace: ts
+        ? {
+            width: ts.loaded.image.width,
+            height: ts.loaded.image.height,
+            gray: grayOf(ts.loaded.image),
+            place: { ...ts.place },
+            options: traceOut
+              ? ($state.snapshot(traceOut.options) as TraceReady['options'])
+              : traceDefaults(ts.loaded.image.width, ts.loaded.image.height),
+            perfect: traceOut?.perfect ?? true,
+            result: traceOut
+              ? {
+                  paths: traceOut.geometry.paths.length,
+                  anchors: traceOut.geometry.paths.reduce(
+                    (n, p) => n + p.segments.length + (p.closed ? 0 : 1),
+                    0,
+                  ),
+                }
+              : null,
+          }
+        : null,
     });
     try {
       const where = await onReport(rep);
@@ -306,7 +331,11 @@
       />
       {#if onReport}
         <div class="report">
-          <TextButton label={t(lang, 'report.button')} onclick={sendReport} disabled={!geometry} />
+          <TextButton
+            label={t(lang, 'report.button')}
+            onclick={sendReport}
+            disabled={!geometry && !traceSource}
+          />
           <p class="hint">{reportMsg || t(lang, 'report.hint')}</p>
         </div>
       {/if}

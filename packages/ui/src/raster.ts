@@ -38,3 +38,20 @@ export async function loadRaster(blob: Blob, maxSide = 1600): Promise<LoadedImag
     naturalHeight: img.naturalHeight,
   };
 }
+
+/** Immagine RGBA → URL da mostrare nell'anteprima (es. lo schizzo di una segnalazione). */
+export async function rasterUrl(image: RasterImage): Promise<string> {
+  const canvas = document.createElement('canvas');
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('canvas 2D non disponibile');
+  ctx.putImageData(
+    new ImageData(new Uint8ClampedArray(image.data), image.width, image.height),
+    0,
+    0,
+  );
+  const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, 'image/png'));
+  if (!blob) throw new Error('immagine non convertibile');
+  return URL.createObjectURL(blob);
+}

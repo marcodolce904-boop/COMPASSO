@@ -4,6 +4,8 @@
 
 import type { AnalysisResult, DocumentGeometry, TolerancePreset } from './model';
 import type { RefineOptions, RefineReport } from './fix/refine';
+import type { TraceOptions, TracePlacement } from './trace/trace';
+import type { RasterImage } from './trace/raster';
 
 /** Valore atteso: numero esatto o intervallo [min, max]. */
 export type Expected = number | [number, number];
@@ -13,6 +15,21 @@ export interface ReportExpect {
   ellipses?: Expected;
   lines?: Expected;
   axes?: Expected;
+  /** RICALCA: tracciati e anchor attesi dal ricalco dello schizzo. */
+  tracePaths?: Expected;
+  traceAnchors?: Expected;
+}
+
+/** Lo schizzo da ricalcare, in scala di grigi (1 byte per pixel, base64), con le regolazioni. */
+export interface ReportTrace {
+  width: number;
+  height: number;
+  gray: string;
+  place: TracePlacement;
+  options: TraceOptions;
+  perfect: boolean;
+  /** Risultato al momento della segnalazione. */
+  result: { paths: number; anchors: number } | null;
 }
 
 export interface CompassoReport {
@@ -35,6 +52,7 @@ export interface CompassoReport {
     findings: number;
   } | null;
   fix?: { options: RefineOptions; report: RefineReport };
+  trace?: ReportTrace;
   /** Cosa DOVREBBE trovare Compasso: lo compila chi trasforma il file in test. */
   expect?: ReportExpect;
   /** Nota libera (cosa non va). */
@@ -49,6 +67,7 @@ export function buildReport(input: {
   geometry: DocumentGeometry;
   result: AnalysisResult | null;
   fix?: { options: RefineOptions; report: RefineReport } | null;
+  trace?: ReportTrace | null;
 }): CompassoReport {
   const r = input.result;
   return {
@@ -71,7 +90,57 @@ export function buildReport(input: {
         }
       : null,
     ...(input.fix ? { fix: input.fix } : {}),
+    ...(input.trace ? { trace: input.trace } : {}),
   };
+}
+
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+/** Byte → base64 (senza dipendere da btoa/Buffer: il core gira ovunque). */
+export function bytesToBase64(b: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < b.length; i += 3) {
+    const n = (b[i]! << 16) | ((b[i + 1] ?? 0) << 8) | (b[i + 2] ?? 0);
+    out += B64[(n >> 18) & 63]! + B64[(n >> 12) & 63]!;
+    out += i + 1 < b.length ? B64[(n >> 6) & 63]! : '=';
+    out += i + 2 < b.length ? B64[n & 63]! : '=';
+  }
+  return out;
+}
+export function base64ToBytes(s: string): Uint8Array {
+  const clean = s.replace(/[^A-Za-z0-9+/]/g, ''); // senza "=" finali: la lunghezza dice i byte
+  const out = new Uint8Array(Math.floor((clean.length * 3) / 4));
+  let o = 0;
+  for (let i = 0; i < clean.length; i += 4) {
+    const v = (k: number) => (i + k < clean.length ? B64.indexOf(clean[i + k]!) : 0);
+    const n = (v(0) << 18) | (v(1) << 12) | (v(2) << 6) | v(3);
+    if (o < out.length) out[o++] = (n >> 16) & 255;
+    if (o < out.length) out[o++] = (n >> 8) & 255;
+    if (o < out.length) out[o++] = n & 255;
+  }
+  return out;
+}
+
+/** Immagine → scala di grigi in base64 (per la segnalazione). */
+export function grayOf(img: RasterImage): string {
+  const n = img.width * img.height;
+  const g = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const d = img.data;
+    g[i] = Math.round(0.299 * d[i * 4]! + 0.587 * d[i * 4 + 1]! + 0.114 * d[i * 4 + 2]!);
+  }
+  return bytesToBase64(g);
+}
+
+/** Scala di grigi (base64) → immagine RGBA, per rifare il ricalco. */
+export function rasterOfGray(width: number, height: number, gray: string): RasterImage {
+  const g = base64ToBytes(gray);
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = g[i] ?? 255;
+    data[i * 4 + 3] = 255;
+  }
+  return { width, height, data };
 }
 
 /** Nome del file: compasso-segnalazione-AAAAMMGG-HHMM.json */
@@ -110,6 +179,9 @@ export function parseReport(text: string): CompassoReport | null {
     }
   }
   if (!Array.isArray(g.warnings)) (g as DocumentGeometry).warnings = [];
+  const tr = r.trace;
+  if (tr && !(isNum(tr.width) && isNum(tr.height) && typeof tr.gray === 'string' && tr.options))
+    return null;
   return r as CompassoReport;
 }
 
