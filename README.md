@@ -6,11 +6,11 @@ trova la costruzione nascosta nel logo (cerchi, ovali, rette, assi di simmetria,
 rispetto) e ne corregge le imprecisioni invisibili: una curva circolare al 99%, due raggi diversi
 dell'1%, un anchor fuori riga di 0,3 pt.
 
-| Lo schizzo                                | Ricalcato da Compasso (3 tracciati, 24 anchor)    |
+| Lo schizzo                                | Ricalcato da Compasso (4 tracciati, 23 anchor)    |
 | ----------------------------------------- | ------------------------------------------------- |
 | ![Schizzo a matita](site/img/schizzo.jpg) | ![Ricalco con linee pulite](site/img/ricalco.svg) |
 
-> **Versione 0.5.0 (anteprima)** — per Adobe Illustrator 2026 e successivi, su **Windows**.
+> **Versione 0.5.1 (anteprima)** — per Adobe Illustrator 2026 e successivi, su **Windows**.
 
 ## Scarica e installa
 

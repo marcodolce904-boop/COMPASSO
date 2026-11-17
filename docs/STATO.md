@@ -40,6 +40,9 @@ media gaussiana, spigoli, rette ai minimi quadrati con spigoli esatti, Schneider
 velocità (simmetria su griglia); «Segnala un problema» + `fixtures/reports`; esclusione di forme in
 CORREGGI. Da fare: provare RICALCA su schizzi veri di Marco e tarare i valori predefiniti; GitHub
 Pages non attivo (il sito in `site/` non è online).
+Fatto (0.5.1): collaudo del ricalco con banco di prova (`pnpm bench:trace`, `trace-quality.test.ts`),
+ablazione del metodo e correzioni (vedi `docs/RICALCO.md`); segnalazioni con schizzo; build del pannello
+protetta da `pnpm typecheck` (svelte-check non riscrive più dist/).
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

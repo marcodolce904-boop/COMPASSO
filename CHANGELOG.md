@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.1 — 17/11/2026
+
+- **Ricalco collaudato e migliorato** con un banco di prova (`pnpm bench:trace`: 10 figure dalla forma
+  nota, 3 livelli di difficoltà). Nel caso difficile lo scarto massimo dalla forma vera scende da 16,9 a
+  5,1 px e l'errore sugli spigoli da 6,6 a 2,8 px. Dettagli e numeri in `docs/RICALCO.md`.
+  - Cerchi e ovali con 4 anchor (una curva non gira più di 120°), curve vicine unite quando la precisione
+    regge, curve a S con il minimo di anchor.
+  - Punte acute ritrovate anche quando la forma è un unico anello (fulmine, goccia, coda).
+  - Niente più spuntoni sugli spigoli, niente tracciati minuscoli o doppioni, incroci a X che restano due
+    linee intere, linee aperte che arrivano fino in fondo al segno.
+  - Spigoli misurati su due finestre: quelli arrotondati dalla matita non si perdono più (anche nelle foto
+    piccole), le curve strette non diventano spigoli.
+  - Media tra punti che non appiattisce le curve.
+- **Segnala un problema** funziona anche in RICALCA e salva lo schizzo con le regolazioni: ogni schizzo
+  che non viene bene diventa un test fisso.
+- CREA TRACCIATI e APPLICA CORREZIONI mostrano un errore leggibile se Illustrator rifiuta l'operazione
+  (prima: «undefined tracciati creati»).
+
 ## 0.5.0 — 17/11/2026
 
 - **Nuova scheda RICALCA**: da uno schizzo a matita (foto o scansione) a tracciati puliti col minimo
