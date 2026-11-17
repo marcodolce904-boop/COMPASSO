@@ -7,6 +7,16 @@ export interface PVec {
 }
 export type PPrimitive =
   | { type: 'circle'; id: string; cx: number; cy: number; r: number; group: 'circles' }
+  | {
+      type: 'ellipse';
+      id: string;
+      cx: number;
+      cy: number;
+      rx: number;
+      ry: number;
+      rotation: number;
+      group: 'circles';
+    }
   | { type: 'line'; id: string; a: PVec; b: PVec; group: 'lines' | 'axes' }
   | { type: 'marker'; id: string; at: PVec; shape: 'cross' | 'square'; group: 'markers' }
   | { type: 'unit'; id: string; x: number; y: number; size: number; label: string; group: 'specs' }
@@ -49,6 +59,10 @@ export interface AiPath {
   strokeDashes: number[];
   setEntirePath: (pts: number[][]) => void;
   closed: boolean;
+  pathPoints?: {
+    length: number;
+    [i: number]: { leftDirection: number[]; rightDirection: number[] };
+  };
 }
 export interface AiText {
   name: string;
@@ -187,6 +201,41 @@ export function drawPlan(doc: AiDrawDocument | null, plan: PPlan, env: ColorEnv)
       var e = layer.pathItems.ellipse(Y(pr.cy - pr.r), X(pr.cx - pr.r), 2 * pr.r, 2 * pr.r);
       e.name = 'circle#' + pr.id + ' r=' + fmt(pr.r);
       styleLine(e, false);
+      count++;
+    } else if (pr.type === 'ellipse') {
+      // ovale ruotato: 4 anchor sugli assi, maniglie esatte (k = 0.5523) nel verso di percorrenza
+      var ep = layer.pathItems.add();
+      var K = 0.5522847498;
+      var cs = Math.cos(pr.rotation);
+      var sn = Math.sin(pr.rotation);
+      var ecx = pr.cx;
+      var ecy = pr.cy;
+      var P = function (u: number, v: number): number[] {
+        return [X(ecx + u * cs - v * sn), Y(ecy + u * sn + v * cs)];
+      };
+      var anchors: number[][] = [];
+      var lefts: number[][] = [];
+      var rights: number[][] = [];
+      for (var eq = 0; eq < 4; eq++) {
+        var tq = (eq * Math.PI) / 2;
+        var eu = pr.rx * Math.cos(tq);
+        var ev = pr.ry * Math.sin(tq);
+        var du = -pr.rx * Math.sin(tq);
+        var dv = pr.ry * Math.cos(tq);
+        anchors.push(P(eu, ev));
+        rights.push(P(eu + K * du, ev + K * dv));
+        lefts.push(P(eu - K * du, ev - K * dv));
+      }
+      ep.setEntirePath(anchors);
+      ep.closed = true;
+      if (ep.pathPoints) {
+        for (var qq = 0; qq < 4 && qq < ep.pathPoints.length; qq++) {
+          ep.pathPoints[qq].leftDirection = lefts[qq];
+          ep.pathPoints[qq].rightDirection = rights[qq];
+        }
+      }
+      ep.name = 'ellipse#' + pr.id + ' rx=' + fmt(pr.rx) + ' ry=' + fmt(pr.ry);
+      styleLine(ep, false);
       count++;
     } else if (pr.type === 'line') {
       segment(

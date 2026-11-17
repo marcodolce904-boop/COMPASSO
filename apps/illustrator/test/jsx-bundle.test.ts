@@ -28,7 +28,10 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
         kind,
         args,
         name: '',
-        setEntirePath: (pts: number[][]) => (it['pts'] = pts),
+        setEntirePath: (pts: number[][]) => {
+          it['pts'] = pts;
+          it['pathPoints'] = pts.map((p) => ({ anchor: p }));
+        },
       };
       (layer['items'] as Rec[]).push(it);
       return it;
@@ -218,6 +221,43 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     ]);
     expect(subs[3]!['items'] as Rec[]).toHaveLength(2); // croce = due segmenti
     expect(app.coordinateSystem).toBe('ARTBOARD');
+  });
+
+  it('drawPlan: ovale ruotato con 4 anchor e maniglie esatte', () => {
+    const { api, app } = host([square]);
+    const ell = {
+      ...plan,
+      primitives: [
+        {
+          type: 'ellipse',
+          id: 'e1',
+          cx: 50,
+          cy: 50,
+          rx: 40,
+          ry: 20,
+          rotation: Math.PI / 2,
+          group: 'circles',
+        },
+      ],
+    };
+    const r = api['drawPlan']!(ell) as { ok: boolean; count: number };
+    expect(r).toMatchObject({ ok: true, count: 1 });
+    const root = (app.activeDocument.layers as unknown as Rec[])[0]!;
+    const e = ((root['layers'] as Rec[])[0]!['items'] as Rec[])[0]!;
+    expect(e['name']).toBe('ellipse#e1 rx=40 ry=20');
+    expect(e['closed']).toBe(true);
+    const pts = (e['pts'] as number[][]).map((p) => p.map((v) => Math.round(v * 1e6) / 1e6));
+    // asse maggiore verticale: in coordinate documento (Y in su) gli anchor sono a ±40 in Y
+    expect(pts).toEqual([
+      [50, 10],
+      [30, 50],
+      [50, 90],
+      [70, 50],
+    ]);
+    const pp = e['pathPoints'] as Rec[];
+    expect((pp[0]!['rightDirection'] as number[]).map((v) => Math.round(v * 1e3) / 1e3)).toEqual([
+      38.954, 10,
+    ]);
   });
 
   it('RIDISEGNA sostituisce il layer; Rimuovi lo elimina; hasConstruction e impronta lo vedono', () => {
