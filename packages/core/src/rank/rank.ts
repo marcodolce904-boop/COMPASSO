@@ -101,39 +101,49 @@ export function buildLevels(inp: LevelInput): Record<Level, string[]> {
   }
   essential.push(...axes.map((a) => a.id));
 
-  const structure = [...essential];
-  const addTo = (arr: string[], id: string) => {
-    if (!arr.includes(id)) arr.push(id);
+  // liste ordinate senza doppioni (Set per la verifica: le liste possono avere migliaia di id)
+  const list = (init: string[]) => {
+    const arr = [...init];
+    const seen = new Set(arr);
+    return {
+      arr,
+      has: (id: string) => seen.has(id),
+      add: (id: string) => {
+        if (!seen.has(id)) {
+          seen.add(id);
+          arr.push(id);
+        }
+      },
+    };
   };
-  for (const l of lines) if (l.score >= 0.35 || l.origin === 'anchor-row') addTo(structure, l.id);
+  const structure = list(essential);
+  for (const l of lines) if (l.score >= 0.35 || l.origin === 'anchor-row') structure.add(l.id);
   // tutti i cerchi e gli ovali che descrivono una parte non trascurabile del logo (≥ 2% del
   // contorno): la struttura non deve "dimenticare" cerchi oltre la soglia del 60% dell'essenziale
   for (const c of [...circles, ...ellipses])
-    if (c.support >= 0.02 * totalLength) addTo(structure, c.id);
-  if (inp.hasUnit) addTo(structure, UNIT_ID);
+    if (c.support >= 0.02 * totalLength) structure.add(c.id);
+  if (inp.hasUnit) structure.add(UNIT_ID);
 
-  const detail = [...structure];
-  for (const c of [...circles, ...ellipses])
-    if (c.support >= 0.02 * totalLength) addTo(detail, c.id);
-  const markersFor = (visible: Set<string>, out: string[]) => {
-    for (const c of [...circles, ...ellipses])
-      if (visible.has(c.id)) addTo(out, centerMarkerId(c.id));
+  const detail = list(structure.arr);
+  for (const c of [...circles, ...ellipses]) if (c.support >= 0.02 * totalLength) detail.add(c.id);
+  const markersFor = (l: ReturnType<typeof list>) => {
+    for (const c of [...circles, ...ellipses]) if (l.has(c.id)) l.add(centerMarkerId(c.id));
     for (const r of relations) {
-      if (TANGENT.has(r.kind) && r.at && r.refs.every((id) => visible.has(id))) {
-        addTo(out, tangentMarkerId(r.id));
+      if (TANGENT.has(r.kind) && r.at && r.refs.every((id) => l.has(id))) {
+        l.add(tangentMarkerId(r.id));
       }
     }
   };
-  markersFor(new Set(detail), detail);
+  markersFor(detail);
 
-  const full: string[] = [
+  const full = list([
     ...circles.map((c) => c.id),
     ...ellipses.map((e) => e.id),
     ...lines.map((l) => l.id),
     ...axes.map((a) => a.id),
-  ];
-  if (inp.hasUnit) full.push(UNIT_ID);
-  markersFor(new Set(full), full);
+  ]);
+  if (inp.hasUnit) full.add(UNIT_ID);
+  markersFor(full);
 
-  return { essential, structure, detail, full };
+  return { essential, structure: structure.arr, detail: detail.arr, full: full.arr };
 }

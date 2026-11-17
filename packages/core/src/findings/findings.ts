@@ -43,13 +43,15 @@ export function rankFindings(
       importance: round(s * (1 - pos)),
     } satisfies Finding;
   });
-  scored.sort(
+  // chiave di ordinamento calcolata una volta sola (i candidati possono essere migliaia)
+  const keyed = scored.map((f) => ({ f, key: f.refs.join() }));
+  keyed.sort(
     (a, b) =>
-      b.importance - a.importance ||
-      (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0) ||
-      (a.refs.join() < b.refs.join() ? -1 : a.refs.join() > b.refs.join() ? 1 : 0),
+      b.f.importance - a.f.importance ||
+      (a.f.kind < b.f.kind ? -1 : a.f.kind > b.f.kind ? 1 : 0) ||
+      (a.key < b.key ? -1 : a.key > b.key ? 1 : 0),
   );
-  const top = scored.slice(0, MAX_FINDINGS);
+  const top = keyed.slice(0, MAX_FINDINGS).map((k) => k.f);
   top.forEach((f, i) => (f.id = `f${i + 1}`));
   return top;
 }

@@ -678,20 +678,37 @@ function symmetrize(
 
   const reflect = (p: Vec2, v: boolean, c: number): Vec2 =>
     v ? { x: 2 * c - p.x, y: p.y } : { x: p.x, y: 2 * c - p.y };
+  // partner speculare di ogni anchor: ricerca su griglia (celle grandi quanto la tolleranza).
+  // Basta sapere se il più vicino è entro `tol`: se un anchor non ne ha, l'asse è scartato subito.
+  const cell = Math.max(tol, 1e-9);
+  const grid = new Map<string, number[]>();
+  const keyOf = (x: number, y: number) => `${Math.floor(x / cell)},${Math.floor(y / cell)}`;
+  nodes.forEach((n, i) => {
+    const k = keyOf(n.p.x, n.p.y);
+    const list = grid.get(k);
+    if (list) list.push(i);
+    else grid.set(k, [i]);
+  });
   const pairing = (v: boolean, c: number) => {
     let worst = 0;
     const partner: number[] = [];
     for (let i = 0; i < nodes.length; i++) {
       const r = reflect(nodes[i]!.p, v, c);
+      const gx = Math.floor(r.x / cell);
+      const gy = Math.floor(r.y / cell);
       let best = -1;
       let bd = Infinity;
-      for (let j = 0; j < nodes.length; j++) {
-        const d = dist(r, nodes[j]!.p);
-        if (d < bd) {
-          bd = d;
-          best = j;
+      for (let dx = -1; dx <= 1; dx++)
+        for (let dy = -1; dy <= 1; dy++) {
+          for (const j of grid.get(`${gx + dx},${gy + dy}`) ?? []) {
+            const d = dist(r, nodes[j]!.p);
+            if (d < bd || (d === bd && j < best)) {
+              bd = d;
+              best = j;
+            }
+          }
         }
-      }
+      if (bd > tol) return { worst: Infinity, partner };
       partner.push(best);
       worst = Math.max(worst, bd);
     }

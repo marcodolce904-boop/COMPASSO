@@ -55,3 +55,30 @@ describe('livelli', () => {
     for (const c of r.circles) expect(r.levels.structure).toContain(c.id);
   });
 });
+
+describe('prestazioni', () => {
+  it('un ricalco da 2000 anchor si analizza e si corregge in tempi da pannello', async () => {
+    const { refine, refineDefaults } = await import('../src');
+    const paths = Array.from({ length: 40 }, (_, i) =>
+      traced(
+        i % 2
+          ? circleFn(40 * (i % 10), 40 * Math.floor(i / 10), 15)
+          : ellipseFn(40 * (i % 10), 40 * Math.floor(i / 10), 18, 9, 0.3),
+        50,
+        0.3,
+        i + 1,
+        `p${i}`,
+      ),
+    );
+    const g = geo(paths);
+    let t = performance.now();
+    analyze(g);
+    const ta = performance.now() - t;
+    t = performance.now();
+    refine(g, refineDefaults(g).options);
+    const tr = performance.now() - t;
+    // limiti larghi (le macchine di CI sono lente): prima di questa versione erano 0,6 s e 1,3 s
+    expect(ta).toBeLessThan(2500);
+    expect(tr).toBeLessThan(1500);
+  });
+});
