@@ -77,20 +77,77 @@ export function smooth(pts: Vec2[], sigma: number, closed: boolean): Vec2[] {
 }
 
 /**
+ * Media che conserva le curve: per ogni punto, la parabola che passa meglio tra i vicini
+ * (pesati come nella media gaussiana) e il suo valore nel punto. Toglie il tremolio come la
+ * media semplice, ma non "rimpicciolisce" le curve (una S resta alta quanto il disegno).
+ */
+export function smoothCurves(pts: Vec2[], sigma: number, closed: boolean): Vec2[] {
+  const n = pts.length;
+  if (sigma <= 0 || n < 5) return pts.map((p) => ({ ...p }));
+  const r = Math.ceil(sigma * 2.5);
+  let s0 = 0,
+    s2 = 0,
+    s4 = 0;
+  const w: number[] = [];
+  for (let k = -r; k <= r; k++) {
+    const wk = Math.exp(-(k * k) / (2 * sigma * sigma));
+    w.push(wk);
+    s0 += wk;
+    s2 += wk * k * k;
+    s4 += wk * k ** 4;
+  }
+  const den = s0 * s4 - s2 * s2;
+  const coef = w.map((wk, i) => {
+    const k = i - r;
+    return (wk * (s4 - s2 * k * k)) / den;
+  });
+  const at = (i: number): Vec2 => {
+    if (closed) return pts[((i % n) + n) % n]!;
+    if (i < 0) return sub(mul(pts[0]!, 2), pts[Math.min(n - 1, -i)]!);
+    if (i >= n) return sub(mul(pts[n - 1]!, 2), pts[Math.max(0, 2 * (n - 1) - i)]!);
+    return pts[i]!;
+  };
+  const out: Vec2[] = [];
+  for (let i = 0; i < n; i++) {
+    let sx = 0,
+      sy = 0;
+    for (let k = -r; k <= r; k++) {
+      const p = at(i + k);
+      sx += p.x * coef[k + r]!;
+      sy += p.y * coef[k + r]!;
+    }
+    out.push({ x: sx, y: sy });
+  }
+  if (!closed) {
+    out[0] = { ...pts[0]! };
+    out[n - 1] = { ...pts[n - 1]! };
+  }
+  return out;
+}
+
+/**
  * Spigoli: punti dove la direzione cambia più di `angle` (radianti) tra il tratto che arriva e
  * quello che parte, misurati su `k` campioni; si tiene il massimo locale.
  */
 export function corners(pts: Vec2[], k: number, angle: number, closed: boolean): number[] {
   const n = pts.length;
+  // svolta tra il tratto che arriva e quello che parte, misurata su `w` campioni
+  const turnAt = (i: number, w: number): number => {
+    if (!closed && (i < w || i >= n - w)) return -1;
+    const a = pts[(((i - w) % n) + n) % n]!;
+    const p = pts[i]!;
+    const b = pts[(i + w) % n]!;
+    return Math.acos(Math.max(-1, Math.min(1, dot(unit(sub(p, a)), unit(sub(b, p))))));
+  };
+  // Su una finestra corta lo spigolo arrotondato dal tratto sembra più dolce del vero; su una
+  // doppia si misura per intero. Se allargando la finestra la svolta non raddoppia, è
+  // concentrata in un punto (spigolo) e vale la misura larga; se raddoppia, è una curva stretta.
   const turn = new Float64Array(n);
   for (let i = 0; i < n; i++) {
-    if (!closed && (i < k || i >= n - k)) continue;
-    const a = pts[(((i - k) % n) + n) % n]!;
-    const p = pts[i]!;
-    const b = pts[(i + k) % n]!;
-    const u = unit(sub(p, a));
-    const v = unit(sub(b, p));
-    turn[i] = Math.acos(Math.max(-1, Math.min(1, dot(u, v))));
+    const t1 = turnAt(i, k);
+    if (t1 < 0) continue;
+    const t2 = turnAt(i, 2 * k);
+    turn[i] = t2 >= 0 && t2 < 1.5 * t1 ? Math.max(t1, t2) : t1;
   }
   const out: number[] = [];
   for (let i = 0; i < n; i++) {
@@ -197,35 +254,103 @@ function reparam(pts: Vec2[], b: Bez, u: number[]): number[] {
   });
 }
 
-function fitRange(pts: Vec2[], t1: Vec2, t2: Vec2, tol: number, out: Bez[]) {
+/**
+ * Una curva di Bézier non gira più di così: oltre, due curve sono più fedeli. Mezzo cerchio
+ * (180°) si divide sempre: il cerchio ha 4 anchor, come lo disegnerebbe un designer.
+ */
+const MAX_TURN = (120 * Math.PI) / 180;
+
+/** Rotazione totale della tangente lungo la curva (radianti). */
+function turning(b: Bez): number {
+  let total = 0;
+  let prev: Vec2 | null = null;
+  for (let k = 0; k <= 24; k++) {
+    const d = bezD1(b, k / 24);
+    if (len(d) < 1e-9) continue;
+    const u = unit(d);
+    if (prev) total += Math.acos(Math.max(-1, Math.min(1, dot(prev, u))));
+    prev = u;
+  }
+  return total;
+}
+
+interface Fit {
+  b: Bez;
+  i0: number;
+  i1: number;
+}
+
+/** Una cubica per i punti all[i0..i1] con le tangenti date (con riparametrizzazione). */
+function fitOne(all: Vec2[], i0: number, i1: number, t1: Vec2, t2: Vec2, tol: number) {
+  const pts = all.slice(i0, i1 + 1);
   if (pts.length === 2) {
     const d = len(sub(pts[1]!, pts[0]!)) / 3;
-    out.push([pts[0]!, add(pts[0]!, mul(t1, d)), add(pts[1]!, mul(t2, d)), pts[1]!]);
-    return;
+    const b: Bez = [pts[0]!, add(pts[0]!, mul(t1, d)), add(pts[1]!, mul(t2, d)), pts[1]!];
+    return { b, err: 0, at: 0 };
   }
   let u = chordParams(pts);
   let b = generate(pts, u, t1, t2);
   let { err, at } = maxError(pts, b, u);
-  if (err < tol) {
-    out.push(b);
-    return;
-  }
-  if (err < tol * 4) {
-    for (let k = 0; k < 6; k++) {
+  if (err >= tol && err < tol * 4) {
+    for (let k = 0; k < 6 && err >= tol; k++) {
       u = reparam(pts, b, u);
       b = generate(pts, u, t1, t2);
       ({ err, at } = maxError(pts, b, u));
-      if (err < tol) {
-        out.push(b);
-        return;
+    }
+  }
+  return { b, err, at };
+}
+
+function fitRange(
+  all: Vec2[],
+  i0: number,
+  i1: number,
+  t1: Vec2,
+  t2: Vec2,
+  tol: number,
+  out: Fit[],
+) {
+  const r = fitOne(all, i0, i1, t1, t2, tol);
+  const ok = r.err < tol && turning(r.b) <= MAX_TURN;
+  if (ok || i1 - i0 < 3) {
+    out.push({ b: r.b, i0, i1 });
+    return;
+  }
+  // si divide nel punto più lontano (o a metà, se la curva è precisa ma gira troppo)
+  const at = r.err < tol ? Math.round((i0 + i1) / 2) : i0 + r.at;
+  const split = Math.max(i0 + 1, Math.min(i1 - 1, at));
+  const tc = unit(sub(all[split - 1]!, all[split + 1]!));
+  fitRange(all, i0, split, t1, tc, tol, out);
+  fitRange(all, split, i1, mul(tc, -1), t2, tol, out);
+}
+
+/**
+ * Meno anchor: due curve vicine (giunte senza spigolo) si sostituiscono con una sola, se la
+ * precisione e la rotazione massima reggono. La divisione "nel punto peggiore" a volte divide
+ * più del necessario.
+ */
+function mergeFits(all: Vec2[], fits: Fit[], tol: number): Fit[] {
+  const out = [...fits];
+  let changed = true;
+  while (changed && out.length > 1) {
+    changed = false;
+    for (let j = 0; j + 1 < out.length; j++) {
+      const A = out[j]!;
+      const B = out[j + 1]!;
+      const t1 = unit(sub(A.b[1], A.b[0]));
+      const t2 = unit(sub(B.b[2], B.b[3]));
+      const r = fitOne(all, A.i0, B.i1, t1, t2, tol);
+      if (r.err < tol && turning(r.b) <= MAX_TURN) {
+        out.splice(j, 2, { b: r.b, i0: A.i0, i1: B.i1 });
+        changed = true;
       }
     }
   }
-  const split = Math.max(1, Math.min(pts.length - 2, at));
-  const tc = unit(sub(pts[split - 1]!, pts[split + 1]!));
-  fitRange(pts.slice(0, split + 1), t1, tc, tol, out);
-  fitRange(pts.slice(split), mul(tc, -1), t2, tol, out);
+  return out;
 }
+
+const toSegs = (fits: Fit[]): Segment[] =>
+  fits.map(({ b }) => ({ kind: 'cubic', p0: b[0], c1: b[1], c2: b[2], p1: b[3] }));
 
 /**
  * Massima distanza dei punti dalla corda tra il primo e l'ultimo, ignorando i punti a meno di
@@ -306,20 +431,36 @@ export function fitPiece(pts: Vec2[], tol: number, k: number, trim = 0): Segment
         p1: project(pts[pts.length - 1]!, ln.c, ln.d),
       },
     ];
-  const out: Bez[] = [];
-  fitRange(pts, endTangent(pts, true, k), endTangent(pts, false, k), tol, out);
-  return out.map((b) => ({ kind: 'cubic', p0: b[0], c1: b[1], c2: b[2], p1: b[3] }));
+  const out: Fit[] = [];
+  fitRange(pts, 0, pts.length - 1, endTangent(pts, true, k), endTangent(pts, false, k), tol, out);
+  return toSegs(mergeFits(pts, out, tol));
 }
 
 /** Tratto chiuso senza spigoli: due metà con tangente continua nel punto di attacco. */
-export function fitLoop(pts: Vec2[], tol: number): Segment[] {
-  const n = pts.length;
+export function fitLoop(input: Vec2[], tol: number): Segment[] {
+  // si parte dal punto più curvo (es. l'estremità dell'asse lungo di un ovale): le divisioni
+  // a metà cadono così sui punti notevoli e bastano 4 anchor
+  const n = input.length;
+  const w = Math.max(2, Math.round(n / 24));
+  let best = 0;
+  let bestTurn = -1;
+  for (let i = 0; i < n; i++) {
+    const a = input[(i - w + n) % n]!;
+    const p = input[i]!;
+    const b = input[(i + w) % n]!;
+    const t = Math.acos(Math.max(-1, Math.min(1, dot(unit(sub(p, a)), unit(sub(b, p))))));
+    if (t > bestTurn + 1e-9) {
+      bestTurn = t;
+      best = i;
+    }
+  }
+  const pts = [...input.slice(best), ...input.slice(0, best)];
   const h = Math.floor(n / 2);
   const ring = [...pts, pts[0]!];
   const t0 = unit(sub(pts[1]!, pts[n - 1]!));
   const th = unit(sub(pts[h + 1]!, pts[h - 1]!));
-  const out: Bez[] = [];
-  fitRange(ring.slice(0, h + 1), t0, mul(th, -1), tol, out);
-  fitRange(ring.slice(h), th, mul(t0, -1), tol, out);
-  return out.map((b) => ({ kind: 'cubic', p0: b[0], c1: b[1], c2: b[2], p1: b[3] }));
+  const out: Fit[] = [];
+  fitRange(ring, 0, h, t0, mul(th, -1), tol, out);
+  fitRange(ring, h, n, th, mul(t0, -1), tol, out);
+  return toSegs(mergeFits(ring, out, tol));
 }

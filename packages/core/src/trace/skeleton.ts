@@ -184,6 +184,34 @@ export function strokes(sk: Mask, spur: number, tip = spur * 3): Stroke[] {
     }
     return deg as number[];
   };
+  // incroci "sdoppiati": l'assottigliamento spesso divide un incrocio in due nodi a pochi
+  // pixel, uniti da un ponticello. I due nodi diventano uno: così una X resta due linee dritte.
+  for (let changed = true; changed;) {
+    changed = false;
+    const deg = degree();
+    for (const e of edges) {
+      if (e.dead || e.a < 0 || e.b < 0 || e.a === e.b) continue;
+      if (e.pts.length >= spur || deg[e.a]! < 3 || deg[e.b]! < 3) continue;
+      const keep = e.a;
+      const gone = e.b;
+      const c = {
+        x: (nodeCenter[keep]!.x + nodeCenter[gone]!.x) / 2,
+        y: (nodeCenter[keep]!.y + nodeCenter[gone]!.y) / 2,
+      };
+      nodeCenter[keep] = c;
+      e.dead = true;
+      for (const f of edges) {
+        if (f.dead) continue;
+        if (f.a === gone) f.a = keep;
+        if (f.b === gone) f.b = keep;
+        if (f.a === keep) f.pts[0] = c;
+        if (f.b === keep) f.pts[f.pts.length - 1] = c;
+      }
+      changed = true;
+      break;
+    }
+  }
+
   // punte acute: a un incrocio a 3 rami arriva un rametto corto e libero tra due lati a V.
   // La V è uno spigolo vivo e il rametto ne è la punta: i due lati si uniscono passando
   // per la sua estremità (invece di tagliare la punta).
@@ -205,7 +233,30 @@ export function strokes(sk: Mask, spur: number, tip = spur * 3): Stroke[] {
         if (e.a === node) inc.push({ e, atStart: true });
         if (e.b === node) inc.push({ e, atStart: false });
       }
-      if (inc.length !== 3 || new Set(inc.map((x) => x.e)).size !== 3) continue;
+      if (inc.length !== 3) continue;
+      // anello con un codino: la forma è un unico giro chiuso che passa dal nodo, e la punta
+      // acuta è il codino. Il giro si chiude passando per la punta.
+      if (new Set(inc.map((x) => x.e)).size === 2) {
+        const loop = inc.find((x) => x.e.a === x.e.b)?.e;
+        const tail = inc.find((x) => x.e !== loop);
+        if (!loop || !tail) continue;
+        const other = tail.atStart ? tail.e.b : tail.e.a;
+        if (!(other < 0 || deg[other] === 1) || tail.e.pts.length > tip) continue;
+        const pts = loop.pts.slice(0, -1); // da J a J (senza ripetere J)
+        const n = pts.length;
+        const k = Math.min(n - 1, Math.max(3, spur));
+        const ds = dirFrom(tail.e.pts, tail.atStart);
+        // la punta sta fuori dal giro: i due lati al nodo vanno dalla parte opposta
+        const da = { x: pts[k]!.x - pts[0]!.x, y: pts[k]!.y - pts[0]!.y };
+        const db = { x: pts[n - k]!.x - pts[0]!.x, y: pts[n - k]!.y - pts[0]!.y };
+        if (ds.x * (da.x + db.x) + ds.y * (da.y + db.y) >= 0) continue;
+        const tipPt = tail.atStart ? tail.e.pts[tail.e.pts.length - 1]! : tail.e.pts[0]!;
+        loop.dead = tail.e.dead = true;
+        edges.push({ a: -1, b: -1, pts: [tipPt, ...pts.slice(1)] });
+        deg[node] = 0;
+        continue;
+      }
+      if (new Set(inc.map((x) => x.e)).size !== 3) continue;
       const free = (x: { e: Edge; atStart: boolean }) => {
         const other = x.atStart ? x.e.b : x.e.a;
         return other < 0 || deg[other] === 1;

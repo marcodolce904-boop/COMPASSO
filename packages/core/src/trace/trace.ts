@@ -8,7 +8,7 @@
 
 import type { DocumentGeometry, PathData, Segment, Vec2 } from '../model';
 import { contours } from './contour';
-import { corners, fitLoop, fitPiece, resample, smooth } from './fit';
+import { corners, fitLoop, fitPiece, resample, smooth, smoothCurves } from './fit';
 import {
   adaptiveThreshold,
   clean,
@@ -40,6 +40,39 @@ export interface TraceOptions {
   /** Angolo minimo (gradi) perché un cambio di direzione sia uno spigolo. */
   cornerAngle: number;
 }
+
+/**
+ * Parti del metodo che si possono spegnere una alla volta, per misurare quanto contano
+ * (banco di prova `pnpm bench:trace`). Nel pannello sono sempre tutte accese.
+ */
+export interface TraceTuning {
+  /** Punti ricampionati a passo costante (la distanza media) invece dei pixel grezzi. */
+  resample: boolean;
+  /** Media pesata dei punti con i vicini (levigatezza). */
+  average: boolean;
+  /** La media conserva le curve (parabola locale) invece di appiattirle (media semplice). */
+  keepCurves: boolean;
+  /** Finestra della media che conserva le curve, rispetto a quella semplice. */
+  curveWindow: number;
+  /** Spigoli dal cambio di direzione. */
+  corners: boolean;
+  /** Rette ai minimi quadrati che si incontrano nello spigolo esatto, punte acute ricostruite. */
+  exactCorners: boolean;
+  /** Ricucitura dei tratti che quasi si toccano. */
+  joinGaps: boolean;
+  /** Verso: forme in senso orario, buchi antiorario. */
+  orient: boolean;
+}
+export const FULL_TUNING: TraceTuning = {
+  resample: true,
+  average: true,
+  keepCurves: true,
+  curveWindow: 1.5,
+  corners: true,
+  exactCorners: true,
+  joinGaps: true,
+  orient: true,
+};
 
 /** Dove va il risultato: angolo in alto a sinistra e pt per pixel. */
 export interface TracePlacement {
@@ -179,17 +212,136 @@ export function joinGaps(
   return live.map((l) => ({ pts: l.pts, closed: l.closed }));
 }
 
+/** Spessore medio del tratto: area dell'inchiostro / lunghezza della linea centrale. */
+function widthOf(mask: Mask, sk: Mask): number {
+  let ink = 0;
+  let skel = 0;
+  for (let i = 0; i < mask.data.length; i++) {
+    ink += mask.data[i]!;
+    skel += sk.data[i]!;
+  }
+  return skel > 0 ? ink / skel : 1;
+}
+
+const polyLength = (pts: Vec2[], closed: boolean) => {
+  let l = 0;
+  for (let i = 1; i < pts.length; i++)
+    l += Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y);
+  if (closed && pts.length > 1)
+    l += Math.hypot(pts[0]!.x - pts[pts.length - 1]!.x, pts[0]!.y - pts[pts.length - 1]!.y);
+  return l;
+};
+
+/** Tracciati degeneri: chiusi con un solo lato o minuscoli, aperti più corti di 3 spessori. */
+function degenerate(segs: Segment[], closed: boolean, unit: number): boolean {
+  const pts = segs.map((s) => s.p0);
+  pts.push(segs[segs.length - 1]!.p1);
+  const l = polyLength(pts, false);
+  return closed ? segs.length < 2 || l < 6 * unit : l < 3 * unit;
+}
+
+/**
+ * Tratti doppioni: un tratto aperto che corre tutto (≥ 90% dei punti) a meno di `near` px da
+ * un altro tratto è la stessa linea ripassata. Si controllano dal più corto.
+ */
+export function dropDoubles(
+  lines: { pts: Vec2[]; closed: boolean }[],
+  near: number,
+): { pts: Vec2[]; closed: boolean }[] {
+  const order = lines
+    .map((l, i) => ({ l, i, len: polyLength(l.pts, l.closed) }))
+    .sort((a, b) => a.len - b.len);
+  const dead = new Set<number>();
+  for (const { l, i } of order) {
+    if (l.closed) continue;
+    const others = lines.filter((_, j) => j !== i && !dead.has(j));
+    if (!others.length) continue;
+    let close = 0;
+    for (const p of l.pts) {
+      let ok = false;
+      for (const o of others) {
+        for (const q of o.pts)
+          if (
+            Math.abs(q.x - p.x) <= near &&
+            Math.abs(q.y - p.y) <= near &&
+            Math.hypot(q.x - p.x, q.y - p.y) <= near
+          ) {
+            ok = true;
+            break;
+          }
+        if (ok) break;
+      }
+      if (ok) close++;
+    }
+    if (close >= 0.9 * l.pts.length) dead.add(i);
+  }
+  return lines.filter((_, i) => !dead.has(i));
+}
+
+/**
+ * Le linee aperte arrivano fino in fondo: la linea centrale accorcia gli estremi (l'inchiostro
+ * va oltre il centro della punta della matita di mezzo spessore). Si prosegue nella direzione
+ * dell'estremo finché c'è inchiostro, poi si torna indietro di mezzo spessore.
+ */
+export function extendEnds(
+  lines: { pts: Vec2[]; closed: boolean }[],
+  mask: Mask,
+  width: number,
+): { pts: Vec2[]; closed: boolean }[] {
+  const ink = (x: number, y: number) => {
+    const xi = Math.floor(x);
+    const yi = Math.floor(y);
+    return (
+      xi >= 0 &&
+      yi >= 0 &&
+      xi < mask.width &&
+      yi < mask.height &&
+      mask.data[yi * mask.width + xi] === 1
+    );
+  };
+  const k = Math.max(3, Math.round(2 * width));
+  return lines.map((l) => {
+    if (l.closed || l.pts.length < k + 2) return l;
+    const pts = [...l.pts];
+    for (const atEnd of [false, true]) {
+      const e = atEnd ? pts[pts.length - 1]! : pts[0]!;
+      const q = atEnd ? pts[pts.length - 1 - k]! : pts[k]!;
+      const dx = e.x - q.x;
+      const dy = e.y - q.y;
+      const dl = Math.hypot(dx, dy) || 1;
+      let t = 0;
+      while (t < 6 * width && ink(e.x + (dx / dl) * (t + 0.5), e.y + (dy / dl) * (t + 0.5)))
+        t += 0.5;
+      const ext = t - width / 2;
+      if (ext > 1) {
+        const p = { x: e.x + (dx / dl) * ext, y: e.y + (dy / dl) * ext };
+        if (atEnd) pts.push(p);
+        else pts.unshift(p);
+      }
+    }
+    return { pts, closed: false };
+  });
+}
+
 /** Un tratto di punti → segmenti puliti. `unit` = spessore del tratto (px). */
-function fitStroke(raw: Vec2[], closed: boolean, o: TraceOptions, unit: number): Segment[] {
-  const pts = resample(raw, 1, closed);
+function fitStroke(
+  raw: Vec2[],
+  closed: boolean,
+  o: TraceOptions,
+  unit: number,
+  tu: TraceTuning,
+): Segment[] {
+  const pts = tu.resample ? resample(raw, 1, closed) : raw.map((p) => ({ ...p }));
   if (pts.length < (closed ? 6 : 2)) return [];
-  const sigma = Math.max(0, o.smooth * unit);
+  const sigma = tu.average ? Math.max(0, o.smooth * unit) : 0;
   const tol = Math.max(0.5, o.tolerance * unit);
   const k = Math.max(3, Math.round(sigma * 1.5 + o.merge));
   const probe = smooth(pts, Math.max(1, unit / 2), closed);
-  const cs = corners(probe, k, (o.cornerAngle * Math.PI) / 180, closed);
+  const cs = tu.corners ? corners(probe, k, (o.cornerAngle * Math.PI) / 180, closed) : [];
   const tk = Math.max(2, Math.round(sigma * 2));
-  if (closed && cs.length === 0) return fitLoop(smooth(pts, sigma, true), tol);
+  const avg = (p: Vec2[], c: boolean) =>
+    tu.keepCurves ? smoothCurves(p, sigma * tu.curveWindow, c) : smooth(p, sigma, c);
+  if (closed && cs.length === 0) return fitLoop(avg(pts, true), tol);
   // pezzi tra gli spigoli (per i chiusi si parte dal primo spigolo e si fa il giro)
   const pieces: Vec2[][] = [];
   if (closed) {
@@ -216,10 +368,11 @@ function fitStroke(raw: Vec2[], closed: boolean, o: TraceOptions, unit: number):
     const a = piece[0]!;
     const b = piece[piece.length - 1]!;
     const trim = Math.max(2.5 * unit, 0.15 * Math.hypot(b.x - a.x, b.y - a.y));
-    segs.push(...fitPiece(smooth(piece, sigma, false), tol, tk, trim));
+    segs.push(...fitPiece(avg(piece, false), tol, tk, trim));
   }
-  const tidy = sharpenTips(dropTiny(segs, closed, Math.max(4, 2 * unit)), closed, 6 * unit);
-  return snapCorners(tidy, closed, 6 * unit);
+  const tiny = dropTiny(segs, closed, Math.max(4, 2 * unit));
+  if (!tu.exactCorners) return tiny;
+  return snapCorners(sharpenTips(tiny, closed, 2.5 * unit, 5 * unit), closed, 4 * unit);
 }
 
 /** Intersezione delle rette per (a0,a1) e (b0,b1), o null se parallele. */
@@ -233,10 +386,11 @@ function cross(a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2): Vec2 | null {
 }
 
 /**
- * Punte acute smussate: un lato corto (< `max`) tra due rette che si incontrano poco oltre
- * sparisce, e le due rette si uniscono nella punta (il disegno voleva uno spigolo vivo).
+ * Punte acute smussate: un lato corto (< `short`, circa lo spessore del tratto: è quanto la
+ * linea centrale "taglia" una punta) tra due rette che si incontrano entro `reach` sparisce, e
+ * le due rette si uniscono nella punta. Un lato vero (es. la cima piatta di una A) è più lungo.
  */
-function sharpenTips(segs: Segment[], closed: boolean, max: number): Segment[] {
+function sharpenTips(segs: Segment[], closed: boolean, shortMax: number, reach: number): Segment[] {
   const out = segs.map((s) => ({ ...s }) as Segment);
   for (let i = 0; i < out.length && out.length > 3;) {
     const n = out.length;
@@ -245,14 +399,14 @@ function sharpenTips(segs: Segment[], closed: boolean, max: number): Segment[] {
     const hasNext = closed || i < n - 1;
     const prev = out[(i - 1 + n) % n]!;
     const next = out[(i + 1) % n]!;
-    const short = Math.hypot(s.p1.x - s.p0.x, s.p1.y - s.p0.y) < max;
+    const short = Math.hypot(s.p1.x - s.p0.x, s.p1.y - s.p0.y) < shortMax;
     if (!(hasPrev && hasNext && short && prev.kind === 'line' && next.kind === 'line')) {
       i++;
       continue;
     }
     const x = cross(prev.p0, prev.p1, next.p0, next.p1);
     const mid = { x: (s.p0.x + s.p1.x) / 2, y: (s.p0.y + s.p1.y) / 2 };
-    if (!x || Math.hypot(x.x - mid.x, x.y - mid.y) > 2 * max) {
+    if (!x || Math.hypot(x.x - mid.x, x.y - mid.y) > reach) {
       i++;
       continue;
     }
@@ -279,7 +433,12 @@ function snapCorners(segs: Segment[], closed: boolean, max: number): Segment[] {
     const r = { x: a.p1.x - a.p0.x, y: a.p1.y - a.p0.y };
     const s = { x: b.p1.x - b.p0.x, y: b.p1.y - b.p0.y };
     const den = r.x * s.y - r.y * s.x;
-    if (Math.abs(den) < 1e-9) continue;
+    // rette quasi parallele (< 12°): l'intersezione è lontana e instabile, non si usa
+    if (
+      Math.abs(den) <
+      Math.sin((12 * Math.PI) / 180) * Math.hypot(r.x, r.y) * Math.hypot(s.x, s.y)
+    )
+      continue;
     const t = ((b.p0.x - a.p0.x) * s.y - (b.p0.y - a.p0.y) * s.x) / den;
     const x = { x: a.p0.x + r.x * t, y: a.p0.y + r.y * t };
     const here = { x: (a.p1.x + b.p0.x) / 2, y: (a.p1.y + b.p0.y) / 2 };
@@ -341,10 +500,16 @@ function dropTiny(segs: Segment[], closed: boolean, min: number): Segment[] {
   return out;
 }
 
-export function trace(img: RasterImage, o: TraceOptions, place: TracePlacement): TraceOutput {
+export function trace(
+  img: RasterImage,
+  o: TraceOptions,
+  place: TracePlacement,
+  tuning: Partial<TraceTuning> = {},
+): TraceOutput {
+  const tu: TraceTuning = { ...FULL_TUNING, ...tuning };
   const t0 = now();
   const win = Math.max(15, Math.round(Math.max(img.width, img.height) / 20) | 1);
-  let mask = adaptiveThreshold(img, o.sensitivity, win);
+  let mask: Mask = adaptiveThreshold(img, o.sensitivity, win);
   mask = close(mask, Math.round(o.merge));
   mask = clean(mask, o.minArea, Math.max(o.minArea, (2 * o.merge + 2) ** 2));
   // asole tra passate parallele: più strette di ~3 volte il raggio di fusione
@@ -353,21 +518,24 @@ export function trace(img: RasterImage, o: TraceOptions, place: TracePlacement):
   let polylines: { pts: Vec2[]; closed: boolean }[];
   let strokeWidthPx = 1;
   if (o.mode === 'lines') {
-    const sk = thin(mask);
-    let ink = 0;
-    let skel = 0;
-    for (let i = 0; i < mask.data.length; i++) {
-      ink += mask.data[i]!;
-      skel += sk.data[i]!;
+    let sk = thin(mask);
+    strokeWidthPx = widthOf(mask, sk);
+    // buchetti dentro la traccia (più piccoli di ~2,5 spessori): passate che non si toccano.
+    // Lasciati lì diventerebbero minuscoli anelli; si riempiono e si rifà la linea centrale.
+    const refilled = clean(mask, 0, (2.5 * strokeWidthPx) ** 2);
+    if (refilled.data.some((v, i) => v !== mask.data[i])) {
+      mask = refilled;
+      sk = thin(mask);
+      strokeWidthPx = widthOf(mask, sk);
     }
-    strokeWidthPx = skel > 0 ? ink / skel : 1;
     const spur = Math.max(4, Math.round(o.merge * 2 + strokeWidthPx));
-    polylines = joinGaps(
-      strokes(sk, spur, Math.max(spur * 4, Math.round(strokeWidthPx * 25)))
-        .filter((s) => s.points.length >= Math.max(4, spur))
-        .map((s) => ({ pts: s.points, closed: s.closed })),
-      Math.max(5 * o.merge, 5 * strokeWidthPx, 10),
-    );
+    const found = strokes(sk, spur, Math.max(spur * 4, Math.round(strokeWidthPx * 25)))
+      .filter((s) => s.points.length >= Math.max(4, spur))
+      .map((s) => ({ pts: s.points, closed: s.closed }));
+    const joined = tu.joinGaps
+      ? joinGaps(found, Math.max(5 * o.merge, 5 * strokeWidthPx, 10))
+      : found;
+    polylines = extendEnds(dropDoubles(joined, 1.5 * strokeWidthPx), mask, strokeWidthPx);
   } else {
     polylines = contours(mask)
       .filter((l) => Math.abs(signedArea(l)) >= o.minArea)
@@ -378,8 +546,12 @@ export function trace(img: RasterImage, o: TraceOptions, place: TracePlacement):
   const unit = o.mode === 'lines' ? Math.max(1.5, strokeWidthPx) : Math.max(2, o.merge + 1);
   // tratti → segmenti in px
   const fitted = polylines
-    .map((pl) => ({ closed: pl.closed, segs: fitStroke(pl.pts, pl.closed, o, unit), poly: pl.pts }))
-    .filter((f) => f.segs.length > 0);
+    .map((pl) => ({
+      closed: pl.closed,
+      segs: fitStroke(pl.pts, pl.closed, o, unit, tu),
+      poly: pl.pts,
+    }))
+    .filter((f) => f.segs.length > 0 && !degenerate(f.segs, f.closed, unit));
 
   // orientamento: profondità di annidamento pari → senso orario (y in giù: area > 0)
   const closedIdx = fitted.map((f, i) => (f.closed ? i : -1)).filter((i) => i >= 0);
@@ -423,7 +595,7 @@ export function trace(img: RasterImage, o: TraceOptions, place: TracePlacement):
 
   const paths: PathData[] = fitted.map((f, i) => {
     let segs = f.segs;
-    if (f.closed) {
+    if (f.closed && tu.orient) {
       const cw = signedArea(f.poly) > 0;
       const wantCw = (depth.get(i) ?? 0) % 2 === 0;
       if (cw !== wantCw) segs = reverseSegs(segs);

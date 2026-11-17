@@ -38,7 +38,12 @@ export {
   parseReport,
   reportFileName,
   meetsExpected,
+  grayOf,
+  rasterOfGray,
+  bytesToBase64,
+  base64ToBytes,
   type CompassoReport,
+  type ReportTrace,
   type ReportExpect,
   type Expected,
 } from './report';
@@ -49,5 +54,7 @@ export {
   type TraceOptions,
   type TracePlacement,
   type TraceOutput,
+  type TraceTuning,
+  FULL_TUNING,
 } from './trace/trace';
 export { downscale, type RasterImage, type Mask } from './trace/raster';
