@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.4.0 — 17/11/2026
+
+- **Ovali**: Compasso riconosce gli ovali (anche ruotati), li elenca tra gli elementi
+  («Ovale 1 · 220 × 100 pt»), li mostra nell'anteprima e li disegna nella costruzione con il loro
+  centro. Prima un ovale veniva spezzato in quattro cerchi sbagliati.
+- **Cerchi più precisi sui loghi ricalcati o disegnati a mano**: una curva liscia viene provata
+  prima come un unico cerchio (o un unico ovale) su tutto il tratto, invece di spezzarla in tanti
+  archetti con centri e raggi un po' diversi. Niente più cerchi doppi o mancanti sul rumore del ricalco.
+- Un tratto disegnato «quasi» circolare su almeno 90° dà comunque il suo cerchio di costruzione
+  (oltre a comparire tra le anomalie): è il cerchio che il disegno voleva avere.
+- Il livello **Struttura** mostra tutti i cerchi e gli ovali che contano (almeno il 2% del contorno),
+  non solo i principali.
+- **CORREGGI → Ovali perfetti**: le curve quasi ovali diventano ovali esatti, con la loro tolleranza;
+  l'opzione **«Trasforma gli ovali in cerchi perfetti»** li sostituisce con un cerchio dello stesso centro.
+- **Nessun pezzo mancante**: i tracciati minuscoli o degeneri restano nella copia corretta; l'anteprima di
+  CORREGGI disegna le linee aperte come linee (prima apparivano piene o sparivano).
+- Riepilogo di CORREGGI più onesto: lo spostamento massimo si misura dalla curva originale e gli anchor
+  interni ai cerchi non vengono più contati (né spostati) dall'allineamento.
+
 ## 0.3.1 — 17/11/2026
 
 - **Niente più quadrato grigio in alto a sinistra**: era il campione dell'**unità x** (lo spessore

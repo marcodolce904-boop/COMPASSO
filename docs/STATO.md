@@ -30,6 +30,10 @@ coincidono con quelli dell'harness sullo stesso SVG.
 Fatto (0.3.0): **scheda CORREGGI** — `refine()` nel core (8 correzioni, intensità, report, idempotente),
 anteprima Prima/Dopo/Confronto, applicazione su copia (layer «Compasso — Corretto») con ripristino,
 pannello ridimensionabile a due colonne.
+Fatto (0.4.0): **ovali** (modello `Ellipse`, fit diretto di Fitzgibbon/Halíř–Flusser, distanza
+geometrica vera) in analisi, livelli, piano, anteprima, disegno ExtendScript e CORREGGI (con «ovali → cerchi»);
+riconoscimento per tratti lisci interi (cerchio unico → greedy → ovale → quasi-cerchio) contro la
+frammentazione dei ricalchi; test `traced.test.ts` con loghi ricalcati sintetici.
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,
