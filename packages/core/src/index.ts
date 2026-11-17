@@ -15,3 +15,11 @@ export {
 export { analyze } from './analyze';
 export { plan, LAYER_NAME, type PlanOptions } from './plan/plan';
 export { tolerances, type Tolerances, type Band } from './tolerance';
+export {
+  refine,
+  refineDefaults,
+  type RefineOptions,
+  type RefineReport,
+  type RefineResult,
+  type SymmetryAxis,
+} from './fix/refine';
