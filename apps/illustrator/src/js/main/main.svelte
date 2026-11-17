@@ -12,6 +12,7 @@
   import { createAnalyzer } from './analyzer';
   import { applyHostTheme } from './theme';
   import { loadHost } from './host';
+  import { toFixPaths } from './fixpaths';
 
   const POLL_MS = 800; // §8.4: polling leggero dell'impronta della selezione
   const LOADING_DELAY_MS = 300; // §4.6: indicatore solo per analisi lente
@@ -25,6 +26,7 @@
   let status = $state<PanelStatus>('empty');
   let error = $state<string | null>(null);
   let drawn = $state(false);
+  let fixApplied = $state(false); // c'è una copia corretta (layer «Compasso — Corretto»)
 
   let fingerprint = '';
   let hostError = false; // l'avviso mostrato riguarda la comunicazione con Illustrator
@@ -71,8 +73,9 @@
         hostError = false;
         error = null;
       }
-      const [fp = '', layer] = String(raw ?? '').split('#');
+      const [fp = '', layer, fix] = String(raw ?? '').split('#');
       drawn = layer === '1';
+      fixApplied = fix === '1';
       if (!force && fp === fingerprint) return;
       fingerprint = fp;
       const res = await evalTS('extractSelection');
@@ -103,6 +106,31 @@
       console.info(`[compasso] disegnati ${r.count} oggetti in ${r.ms} ms`);
     } catch (e) {
       console.error('[compasso] disegno non riuscito', e);
+      error = t(lang, 'error.host', { msg: String(e) });
+    }
+  }
+
+  async function applyFix(g: DocumentGeometry) {
+    try {
+      const r = await evalTS('applyFix', toFixPaths(g));
+      if (r.ok) fixApplied = true;
+      console.info(`[compasso] correzioni applicate a ${r.paths} tracciati in ${r.ms} ms`);
+      void refresh(true); // la copia corretta è selezionata: si rianalizza subito
+    } catch (e) {
+      console.error('[compasso] correzioni non applicate', e);
+      hostError = true;
+      error = t(lang, 'error.host', { msg: String(e) });
+    }
+  }
+
+  async function revertFix() {
+    try {
+      await evalTS('revertFix');
+      fixApplied = false;
+      void refresh(true);
+    } catch (e) {
+      console.error('[compasso] ripristino non riuscito', e);
+      hostError = true;
       error = t(lang, 'error.host', { msg: String(e) });
     }
   }
@@ -184,6 +212,9 @@
     bind:tolerance
     onDraw={drawConstruction}
     onRemove={removeConstruction}
+    {fixApplied}
+    onApplyFix={applyFix}
+    onRevertFix={revertFix}
     onDismissError={() => (error = null)}
   />
 </div>

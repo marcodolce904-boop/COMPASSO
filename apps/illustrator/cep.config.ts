@@ -32,6 +32,9 @@ const config: CEP_Config = {
       height: 720,
       minWidth: 280,
       minHeight: 420,
+      // pannello ridimensionabile liberamente: più grande = anteprime più grandi, due colonne
+      maxWidth: 3000,
+      maxHeight: 3000,
     },
   ],
   build: { jsxBin: 'off', sourceMap: true },
