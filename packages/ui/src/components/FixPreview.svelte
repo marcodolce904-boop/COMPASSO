@@ -178,7 +178,12 @@
       aria-label={summary}
     >
       <g class="fill">
-        {#each filled as s (s.key)}<path d={s.d} fill-rule="evenodd" />{/each}
+        {#each filled as s (s.key)}<path
+            d={s.d}
+            fill-rule="evenodd"
+            class:line={!s.filled}
+            style={s.filled ? '' : `stroke-width:${s.strokeWidth}`}
+          />{/each}
       </g>
       <g class="outline">
         {#each outline as s (s.key)}<path d={s.d} fill-rule="evenodd" />{/each}
@@ -287,6 +292,11 @@
   }
   .fill path {
     fill: var(--c-preview-logo);
+  }
+  /* tracciati solo a contorno (linee aperte): si disegnano come linee, non come forme piene */
+  .fill path.line {
+    fill: none;
+    stroke: var(--c-preview-logo);
   }
   .outline path {
     fill: none;

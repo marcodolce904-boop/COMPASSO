@@ -71,6 +71,13 @@ export function viewBoxFor(result: AnalysisResult, plan: ConstructionPlan | null
     if (p.type === 'circle') {
       grow(p.cx - p.r, p.cy - p.r);
       grow(p.cx + p.r, p.cy + p.r);
+    } else if (p.type === 'ellipse') {
+      const c = Math.cos(p.rotation);
+      const s = Math.sin(p.rotation);
+      const hw = Math.hypot(p.rx * c, p.ry * s);
+      const hh = Math.hypot(p.rx * s, p.ry * c);
+      grow(p.cx - hw, p.cy - hh);
+      grow(p.cx + hw, p.cy + hh);
     } else if (p.type === 'line') {
       grow(p.a.x, p.a.y);
       grow(p.b.x, p.b.y);

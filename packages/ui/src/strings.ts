@@ -20,6 +20,8 @@ const en = {
   'fix.zoom.hint': 'Wheel: zoom · drag: move · double click: fit',
   'fix.none': 'Nothing to correct with these tolerances ✓',
   'fix.summary.arcs': '{n} arcs',
+  'fix.summary.ellipses': '{n} ovals',
+  'fix.summary.ellipse': '1 oval',
   'fix.summary.radii': '{n} radii',
   'fix.summary.centers': '{n} centres',
   'fix.summary.lines': '{n} lines',
@@ -36,6 +38,9 @@ const en = {
   'fix.step': 'Grid step',
   'fix.arcs': 'Perfect arcs',
   'fix.arcs.hint': 'Near-circular curves become exact arcs.',
+  'fix.ellipses': 'Perfect ovals',
+  'fix.ellipses.hint': 'Near-oval curves become exact ovals.',
+  'fix.ellipses.toCircle': 'Turn ovals into perfect circles',
   'fix.radii': 'Equal radii',
   'fix.radii.hint': 'Circles with almost the same radius get the same radius.',
   'fix.centers': 'Shared centres',
@@ -67,6 +72,8 @@ const en = {
   'n.path.other': '{n} paths',
   'n.circle.one': '{n} circle',
   'n.circle.other': '{n} circles',
+  'n.ellipse.one': '{n} oval',
+  'n.ellipse.other': '{n} ovals',
   'n.line.one': '{n} line',
   'n.line.other': '{n} lines',
   'preview.none': '—',
@@ -85,11 +92,12 @@ const en = {
   'display.stroke': 'Stroke',
   'display.marker': 'Marker',
   'elements.title': 'Elements ({n})',
-  'group.circles': 'CIRCLES',
+  'group.circles': 'CIRCLES AND OVALS',
   'group.lines': 'LINES',
   'group.axes': 'AXES',
   'group.rows': 'ALIGNMENTS',
   'el.circle': 'Circle {n} · r {r} pt',
+  'el.ellipse': 'Oval {n} · {a} × {b} pt',
   'el.line': 'Line {n} · {o}',
   'el.axis': 'Axis {n} · {o}',
   'el.row': 'Alignment {n} · {c} {v}',
@@ -195,6 +203,8 @@ const it: Record<StringKey, string> = {
   'fix.zoom.hint': 'Rotella: zoom · trascina: sposta · doppio clic: adatta',
   'fix.none': 'Nessuna correzione con queste tolleranze ✓',
   'fix.summary.arcs': '{n} archi',
+  'fix.summary.ellipses': '{n} ovali',
+  'fix.summary.ellipse': '1 ovale',
   'fix.summary.radii': '{n} raggi',
   'fix.summary.centers': '{n} centri',
   'fix.summary.lines': '{n} rette',
@@ -211,6 +221,9 @@ const it: Record<StringKey, string> = {
   'fix.step': 'Passo griglia',
   'fix.arcs': 'Archi perfetti',
   'fix.arcs.hint': 'Le curve quasi circolari diventano archi esatti.',
+  'fix.ellipses': 'Ovali perfetti',
+  'fix.ellipses.hint': 'Le curve quasi ovali diventano ovali esatti.',
+  'fix.ellipses.toCircle': 'Trasforma gli ovali in cerchi perfetti',
   'fix.radii': 'Raggi uguali',
   'fix.radii.hint': 'I cerchi con raggi quasi uguali prendono lo stesso raggio.',
   'fix.centers': 'Centri comuni',
@@ -243,6 +256,8 @@ const it: Record<StringKey, string> = {
   'n.path.other': '{n} tracciati',
   'n.circle.one': '{n} cerchio',
   'n.circle.other': '{n} cerchi',
+  'n.ellipse.one': '{n} ovale',
+  'n.ellipse.other': '{n} ovali',
   'n.line.one': '{n} linea',
   'n.line.other': '{n} linee',
   'preview.none': '—',
@@ -261,11 +276,12 @@ const it: Record<StringKey, string> = {
   'display.stroke': 'Spessore linea',
   'display.marker': 'Dimensione marker',
   'elements.title': 'Elementi ({n})',
-  'group.circles': 'CERCHI',
+  'group.circles': 'CERCHI E OVALI',
   'group.lines': 'RETTE',
   'group.axes': 'ASSI',
   'group.rows': 'ALLINEAMENTI',
   'el.circle': 'Cerchio {n} · r {r} pt',
+  'el.ellipse': 'Ovale {n} · {a} × {b} pt',
   'el.line': 'Retta {n} · {o}',
   'el.axis': 'Asse {n} · {o}',
   'el.row': 'Allineamento {n} · {c} {v}',
@@ -369,18 +385,19 @@ export function num(lang: Lang, v: number, digits = 1): string {
 }
 
 /** Conteggio con singolare/plurale: `count('it', 'path', 1)` → «1 tracciato». */
-export function count(lang: Lang, noun: 'path' | 'circle' | 'line', n: number): string {
+export function count(lang: Lang, noun: 'path' | 'circle' | 'ellipse' | 'line', n: number): string {
   return t(lang, `n.${noun}.${n === 1 ? 'one' : 'other'}`, { n });
 }
 
 /** Riepilogo «23 tracciati · 5 cerchi, 12 linee» (§4.2 A). */
 export function statsText(
   lang: Lang,
-  s: { paths: number; circles: number; lines: number },
+  s: { paths: number; circles: number; ellipses?: number; lines: number },
 ): string {
+  const ov = s.ellipses ? `, ${count(lang, 'ellipse', s.ellipses)}` : '';
   return t(lang, 'preview.stats', {
     p: count(lang, 'path', s.paths),
-    c: count(lang, 'circle', s.circles),
+    c: count(lang, 'circle', s.circles) + ov,
     l: count(lang, 'line', s.lines),
   });
 }

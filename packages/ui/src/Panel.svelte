@@ -118,6 +118,7 @@
       } else if (Math.abs(d.D / fixD - 1) > 0.01) {
         const k = d.D / fixD;
         fixOptions.arcs.tolerance *= k;
+        fixOptions.ellipses.tolerance *= k;
         fixOptions.radii.tolerance *= k;
         fixOptions.centers.tolerance *= k;
         fixOptions.align.tolerance *= k;

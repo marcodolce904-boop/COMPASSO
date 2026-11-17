@@ -32,11 +32,22 @@ const index = (id: string) => id.replace(/^\D+/, '');
 export function elementGroups(r: AnalysisResult, lang: Lang): ElementGroups {
   const rows = r.lines.filter((l) => l.origin === 'anchor-row');
   return {
-    circles: r.circles.map((c) => ({
-      id: c.id,
-      name: t(lang, 'el.circle', { n: index(c.id), r: num(lang, c.r, 1) }),
-      score: c.score,
-    })),
+    circles: [
+      ...r.circles.map((c) => ({
+        id: c.id,
+        name: t(lang, 'el.circle', { n: index(c.id), r: num(lang, c.r, 1) }),
+        score: c.score,
+      })),
+      ...(r.ellipses ?? []).map((e) => ({
+        id: e.id,
+        name: t(lang, 'el.ellipse', {
+          n: index(e.id),
+          a: num(lang, 2 * e.rx, 1),
+          b: num(lang, 2 * e.ry, 1),
+        }),
+        score: e.score,
+      })),
+    ],
     lines: r.lines
       .filter((l) => l.origin !== 'anchor-row')
       .map((l) => ({
@@ -102,6 +113,7 @@ export function fixSummary(lang: Lang, r: RefineReport): string {
     if (n > 0) parts.push(t(lang, key, { n }));
   };
   add(r.arcs, 'fix.summary.arcs');
+  add(r.ellipses, r.ellipses === 1 ? 'fix.summary.ellipse' : 'fix.summary.ellipses');
   add(r.radii, 'fix.summary.radii');
   add(r.centers, 'fix.summary.centers');
   add(r.lines, 'fix.summary.lines');

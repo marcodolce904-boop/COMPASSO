@@ -64,6 +64,28 @@
 </Toggle>
 
 <Toggle
+  label={t(lang, 'fix.ellipses')}
+  hint={t(lang, 'fix.ellipses.hint')}
+  bind:checked={options.ellipses.enabled}
+  badge={report?.ellipses ?? 0}
+>
+  <Slider
+    label={t(lang, 'fix.tolerance')}
+    bind:value={options.ellipses.tolerance}
+    min={step}
+    max={maxPt(0.03)}
+    {step}
+    defaultValue={defaults.ellipses.tolerance}
+    unit="pt"
+    format={pt}
+  />
+  <label class="chk">
+    <input type="checkbox" bind:checked={options.ellipses.toCircle} />
+    {t(lang, 'fix.ellipses.toCircle')}
+  </label>
+</Toggle>
+
+<Toggle
   label={t(lang, 'fix.radii')}
   hint={t(lang, 'fix.radii.hint')}
   bind:checked={options.radii.enabled}

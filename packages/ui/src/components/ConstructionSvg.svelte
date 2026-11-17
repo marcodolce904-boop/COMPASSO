@@ -69,6 +69,15 @@
         {@const hl = highlight.ids.has(p.id)}
         {#if p.type === 'circle'}
           <circle cx={p.cx} cy={p.cy} r={p.r} class:hl />
+        {:else if p.type === 'ellipse'}
+          <ellipse
+            cx={p.cx}
+            cy={p.cy}
+            rx={p.rx}
+            ry={p.ry}
+            transform="rotate({(p.rotation * 180) / Math.PI} {p.cx} {p.cy})"
+            class:hl
+          />
         {:else if p.type === 'line'}
           <line
             x1={p.a.x}
