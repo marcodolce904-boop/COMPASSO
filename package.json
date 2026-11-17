@@ -11,6 +11,7 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "bench": "tsx scripts/bench.ts",
+    "bench:trace": "tsx scripts/bench-trace.ts",
     "fixtures:gen": "tsx scripts/gen-fixtures.ts",
     "fixtures:update": "tsx scripts/fixtures-update.ts",
     "dev": "pnpm -F harness dev"
