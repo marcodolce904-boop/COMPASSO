@@ -5,7 +5,10 @@
     refineDefaults,
     type AnalysisResult,
     type RefineOptions,
+    type RefineReport,
     type RefineResult,
+    type CompassoReport,
+    buildReport,
     type ConstructionPlan,
     type DocumentGeometry,
     type DrawStyle,
@@ -52,6 +55,10 @@
     onApplyFix?: (geometry: DocumentGeometry) => void;
     /** CORREGGI: elimina la copia corretta e rimette l'originale. */
     onRevertFix?: () => void;
+    /** Segnala un problema: salva il file e restituisce dove (o lancia un errore). */
+    onReport?: (report: CompassoReport) => Promise<string> | string;
+    /** Host che produce la segnalazione. */
+    host?: CompassoReport['host'];
   }
   let {
     geometry = null,
@@ -68,7 +75,36 @@
     fixApplied = false,
     onApplyFix = () => {},
     onRevertFix = () => {},
+    onReport,
+    host = 'harness',
   }: Props = $props();
+
+  // Segnala un problema
+  let reportMsg = $state('');
+  async function sendReport() {
+    if (!geometry || !onReport) return;
+    const rep = buildReport({
+      version,
+      createdAt: new Date().toISOString(),
+      host,
+      tolerance,
+      geometry: $state.snapshot(geometry) as DocumentGeometry,
+      result: result ? ($state.snapshot(result) as AnalysisResult) : null,
+      fix:
+        fixResult && fixOptions
+          ? {
+              options: $state.snapshot(fixOptions) as RefineOptions,
+              report: $state.snapshot(fixResult.report) as RefineReport,
+            }
+          : null,
+    });
+    try {
+      const where = await onReport(rep);
+      reportMsg = t(lang, 'report.saved', { path: where });
+    } catch (e) {
+      reportMsg = t(lang, 'report.failed', { msg: String(e) });
+    }
+  }
 
   // stato del pannello (valori predefiniti del §4.2)
   const DEFAULTS = { stroke: 0.75, marker: 8 };
@@ -241,6 +277,12 @@
           { value: 'loose', label: t(lang, 'tolerance.loose') },
         ]}
       />
+      {#if onReport}
+        <div class="report">
+          <TextButton label={t(lang, 'report.button')} onclick={sendReport} disabled={!geometry} />
+          <p class="hint">{reportMsg || t(lang, 'report.hint')}</p>
+        </div>
+      {/if}
     </div>
   {/if}
   <TabBar
@@ -470,6 +512,15 @@
     padding: var(--sp-3);
     border-bottom: var(--bw) solid var(--c-border);
     background: var(--c-bg-card);
+  }
+  .report {
+    padding-top: var(--sp-1);
+    border-top: var(--bw) solid var(--c-border);
+  }
+  .report .hint {
+    font: 400 var(--fs-xs) / var(--lh-text) var(--f-sans);
+    color: var(--c-text-3);
+    overflow-wrap: anywhere;
   }
   .label {
     font: 700 var(--fs-xs) var(--f-mono);

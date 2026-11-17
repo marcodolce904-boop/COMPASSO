@@ -13,6 +13,7 @@
   import { applyHostTheme } from './theme';
   import { loadHost } from './host';
   import { toFixPaths } from './fixpaths';
+  import { saveReportFile } from './report-file';
 
   const POLL_MS = 800; // §8.4: polling leggero dell'impronta della selezione
   const LOADING_DELAY_MS = 300; // §4.6: indicatore solo per analisi lente
@@ -215,6 +216,8 @@
     {fixApplied}
     onApplyFix={applyFix}
     onRevertFix={revertFix}
+    onReport={(r) => saveReportFile(r)}
+    host="illustrator"
     onDismissError={() => (error = null)}
   />
 </div>

@@ -15,6 +15,7 @@
     type Lang,
     type PanelStatus,
   } from '@compasso/ui';
+  import { parseReport, reportFileName, type CompassoReport } from '@compasso/core';
   import type { AnalysisRequest, AnalysisResponse } from './analysis';
 
   // fixture del repository, incluse come testo
@@ -77,15 +78,31 @@
   // nuova sorgente o nuova tolleranza → nuova analisi; il layer disegnato resta finché non si ridisegna
   $effect(() => {
     if (svgText === null) return;
-    if (fixedGeometry)
-      analyse({ geometry: $state.snapshot(fixedGeometry) as DocumentGeometry }, tolerance);
+    const g = fixedGeometry ?? baseGeometry;
+    if (g) analyse({ geometry: $state.snapshot(g) as DocumentGeometry }, tolerance);
     else analyse({ svg: svgText }, tolerance);
   });
 
+  // geometria caricata da un file di segnalazione (al posto di un SVG)
+  let baseGeometry = $state<DocumentGeometry | null>(null);
   function load(text: string) {
     drawnPlan = null;
     fixedGeometry = null;
-    svgText = text;
+    const rep = text.trimStart().startsWith('{') ? parseReport(text) : null;
+    baseGeometry = rep ? rep.geometry : null;
+    if (rep) tolerance = rep.tolerance;
+    svgText = rep ? '' : text;
+  }
+  /** Segnala un problema: nel browser il file si scarica. */
+  function saveReport(rep: CompassoReport): string {
+    const name = reportFileName(new Date());
+    const blob = new Blob([JSON.stringify(rep, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    return name;
   }
   function pickFixture() {
     if (fixture) load(fixtureByName(fixture));
@@ -158,7 +175,7 @@
       <input
         bind:this={fileInput}
         type="file"
-        accept=".svg,image/svg+xml"
+        accept=".svg,image/svg+xml,.json,application/json"
         hidden
         onchange={(e) => openFile(e.currentTarget.files?.[0])}
       />
@@ -230,6 +247,8 @@
         drawnPlan = null;
         fixedGeometry = null;
       }}
+      onReport={saveReport}
+      host="harness"
     />
   </aside>
 </div>

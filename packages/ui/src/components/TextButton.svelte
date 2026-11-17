@@ -3,10 +3,16 @@
     label,
     tone = 'accent',
     onclick,
-  }: { label: string; tone?: 'accent' | 'muted'; onclick: () => void } = $props();
+    disabled = false,
+  }: {
+    label: string;
+    tone?: 'accent' | 'muted';
+    onclick: () => void;
+    disabled?: boolean;
+  } = $props();
 </script>
 
-<button class="tbtn {tone}" {onclick}>{label}</button>
+<button class="tbtn {tone}" {onclick} {disabled}>{label}</button>
 
 <style>
   .tbtn {
@@ -20,7 +26,11 @@
   .muted {
     color: var(--c-text-2);
   }
-  .tbtn:hover {
+  .tbtn:disabled {
+    color: var(--c-text-3);
+    cursor: default;
+  }
+  .tbtn:hover:not(:disabled) {
     color: var(--c-text);
   }
 </style>

@@ -33,3 +33,12 @@ export {
   toEllipseFrame,
   type EllipseFit,
 } from './fit/ellipse';
+export {
+  buildReport,
+  parseReport,
+  reportFileName,
+  meetsExpected,
+  type CompassoReport,
+  type ReportExpect,
+  type Expected,
+} from './report';

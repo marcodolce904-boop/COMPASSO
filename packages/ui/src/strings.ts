@@ -155,6 +155,11 @@ const en = {
   'settings.title': 'Settings',
   'settings.language': 'Language',
   'settings.tolerance': 'Tolerance',
+  'report.button': 'Report a problem',
+  'report.hint':
+    'Saves a file with the selection and the result. Nothing is sent: you decide whether to share it.',
+  'report.saved': 'Saved: {path}',
+  'report.failed': 'Could not save the file: {msg}',
   'tolerance.strict': 'Strict',
   'tolerance.normal': 'Normal',
   'tolerance.loose': 'Loose',
@@ -340,6 +345,11 @@ const it: Record<StringKey, string> = {
   'settings.title': 'Impostazioni',
   'settings.language': 'Lingua',
   'settings.tolerance': 'Tolleranza',
+  'report.button': 'Segnala un problema',
+  'report.hint':
+    'Salva un file con la selezione e il risultato. Non viene inviato niente: decidi tu se condividerlo.',
+  'report.saved': 'Salvato: {path}',
+  'report.failed': 'Impossibile salvare il file: {msg}',
   'tolerance.strict': 'Rigida',
   'tolerance.normal': 'Normale',
   'tolerance.loose': 'Morbida',
