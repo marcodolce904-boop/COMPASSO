@@ -27,8 +27,9 @@ coincidono con quelli dell'harness sullo stesso SVG.
 
 ## Lavori da fare (concordati con Marco il 17/11/2026)
 
-In corso: **scheda CORREGGI** (correzione delle imperfezioni con regolazioni a scorrimento e anteprima
-Prima/Dopo/Confronto, correzioni applicate su una copia del logo).
+Fatto (0.3.0): **scheda CORREGGI** — `refine()` nel core (8 correzioni, intensità, report, idempotente),
+anteprima Prima/Dopo/Confronto, applicazione su copia (layer «Compasso — Corretto») con ripristino,
+pannello ridimensionabile a due colonne.
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

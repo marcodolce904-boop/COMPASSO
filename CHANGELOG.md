@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0 — 17/11/2026
+
+- **Nuova scheda CORREGGI**: rende perfetto un logo impreciso (per esempio ricalcato da uno schizzo).
+  Otto correzioni attivabili una per una, ognuna con la sua tolleranza regolabile:
+  archi perfetti, raggi uguali, centri comuni, rette e angoli (0°/45°/90°), allineamento degli anchor,
+  simmetria (automatica, verticale o orizzontale), griglia/arrotondamento e pulizia dei tracciati
+  (meno anchor, rette consecutive unite). Un cursore **Intensità** dosa l'effetto complessivo.
+- **Anteprima Prima / Dopo / Confronto**: nel confronto il contorno ciano mostra l'originale e i punti
+  indicano gli anchor spostati; sotto, il riepilogo delle modifiche e lo spostamento massimo.
+- **APPLICA CORREZIONI** lavora su una copia nel layer «Compasso — Corretto»: l'originale resta nel
+  documento, nascosto. **Ripristina originale** elimina la copia e lo fa ricomparire.
+- **Pannello ridimensionabile**: si può allargare liberamente; oltre una certa larghezza passa a due
+  colonne con anteprime grandi.
+
 ## 0.2.4 — 17/11/2026
 
 - Il messaggio di errore indica la **versione di Compasso** che sta girando (così si capisce subito se

@@ -8,7 +8,7 @@ dell'1%, un anchor fuori riga di 0,3 pt.
 
 ![Compasso: costruzione disegnata e pannello](site/img/costruzione.png)
 
-> **Versione 0.2.4 (anteprima)** — per Adobe Illustrator 2026 e successivi, su **Windows**.
+> **Versione 0.3.0 (anteprima)** — per Adobe Illustrator 2026 e successivi, su **Windows**.
 
 ## Scarica e installa
 
@@ -29,10 +29,13 @@ Per disinstallare: Impostazioni di Windows → App installate → _Compasso per 
 | ![Geometria](site/img/pannello-geometria.png) | **1. Seleziona il logo** — tracciati, gruppi, tracciati composti o testo. L'anteprima si aggiorna da sola.<br><br>**2. Scegli il livello** — Essenziale, Struttura, Dettaglio o Tutto; regola spessore delle linee e marker. Dall'elenco _Elementi_ includi o escludi ogni cerchio e retta.<br><br>**3. DISEGNA COSTRUZIONE** — la costruzione va sul layer bloccato «Compasso — Construction». _RIDISEGNA_ la aggiorna, _Rimuovi_ la cancella. |
 | ![Anomalie](site/img/pannello-anomalie.png)   | **Anomalie** — le quasi-coincidenze, ordinate per importanza: quasi-archi, raggi quasi uguali, centri quasi coincidenti, quasi-tangenze, anchor fuori riga, quasi-simmetrie, angoli quasi a 45°/90°. Un clic le evidenzia nell'anteprima.                                                                                                                                                                                                       |
 | ![Misure](site/img/pannello-misure.png)       | **Misure** — unità x (spessore dell'asta) con affidabilità, proporzioni, raggi e rapporti notevoli (aureo, √2…), area di rispetto in multipli di x, _Copia misure_.                                                                                                                                                                                                                                                                             |
+| ![Correggi](site/img/pannello-correggi.png)   | **CORREGGI** — rende perfetto un logo impreciso: archi esatti, raggi uguali, centri comuni, rette a 0°/45°/90°, anchor allineati, simmetria, griglia e pulizia dei tracciati, ognuna con la sua tolleranza e un'**Intensità** generale. Anteprima _Prima / Dopo / Confronto_. **APPLICA CORREZIONI** lavora su una copia (layer «Compasso — Corretto»); _Ripristina originale_ torna indietro.                                                  |
+
+Allarga il pannello per avere anteprime più grandi: oltre una certa larghezza i comandi vanno su due colonne.
 
 **Logo disegnato a mano?** Fotografalo, vettorializzalo con _Oggetto → Ricalco immagine_, poi
 selezionalo e imposta ⚙ → **Tolleranza → Morbida**: Compasso ti mostra la costruzione che il
-disegno «voleva» avere e dove si discosta.
+disegno «voleva» avere e dove si discosta. Poi passa a **CORREGGI** per renderlo perfetto.
 
 Lingua dell'interfaccia: ⚙ → English / Italiano.
 
@@ -45,8 +48,7 @@ Lingua dell'interfaccia: ⚙ → English / Italiano.
 
 ## Novità
 
-Vedi il [CHANGELOG](CHANGELOG.md). In arrivo: **Costruisci** (progressioni di cerchi, griglie,
-«Ricostruisci perfetto») e **Presenta** (tavola di presentazione del logo).
+Vedi il [CHANGELOG](CHANGELOG.md). In arrivo: **Presenta** (tavola di presentazione del logo).
 
 ---
 
