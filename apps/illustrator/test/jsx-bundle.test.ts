@@ -66,6 +66,7 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
         documentColorSpace: 'CMYK',
         selection,
         layers: makeLayers(),
+        pageItems: [] as unknown[],
         artboards: Object.assign([{ artboardRect: [0, 100, 100, 0] }], {
           getActiveArtboardIndex: () => 0,
         }),
@@ -79,6 +80,8 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
       BridgeTalk: { appName: 'illustrator' },
       CMYKColor: class {},
       RGBColor: class {},
+      ElementPlacement: { PLACEATEND: 'END' },
+      PointType: { SMOOTH: 'SMOOTH', CORNER: 'CORNER' },
     });
     return { api: $['com.marcodolce.compasso']!, app };
   }
@@ -139,12 +142,14 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
   it('registra le funzioni sotto l’id del pannello', () => {
     const { api } = host([square]);
     expect(Object.keys(api).sort()).toEqual([
+      'applyFix',
       'drawPlan',
       'extractSelection',
       'getDocInfo',
       'getSelectionFingerprint',
       'hasConstruction',
       'removeConstruction',
+      'revertFix',
     ]);
   });
 
@@ -168,7 +173,7 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
       colorMode: 'cmyk',
       artboard: 0,
     });
-    expect(api['getSelectionFingerprint']!()).toBe('logo.ai|0|1|1000,9000,5000,5000#0');
+    expect(api['getSelectionFingerprint']!()).toBe('logo.ai|0|1|1000,9000,5000,5000#0#0');
   });
 
   const plan = {
@@ -221,7 +226,7 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     api['drawPlan']!(plan);
     expect(app.activeDocument.layers).toHaveLength(1);
     expect(api['hasConstruction']!()).toBe(true);
-    expect(String(api['getSelectionFingerprint']!())).toMatch(/#1$/);
+    expect(String(api['getSelectionFingerprint']!())).toMatch(/#1#0$/);
     expect(api['removeConstruction']!()).toBe(true);
     expect(app.activeDocument.layers).toHaveLength(0);
     expect(api['hasConstruction']!()).toBe(false);
@@ -232,5 +237,110 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     const inLayer = { ...square, layer: { name: 'Compasso — Construction' } };
     const { api } = host([inLayer]);
     expect(api['extractSelection']!()).toEqual({ ok: false, reason: 'no-paths' });
+  });
+
+  // tracciato simulato che si puo' riscrivere (setEntirePath + maniglie) e duplicare in un layer
+  function editable(points: number[][], layer: Rec = { name: 'Livello 1' }): Rec {
+    const item: Rec = {
+      typename: 'PathItem',
+      closed: true,
+      filled: true,
+      stroked: false,
+      hidden: false,
+      note: '',
+      selected: true,
+      layer,
+      geometricBounds: [0, 0, 1, 1],
+      pathPoints: points.map((a) => ({ anchor: a, leftDirection: a, rightDirection: a })),
+    };
+    item['setEntirePath'] = (pts: number[][]) => {
+      item['pathPoints'] = pts.map((a) => ({ anchor: a, leftDirection: a, rightDirection: a }));
+    };
+    item['duplicate'] = (target: Rec) => {
+      const copy = editable(
+        (item['pathPoints'] as { anchor: number[] }[]).map((p) => p.anchor),
+        target,
+      );
+      (target['items'] as Rec[]).push(copy);
+      return copy;
+    };
+    return item;
+  }
+
+  it('applyFix: copia corretta nel layer «Corretto», originale nascosto e marcato; Ripristina lo rimette', () => {
+    // quadrato con un anchor fuori di 0,3 pt (coordinate documento, tavola [0,100,100,0])
+    const original = editable([
+      [10, 90],
+      [50, 90.3],
+      [50, 50],
+      [10, 50],
+    ]);
+    const { api, app } = host([original]);
+    const doc = app.activeDocument as unknown as Rec & { layers: Rec[]; pageItems: Rec[] };
+    doc['pageItems'] = [original];
+    const fixed = [
+      {
+        id: 'p0',
+        closed: true,
+        nodes: [
+          [10, 10],
+          [50, 10],
+          [50, 50],
+          [10, 50],
+        ].map((a) => ({ a, l: a, r: a })),
+      },
+    ];
+    const r = api['applyFix']!(fixed) as { ok: boolean; paths: number };
+    expect(r).toMatchObject({ ok: true, paths: 1 });
+    const fixLayer = doc.layers.find((l) => String(l['name']).endsWith('Corretto'))!;
+    expect(fixLayer).toBeDefined();
+    const copy = (fixLayer['items'] as Rec[])[0]!;
+    // core (Y in giu') -> documento (Y in su): y_doc = 100 - y_core
+    expect(
+      (copy['pathPoints'] as { anchor: number[]; pointType: string }[]).map((p) => p.anchor),
+    ).toEqual([
+      [10, 90],
+      [50, 90],
+      [50, 50],
+      [10, 50],
+    ]);
+    expect((copy['pathPoints'] as { pointType: string }[])[0]!.pointType).toBe('CORNER');
+    expect(original['hidden']).toBe(true);
+    expect(original['note']).toBe('compasso:originale');
+    expect(String(api['getSelectionFingerprint']!())).toMatch(/#0#1$/);
+    expect(app.coordinateSystem).toBe('ARTBOARD');
+
+    const n = api['revertFix']!();
+    expect(n).toBe(1);
+    expect(original['hidden']).toBe(false);
+    expect(original['note']).toBe('');
+    expect(doc.layers.some((l) => String(l['name']).endsWith('Corretto'))).toBe(false);
+  });
+
+  it("applyFix sulla copia gia' corretta: la aggiorna senza crearne un'altra", () => {
+    const fixLayer: Rec = { name: 'Compasso ' + String.fromCharCode(8212) + ' Corretto' };
+    const copy = editable(
+      [
+        [10, 90],
+        [50, 90],
+        [50, 50],
+      ],
+      fixLayer,
+    );
+    const { api, app } = host([copy]);
+    const r = api['applyFix']!([
+      {
+        id: 'p0',
+        closed: true,
+        nodes: [
+          [10, 10],
+          [60, 10],
+          [50, 50],
+        ].map((a) => ({ a, l: a, r: a })),
+      },
+    ]) as { ok: boolean; paths: number };
+    expect(r.paths).toBe(1);
+    expect((app.activeDocument as unknown as { layers: unknown[] }).layers).toHaveLength(0);
+    expect((copy['pathPoints'] as { anchor: number[] }[])[1]!.anchor).toEqual([60, 90]);
   });
 });

@@ -38,6 +38,7 @@ export interface AiPathPoint {
   anchor: number[];
   leftDirection: number[];
   rightDirection: number[];
+  pointType?: unknown;
 }
 export interface AiItem {
   typename: string;
@@ -56,11 +57,15 @@ export interface AiItem {
   pageItems?: { length: number; [i: number]: AiItem };
   clipped?: boolean;
   // TextFrame
-  duplicate?: () => AiItem;
+  duplicate?: (target?: unknown, placement?: unknown) => AiItem;
   createOutline?: () => AiItem;
   remove?: () => void;
   geometricBounds?: number[];
   layer?: { name: string };
+  // scrittura (applyFix)
+  note?: string;
+  selected?: boolean;
+  setEntirePath?: (pts: number[][]) => void;
 }
 export interface AiDocument {
   name?: string;
@@ -76,8 +81,6 @@ interface Ctx {
   top: number;
   paths: XPath[];
   warn: { [k: string]: boolean };
-  nextPath: number;
-  nextGlyph: number;
   anchors: number;
   temp: AiItem[];
 }
@@ -91,10 +94,8 @@ function same(a: number[], b: number[]): boolean {
   return a[0] === b[0] && a[1] === b[1];
 }
 
-function readPath(ctx: Ctx, item: AiItem, glyphId: string | null, style: AiItem): void {
-  if (item.guides || item.clipping) return;
-  var pts = item.pathPoints;
-  if (!pts || pts.length < 2) return;
+function readPath(ctx: Ctx, item: AiItem, id: string, glyphId: string | null, style: AiItem): void {
+  var pts = item.pathPoints!;
   var n = pts.length;
   var closed = !!item.closed;
   var segments: XSegment[] = [];
@@ -119,7 +120,7 @@ function readPath(ctx: Ctx, item: AiItem, glyphId: string | null, style: AiItem)
   var stroked = !!style.stroked;
   if (!closed && stroked) ctx.warn['stroke-centerline'] = true;
   var path: XPath = {
-    id: 'p' + ctx.nextPath++,
+    id: id,
     closed: closed,
     filled: filled,
     stroked: stroked,
@@ -144,41 +145,62 @@ function inConstructionLayer(item: AiItem): boolean {
   return false;
 }
 
-function visit(ctx: Ctx, item: AiItem, glyphId: string | null): void {
+/**
+ * Percorso comune della selezione, usato sia per LEGGERE (extractSelection) sia per SCRIVERE
+ * (applyFix): visita gli oggetti sempre nello stesso ordine e assegna gli stessi id `p0, p1…`,
+ * così una correzione calcolata sulla lettura finisce sul tracciato giusto.
+ */
+export interface Walker {
+  /** Tracciato accettato, con id, glifo (tracciato composto) e oggetto che ne porta lo stile. */
+  path: (item: AiItem, id: string, glyphId: string | null, style: AiItem) => void;
+  /** Testo vivo: restituisce il gruppo di tracciati da visitare al suo posto, o null. */
+  text: (item: AiItem) => AiItem | null;
+  warn: (code: XWarning) => void;
+}
+export interface WalkState {
+  nextPath: number;
+  nextGlyph: number;
+}
+
+function accepted(item: AiItem): boolean {
+  if (item.guides || item.clipping) return false;
+  var pts = item.pathPoints;
+  return !!pts && pts.length >= 2;
+}
+
+export function walk(item: AiItem, glyphId: string | null, st: WalkState, h: Walker): void {
   if (!item || item.hidden || inConstructionLayer(item)) return;
   var t = item.typename;
   if (t === 'PathItem') {
-    readPath(ctx, item, glyphId, item);
+    if (accepted(item)) h.path(item, 'p' + st.nextPath++, glyphId, item);
   } else if (t === 'CompoundPathItem') {
     var parts = item.pathItems;
     if (!parts || parts.length === 0) return;
     if (parts[0].clipping) {
-      ctx.warn['clip-ignored'] = true;
+      h.warn('clip-ignored');
       return;
     }
-    var g = glyphId !== null ? glyphId : 'g' + ctx.nextGlyph++;
-    // lo stile di un tracciato composto è quello dei suoi sotto-tracciati (uguale per tutti)
-    for (var i = 0; i < parts.length; i++) readPath(ctx, parts[i], g, parts[0]);
+    var g = glyphId !== null ? glyphId : 'g' + st.nextGlyph++;
+    // lo stile di un tracciato composto e' quello dei suoi sotto-tracciati (uguale per tutti)
+    for (var i = 0; i < parts.length; i++) {
+      if (accepted(parts[i])) h.path(parts[i], 'p' + st.nextPath++, g, parts[0]);
+    }
   } else if (t === 'GroupItem') {
     var items = item.pageItems;
     if (!items) return;
-    if (item.clipped) ctx.warn['clip-ignored'] = true;
-    for (var j = 0; j < items.length; j++) {
-      var child = items[j];
-      if (item.clipped && child.clipping) continue;
-      visit(ctx, child, glyphId);
+    if (item.clipped) h.warn('clip-ignored');
+    // copia dell'elenco: scrivendo, i figli possono cambiare (es. testo convertito in tracciati)
+    var list: AiItem[] = [];
+    for (var j = 0; j < items.length; j++) list.push(items[j]);
+    for (var k = 0; k < list.length; k++) {
+      if (item.clipped && list[k].clipping) continue;
+      walk(list[k], glyphId, st, h);
     }
   } else if (t === 'TextFrame') {
-    // testo vivo: si converte una copia in tracciati, si legge, poi si elimina (§4.6)
-    if (!item.duplicate) return;
-    var copy = item.duplicate();
-    if (!copy.createOutline) return;
-    var outlined = copy.createOutline();
-    ctx.temp.push(outlined);
-    ctx.warn['live-text-outlined'] = true;
-    visit(ctx, outlined, null);
+    var outlined = h.text(item);
+    if (outlined) walk(outlined, null, st, h);
   }
-  // PlacedItem, RasterItem, SymbolItem, PluginItem…: ignorati nella v1
+  // PlacedItem, RasterItem, SymbolItem, PluginItem...: ignorati nella v1
 }
 
 /** Legge la selezione del documento nel sistema di coordinate della tavola attiva. */
@@ -192,15 +214,32 @@ export function extractSelection(doc: AiDocument | null): ExtractResult {
     top: rect[1],
     paths: [],
     warn: {},
-    nextPath: 0,
-    nextGlyph: 0,
     anchors: 0,
     temp: [],
   };
   var failure: unknown = null;
   var failed = false;
+  var st: WalkState = { nextPath: 0, nextGlyph: 0 };
+  var reader: Walker = {
+    path: function (item, id, glyphId, style) {
+      readPath(ctx, item, id, glyphId, style);
+    },
+    text: function (item) {
+      // testo vivo: si converte una copia in tracciati, si legge, poi si elimina (par. 4.6)
+      if (!item.duplicate) return null;
+      var copy = item.duplicate();
+      if (!copy.createOutline) return null;
+      var outlined = copy.createOutline();
+      ctx.temp.push(outlined);
+      ctx.warn['live-text-outlined'] = true;
+      return outlined;
+    },
+    warn: function (code) {
+      ctx.warn[code] = true;
+    },
+  };
   try {
-    for (var i = 0; i < sel.length; i++) visit(ctx, sel[i], null);
+    for (var i = 0; i < sel.length; i++) walk(sel[i], null, st, reader);
   } catch (err) {
     failed = true;
     failure = err;

@@ -2,6 +2,7 @@
 // di Illustrator, così il pannello (contesto browser) ha i tipi senza importare src/jsx.
 import type { ExtractResult } from '../../jsx/ilst/extract';
 import type { DrawResult, PPlan } from '../../jsx/ilst/draw';
+import type { ApplyFixResult, FixPath } from '../../jsx/ilst/fix';
 
 export interface DocInfo {
   open: boolean;
@@ -17,4 +18,6 @@ export type Scripts = {
   drawPlan: (plan: PPlan) => DrawResult;
   removeConstruction: () => boolean;
   hasConstruction: () => boolean;
+  applyFix: (paths: FixPath[]) => ApplyFixResult;
+  revertFix: () => number;
 };

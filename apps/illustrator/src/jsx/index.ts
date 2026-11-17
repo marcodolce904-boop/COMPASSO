@@ -3,22 +3,26 @@
 import { ns } from '../shared/shared';
 import type { Scripts } from '../shared/es-types';
 import {
+  applyFix,
   drawPlan,
   extractSelection,
   getDocInfo,
   getSelectionFingerprint,
   hasConstruction,
   removeConstruction,
+  revertFix,
 } from './ilst/ilst';
 
 // Oggetto esplicito (non `import *`): evita l'oggetto-namespace con `__proto__: null`.
 // La firma pubblica sta in src/shared/es-types (usata dal pannello): qui si verifica che coincida.
 var api: Scripts = {
+  applyFix: applyFix,
   drawPlan: drawPlan,
   extractSelection: extractSelection,
   getDocInfo: getDocInfo,
   getSelectionFingerprint: getSelectionFingerprint,
   hasConstruction: hasConstruction,
   removeConstruction: removeConstruction,
+  revertFix: revertFix,
 };
 ($ as unknown as Record<string, Scripts>)[ns] = api;

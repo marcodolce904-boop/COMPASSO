@@ -9,6 +9,14 @@ import {
 } from './extract';
 import type { DocInfo } from '../../shared/es-types';
 import {
+  applyFix as applyFixTo,
+  hasFix,
+  revertFix as revertFixIn,
+  type AiFixDocument,
+  type ApplyFixResult,
+  type FixPath,
+} from './fix';
+import {
   drawPlan as draw,
   findLayer,
   removeConstruction as remove,
@@ -87,10 +95,15 @@ export const getSelectionFingerprint = (): string => {
   try {
     var doc = drawDocument();
     var drawn = doc !== null && findLayer(doc, LAYER_NAME) !== null;
-    return selectionFingerprint(activeDocument()) + (drawn ? '#1' : '#0');
+    var fixed = hasFix(doc as unknown as AiFixDocument | null);
+    var flags = '#0';
+    if (drawn) flags = '#1';
+    if (fixed) flags += '#1';
+    else flags += '#0';
+    return selectionFingerprint(activeDocument()) + flags;
   } catch (e) {
     void e;
-    return 'busy#0';
+    return 'busy#0#0';
   }
 };
 
@@ -122,4 +135,23 @@ export const removeConstruction = (): boolean => {
 export const hasConstruction = (): boolean => {
   var doc = drawDocument();
   return doc !== null && findLayer(doc, LAYER_NAME) !== null;
+};
+
+/** CORREGGI: applica i tracciati corretti su una copia (l'originale resta, nascosto). */
+export const applyFix = (paths: FixPath[]): ApplyFixResult => {
+  return withDocumentCoordinates(function () {
+    return applyFixTo(drawDocument() as unknown as AiFixDocument | null, paths, {
+      placeAtEnd: ElementPlacement.PLACEATEND,
+      smooth: PointType.SMOOTH,
+      corner: PointType.CORNER,
+      now: function () {
+        return new Date().getTime();
+      },
+    });
+  });
+};
+
+/** CORREGGI: elimina la copia corretta e rimostra l'originale. */
+export const revertFix = (): number => {
+  return revertFixIn(drawDocument() as unknown as AiFixDocument | null);
 };
