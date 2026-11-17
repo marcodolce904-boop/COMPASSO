@@ -42,3 +42,12 @@ export {
   type ReportExpect,
   type Expected,
 } from './report';
+export {
+  trace,
+  traceDefaults,
+  type TraceMode,
+  type TraceOptions,
+  type TracePlacement,
+  type TraceOutput,
+} from './trace/trace';
+export { downscale, type RasterImage, type Mask } from './trace/raster';
