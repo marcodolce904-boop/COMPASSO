@@ -1,8 +1,10 @@
 <script lang="ts">
   // Scheda RICALCA: schizzo → tracciati puliti col minimo di anchor.
   import {
+    fromEdit,
     refine,
     refineDefaults,
+    toEdit,
     trace,
     traceDefaults,
     type DocumentGeometry,
@@ -19,6 +21,8 @@
   import TextButton from './TextButton.svelte';
   import ZoomPane from './ZoomPane.svelte';
   import EmptyState from './EmptyState.svelte';
+  import PenLayer from './PenLayer.svelte';
+  import { PenEditor, type PenTool } from '../pen.svelte';
 
   export interface TraceSource {
     loaded: LoadedImage;
@@ -57,14 +61,20 @@
   let markSide = $state(10); // lato (px) dei segni da ignorare: minArea = lato²
   let perfect = $state(true);
   let showImage = $state(true);
-  let stats = $state<{ paths: number; anchors: number; ms: number } | null>(null);
+  let ms = $state<number | null>(null);
   let busy = $state(false);
+  /** Risultato del ricalco (prima delle modifiche a mano). */
+  let traced = $state.raw<TraceReady | null>(null);
+  const editor = new PenEditor();
+  let editNote = $state('');
 
   // nuova immagine: valori predefiniti proporzionati alla sua dimensione
   $effect(() => {
     const s = source;
     untrack(() => {
       if (!s) return;
+      editor.reset();
+      editNote = '';
       const d = traceDefaults(s.loaded.image.width, s.loaded.image.height);
       const mode = options?.mode ?? d.mode;
       defaults = d;
@@ -79,7 +89,7 @@
     const o = options ? { ...$state.snapshot(options), minArea: markSide * markSide } : null;
     const p = perfect;
     if (!s || !o) {
-      output = null;
+      traced = null;
       return;
     }
     busy = true;
@@ -88,12 +98,10 @@
         const out = trace(s.loaded.image, o as TraceOptions, s.place);
         let g = out.geometry;
         if (p && g.paths.length) g = refine(g, refineDefaults(g).options).geometry;
-        stats = {
-          paths: g.paths.length,
-          anchors: g.paths.reduce((n, q) => n + q.segments.length + (q.closed ? 0 : 1), 0),
-          ms: out.stats.ms,
-        };
-        output = {
+        ms = out.stats.ms;
+        // regolazioni cambiate: le modifiche a mano non valgono più (restano in «Annulla»)
+        if (untrack(() => editor.rebase())) editNote = t(lang, 'pen.reset');
+        traced = {
           geometry: g,
           style: { filled: o.mode === 'shapes', strokeWidth: Math.max(0.25, out.strokeWidth) },
           options: o as TraceOptions,
@@ -101,8 +109,8 @@
         };
       } catch (e) {
         console.error('[compasso] ricalco non riuscito', e);
-        output = null;
-        stats = null;
+        traced = null;
+        ms = null;
       }
       busy = false;
     }, 120);
@@ -119,15 +127,82 @@
         }
       : { x: 0, y: 0, w: 1, h: 1 },
   );
-  const shapes = $derived(output ? logoShapes(output.geometry) : []);
-  const anchorsPts = $derived(
-    output
-      ? output.geometry.paths.flatMap((p) => [
-          ...p.segments.map((s) => s.p0),
-          ...(p.closed || !p.segments.length ? [] : [p.segments[p.segments.length - 1]!.p1]),
-        ])
-      : [],
+  // tracciati mostrati e creati: quelli del ricalco o quelli modificati a mano
+  const basePaths = $derived(traced ? toEdit(traced.geometry) : []);
+  const shown = $derived(editor.paths ?? basePaths);
+  const geometry = $derived(
+    traced ? (editor.paths ? fromEdit(editor.paths, traced.geometry) : traced.geometry) : null,
   );
+  $effect(() => {
+    output = traced && geometry ? { ...traced, geometry } : null;
+  });
+  const shapes = $derived(geometry ? logoShapes(geometry) : []);
+  const stats = $derived(
+    geometry && ms !== null
+      ? {
+          paths: geometry.paths.length,
+          anchors: geometry.paths.reduce((n, q) => n + q.segments.length + (q.closed ? 0 : 1), 0),
+          ms,
+        }
+      : null,
+  );
+
+  // tasti della penna (come in Illustrator); restituisce true se il tasto è gestito
+  function penKey(e: KeyboardEvent): boolean {
+    const mod = e.ctrlKey || e.metaKey;
+    const k = e.key;
+    if (mod && (k === 'z' || k === 'Z')) {
+      if (e.shiftKey) editor.redo();
+      else editor.undo();
+      return true;
+    }
+    if (mod && (k === 'y' || k === 'Y')) {
+      editor.redo();
+      return true;
+    }
+    if (mod && (k === 'a' || k === 'A')) {
+      editor.selectAll(shown);
+      return true;
+    }
+    if (mod) return false;
+    if (k === 'Delete' || k === 'Backspace') {
+      editor.deleteSelected(shown);
+      return true;
+    }
+    if (k === 'Escape') {
+      editor.clearSelection();
+      editor.tool = 'select';
+      return true;
+    }
+    if (k === 'C' && e.shiftKey) {
+      if (editor.selection.length) editor.toggleSelected(shown);
+      else editor.tool = 'convert';
+      return true;
+    }
+    const tools: Record<string, PenTool> = {
+      v: 'select',
+      V: 'select',
+      p: 'add',
+      '+': 'add',
+      '-': 'delete',
+    };
+    if (tools[k]) {
+      editor.tool = tools[k]!;
+      return true;
+    }
+    const step = e.shiftKey ? 10 : 1;
+    const arrows: Record<string, [number, number]> = {
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+    };
+    if (arrows[k] && editor.selection.length) {
+      editor.nudge(shown, arrows[k]![0], arrows[k]![1]);
+      return true;
+    }
+    return false;
+  }
   const pxPt = $derived(source ? source.place.scale : 1);
 </script>
 
@@ -156,8 +231,10 @@
           fit: t(lang, 'fix.zoom.fit'),
           area: t(lang, 'trace.preview'),
         }}
+        onKey={penKey}
+        onBackgroundClick={() => editor.clearSelection()}
       >
-        {#snippet children(zoom)}
+        {#snippet children(ctx)}
           {#if showImage}
             <image
               href={source.loaded.url}
@@ -172,15 +249,40 @@
           <g class="traced" class:filled={output?.style.filled}>
             {#each shapes as s (s.key)}<path d={s.d} fill-rule="evenodd" />{/each}
           </g>
-          <g class="anchors">
-            {#each anchorsPts as p, i (i)}<circle
-                cx={p.x}
-                cy={p.y}
-                r={(Math.max(fit.w, fit.h) * 0.004) / Math.max(1, zoom)}
-              />{/each}
-          </g>
+          <PenLayer {editor} paths={shown} px={ctx.px} toUser={ctx.toUser} />
         {/snippet}
       </ZoomPane>
+      <div class="pen-tools">
+        <Segmented
+          ariaLabel={t(lang, 'pen.aria')}
+          dense
+          bind:value={editor.tool}
+          options={[
+            { value: 'select', label: t(lang, 'pen.select') },
+            { value: 'add', label: t(lang, 'pen.add') },
+            { value: 'delete', label: t(lang, 'pen.delete') },
+            { value: 'convert', label: t(lang, 'pen.convert') },
+          ]}
+        />
+        <div class="undo">
+          <button type="button" disabled={!editor.canUndo} onclick={() => editor.undo()}
+            >{t(lang, 'pen.undo')}</button
+          >
+          <button type="button" disabled={!editor.canRedo} onclick={() => editor.redo()}
+            >{t(lang, 'pen.redo')}</button
+          >
+          {#if editor.selection.length}
+            <button type="button" onclick={() => editor.toggleSelected(shown)}
+              >{t(lang, 'pen.toggle')}</button
+            >
+            <button type="button" onclick={() => editor.deleteSelected(shown)}
+              >{t(lang, 'pen.remove', { n: editor.selection.length })}</button
+            >
+          {/if}
+        </div>
+        <p class="hint">{t(lang, `pen.hint.${editor.tool}`)}</p>
+        {#if editNote}<p class="hint">{editNote}</p>{/if}
+      </div>
       <p class="summary">
         {#if stats}
           {t(lang, 'trace.stats', { p: stats.paths, a: stats.anchors, ms: stats.ms })}
@@ -323,6 +425,33 @@
   .chk input {
     accent-color: var(--c-accent);
   }
+  .pen-tools {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+  .undo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+  .undo button {
+    padding: 2px var(--sp-2);
+    border: var(--bw) solid var(--c-border);
+    border-radius: var(--r-s);
+    background: transparent;
+    color: var(--c-text-2);
+    font: 400 var(--fs-xs) var(--f-sans);
+    cursor: pointer;
+  }
+  .undo button:hover:not(:disabled) {
+    color: var(--c-text);
+    border-color: var(--c-accent);
+  }
+  .undo button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
   .traced path {
     fill: none;
     stroke: var(--c-accent);
@@ -332,12 +461,6 @@
   .traced.filled path {
     fill: var(--c-preview-logo);
     fill-opacity: 0.75;
-  }
-  .anchors circle {
-    fill: var(--c-bg-card);
-    stroke: var(--c-accent);
-    stroke-width: 1;
-    vector-effect: non-scaling-stroke;
   }
   .summary {
     text-align: center;

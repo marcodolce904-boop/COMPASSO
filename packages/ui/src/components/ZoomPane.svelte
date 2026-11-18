@@ -3,19 +3,34 @@
   import type { Snippet } from 'svelte';
 
   type View = { x: number; y: number; w: number; h: number };
+  export interface PaneContext {
+    zoom: number;
+    /** Unità del disegno per pixel dello schermo (per disegnare punti di dimensione fissa). */
+    px: number;
+    /** Punto dello schermo → coordinate del disegno. */
+    toUser: (cx: number, cy: number) => { x: number; y: number } | null;
+  }
   let {
     fit,
     resetKey,
     labels,
     children,
+    onKey,
+    onBackgroundClick,
   }: {
     /** Vista intera (coordinate del contenuto). */
     fit: View;
     /** Quando cambia si torna alla vista intera. */
     resetKey?: unknown;
     labels: { in: string; out: string; fit: string; area: string };
-    children: Snippet<[number]>;
+    children: Snippet<[PaneContext]>;
+    /** Tasti: se restituisce true il tasto è gestito (niente zoom/spostamento). */
+    onKey?: (e: KeyboardEvent) => boolean;
+    /** Clic (senza trascinare) su un punto vuoto. */
+    onBackgroundClick?: (p: { x: number; y: number }, e: PointerEvent) => void;
   } = $props();
+  let cw = $state(1);
+  let ch = $state(1);
 
   const MIN = 0.5;
   const MAX = 400;
@@ -53,11 +68,13 @@
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   });
-  let drag: { id: number; x: number; y: number } | null = null;
+  let drag: { id: number; x: number; y: number; x0: number; y0: number } | null = null;
   let dragging = $state(false);
   function down(e: PointerEvent) {
-    if (e.button !== 0 || (e.target as Element).closest('button')) return;
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    if (e.button !== 0) return;
+    // pulsanti dello zoom e oggetti modificabili (punti, maniglie, curve) gestiscono da soli
+    if ((e.target as Element).closest('button, [data-edit]')) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY };
     dragging = true;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
@@ -65,13 +82,21 @@
     if (!drag || drag.id !== e.pointerId) return;
     const s = svgEl?.getScreenCTM()?.a ?? 1;
     panBy(-(e.clientX - drag.x) / s, -(e.clientY - drag.y) / s);
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    drag = { ...drag, x: e.clientX, y: e.clientY };
   }
-  function up() {
+  function up(e: PointerEvent) {
+    if (drag && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 4 && onBackgroundClick) {
+      const p = toUser(e.clientX, e.clientY);
+      if (p) onBackgroundClick(p, e);
+    }
     drag = null;
     dragging = false;
   }
   function key(e: KeyboardEvent) {
+    if (onKey && onKey(e)) {
+      e.preventDefault();
+      return;
+    }
     const step = cur.w * 0.1;
     const keys: Record<string, () => void> = {
       '+': () => zoomAt(1.25, null),
@@ -96,6 +121,8 @@
   class="pane"
   class:dragging
   bind:this={wrapEl}
+  bind:clientWidth={cw}
+  bind:clientHeight={ch}
   role="application"
   aria-label={labels.area}
   tabindex="0"
@@ -103,7 +130,9 @@
   onpointermove={move}
   onpointerup={up}
   onpointercancel={up}
-  ondblclick={() => (view = null)}
+  ondblclick={(e) => {
+    if (!(e.target as Element).closest('[data-edit]')) view = null;
+  }}
   onkeydown={key}
 >
   <svg
@@ -111,7 +140,11 @@
     viewBox="{cur.x} {cur.y} {cur.w} {cur.h}"
     preserveAspectRatio="xMidYMid meet"
   >
-    {@render children(zoom)}
+    {@render children({
+      zoom,
+      px: Math.max(cur.w / Math.max(1, cw), cur.h / Math.max(1, ch)),
+      toUser,
+    })}
   </svg>
   <div class="zoom">
     <button type="button" aria-label={labels.out} onclick={() => zoomAt(0.8, null)}>−</button>
