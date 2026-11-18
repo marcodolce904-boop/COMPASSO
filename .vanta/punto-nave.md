@@ -48,7 +48,7 @@
      - C. rette più pulite;
      - D. costruzione per forma.
 
-     Consiglio: A + C (+ D) prima di GENERA. In attesa della scelta di Marco.
+     **Scelto da Marco: A + C**, prima di GENERA.
 - **Rischi principali:**
   - **Matematico stravolge le proporzioni.** Segnale: l'anteprima Matematico non sembra più lo stesso
     logo (es. le gambe della A cambiano inclinazione in modo visibile).
@@ -60,6 +60,6 @@
   - RICALCA, penna, storico, CORREGGI (10 correzioni + simmetria sulle forme) e ANALIZZA sono rilasciati
     (0.8.0) e già usati con successo su un logo vero.
   - GENERA non è ancora iniziato: manca la specifica.
-- **Prossima azione:** Marco sceglie tra le opzioni A–D per ANALIZZA. Poi Claude scrive la specifica di GENERA (Matematico + Minimal: regole, parametri,
+- **Prossima azione:** Claude sviluppa A + C in ANALIZZA (previa conferma della modifica a `model.ts`). Poi Claude scrive la specifica di GENERA (Matematico + Minimal: regole, parametri,
   anteprime, limiti) in `docs/GENERA.md` e la sottopone a Marco. Marco, se può, invia il file del logo
   «A con coda» come caso di prova.

@@ -4,8 +4,8 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 18/11/2026 sera. In attesa della scelta di Marco sulle opzioni del §3b (archi
-per le curve libere, rette più pulite); poi specifica di GENERA (Matematico e Minimal)._
+_Ultimo aggiornamento: 18/11/2026 sera. Prossimo sviluppo: §3b A + C (archi per le curve
+libere, rette più pulite), poi specifica di GENERA (Matematico e Minimal)._
 
 ## 1. Dove siamo
 
@@ -112,8 +112,8 @@ obbligatori, non facoltativi.
 | **C. Rette più pulite** | rette accorciate al tratto più un margine; bordi paralleli raggruppati (una retta + segno di parallela); rette sulla stessa linea tra due forme unite | no |
 | **D. Costruzione per forma** | clic su una forma per vederne solo la costruzione; legenda dei colori | no |
 
-**Consiglio di Claude:** A + C (+ D) prima di GENERA; poi B come modalità Strutturato.
-**In attesa della scelta di Marco.**
+**Decisione di Marco (18/11):** prossimo sviluppo **A + C**, prima di GENERA. D per ora no; B resta la
+futura modalità Strutturato di GENERA.
 
 ## 4. Altre migliorie concordate da valutare
 
