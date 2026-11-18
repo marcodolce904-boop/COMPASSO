@@ -32,7 +32,7 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
 - **Ancora da fare:** raggruppare i bordi paralleli (es. le due gambe della A) con un segno di
   parallela; per ora le rette corte bastano a togliere il disordine.
 
-**Prossimo passo:** specifica di GENERA (§3, §5) da far approvare a Marco.
+**Prossimo passo:** specifica di GENERA scritta in `docs/GENERA.md` (18/11), **in attesa di approvazione** di Marco (decisioni al §8 del documento).
 
 ## 1. Dove siamo
 
