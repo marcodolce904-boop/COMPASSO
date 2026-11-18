@@ -70,7 +70,17 @@
       "orientation": "v",
       "origin": "anchor-row",
       "support": 0,
-      "score": 0.2861
+      "score": 0.2861,
+      "span": [
+        {
+          "x": 100,
+          "y": 20
+        },
+        {
+          "x": 100,
+          "y": 180
+        }
+      ]
     },
     {
       "id": "l2",
@@ -79,7 +89,17 @@
       "orientation": "h",
       "origin": "anchor-row",
       "support": 0,
-      "score": 0.2861
+      "score": 0.2861,
+      "span": [
+        {
+          "x": 180,
+          "y": 100
+        },
+        {
+          "x": 20,
+          "y": 100
+        }
+      ]
     }
   ],
   "axes": [

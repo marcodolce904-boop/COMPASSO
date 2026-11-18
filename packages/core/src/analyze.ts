@@ -1,6 +1,14 @@
-import type { AnalysisResult, Circle, DocumentGeometry, GuideLine, TolerancePreset } from './model';
+import type {
+  AnalysisResult,
+  Circle,
+  DocumentGeometry,
+  GuideLine,
+  TolerancePreset,
+  Vec2,
+} from './model';
 import { collectAnchors } from './anchors';
 import { detectArcs } from './fit/arcs';
+import { freeCurveArcs } from './fit/freecurves';
 import { normalizeGeometry } from './normalize';
 import { tolerances } from './tolerance';
 import { canonicalCircles } from './primitives/circles';
@@ -14,6 +22,22 @@ import { rankFindings, round, type FindingCandidate } from './findings/findings'
 import { buildLevels, scoreElements } from './rank/rank';
 
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+/** Estremi del tratto coperto dai punti `pts` sulla retta (θ, ρ) in forma normale. */
+function spanOf(theta: number, rho: number, pts: Vec2[]): [Vec2, Vec2] | undefined {
+  if (!pts.length) return undefined;
+  const n = { x: Math.cos(theta), y: Math.sin(theta) };
+  const d = { x: -n.y, y: n.x };
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const p of pts) {
+    const t = p.x * d.x + p.y * d.y;
+    lo = Math.min(lo, t);
+    hi = Math.max(hi, t);
+  }
+  const at = (t: number) => ({ x: rho * n.x + t * d.x, y: rho * n.y + t * d.y });
+  return [at(lo), at(hi)];
+}
 
 /** Analisi completa (§6): dalla geometria del documento alla costruzione dedotta. */
 export function analyze(
@@ -69,6 +93,11 @@ export function analyze(
         origin: 'anchor-row',
         support: 0,
         score: 0,
+        span: spanOf(
+          theta,
+          row.value,
+          row.points.map((q) => q.p),
+        ),
       };
       rowGuides.push(guide);
       rowLink.push({ row, guide });
@@ -78,6 +107,12 @@ export function analyze(
   }
 
   // id stabili delle rette: segmenti per supporto, poi righe di anchor per posizione
+  for (const c of clusters)
+    c.line.span = spanOf(
+      c.line.theta,
+      c.line.rho,
+      c.segs.flatMap((sg) => [sg.p0, sg.p1]),
+    );
   const segLines = clusters
     .map((c) => c.line)
     .sort((a, b) => b.support - a.support || a.theta - b.theta || a.rho - b.rho);
@@ -158,6 +193,32 @@ export function analyze(
     candidates as FindingCandidate[],
     (id) => scores.get(id) ?? arcScoreIds.get(id) ?? 0.5,
   );
+  // 7. curve libere → archi tangenti di costruzione (approssimati, non entrano nei punteggi)
+  const covered = new Set<string>();
+  // spiegati = tratti dei cerchi e degli ovali veri (i «quasi archi» isolati restano liberi)
+  for (const c of circles) for (const r of c.refs) covered.add(`${r.pathId}:${r.index}`);
+  for (const e of ellipses) for (const r of e.refs) covered.add(`${r.pathId}:${r.index}`);
+  for (const r of nearlyStraight) covered.add(`${r.pathId}:${r.index}`);
+  const approx: Circle[] = [];
+  for (const chain of freeCurveArcs(paths, covered, D, tol.arc.wide)) {
+    const ids = chain.circles.map((c) => {
+      const id = `c${circles.length + approx.length + 1}`;
+      approx.push({ ...c, id });
+      return id;
+    });
+    chain.junctions.forEach((at, i) =>
+      relations.push({
+        id: `rel${relations.length + 1}`,
+        kind: 'tangent-circle-circle',
+        refs: [ids[i]!, ids[i + 1]!],
+        error: 0,
+        at,
+      }),
+    );
+  }
+  const trueCircles = [...circles];
+  circles.push(...approx);
+
   const levels = buildLevels({
     circles,
     ellipses,
@@ -173,7 +234,7 @@ export function analyze(
     stats: {
       paths: paths.length,
       anchors: anchors.length,
-      circles: circles.length,
+      circles: trueCircles.length,
       ellipses: ellipses.length,
       lines: lines.length,
       axes: sym.axes.length,
@@ -188,7 +249,7 @@ export function analyze(
       unitX: ux.unitX,
       unitXConfidence: ux.confidence,
       bbox: bboxSpec(bbox),
-      ...radiiSpecs(circles, tol),
+      ...radiiSpecs(trueCircles, tol),
     },
     levels,
     ...(geom.artboard ? { artboard: { ...geom.artboard } } : {}),

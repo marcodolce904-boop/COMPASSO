@@ -258,7 +258,7 @@
     markerSize,
     color: 'auto',
     axisDash: [4, 3],
-    lineExtent: 'bbox-margin',
+    lineExtent: 'segment',
   });
   const currentPlan = $derived(
     result
@@ -283,7 +283,11 @@
       ? groups.circles.length + groups.lines.length + groups.axes.length + groups.rows.length
       : 0,
   );
-  const stats = $derived(result ? statsText(lang, result.stats) : t(lang, 'preview.none'));
+  const stats = $derived(
+    result
+      ? statsText(lang, result.stats, result.circles.filter((c) => c.approx !== undefined).length)
+      : t(lang, 'preview.none'),
+  );
   const ready = $derived(status === 'ready' && result !== null);
 
   function toggle(id: string) {

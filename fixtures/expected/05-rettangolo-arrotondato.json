@@ -74,7 +74,17 @@
       "orientation": "h",
       "origin": "segment",
       "support": 100,
-      "score": 0.71
+      "score": 0.71,
+      "span": [
+        {
+          "x": 150,
+          "y": 40
+        },
+        {
+          "x": 50,
+          "y": 40
+        }
+      ]
     },
     {
       "id": "l2",
@@ -83,7 +93,17 @@
       "orientation": "h",
       "origin": "segment",
       "support": 100,
-      "score": 0.71
+      "score": 0.71,
+      "span": [
+        {
+          "x": 150,
+          "y": 160
+        },
+        {
+          "x": 50,
+          "y": 160
+        }
+      ]
     },
     {
       "id": "l3",
@@ -92,7 +112,17 @@
       "orientation": "v",
       "origin": "segment",
       "support": 60,
-      "score": 0.5
+      "score": 0.5,
+      "span": [
+        {
+          "x": 20,
+          "y": 70
+        },
+        {
+          "x": 20,
+          "y": 130
+        }
+      ]
     },
     {
       "id": "l4",
@@ -101,7 +131,17 @@
       "orientation": "v",
       "origin": "segment",
       "support": 60,
-      "score": 0.5
+      "score": 0.5,
+      "span": [
+        {
+          "x": 180,
+          "y": 70
+        },
+        {
+          "x": 180,
+          "y": 130
+        }
+      ]
     },
     {
       "id": "l5",
@@ -110,7 +150,17 @@
       "orientation": "v",
       "origin": "anchor-row",
       "support": 0,
-      "score": 0.27
+      "score": 0.27,
+      "span": [
+        {
+          "x": 50,
+          "y": 40
+        },
+        {
+          "x": 50,
+          "y": 160
+        }
+      ]
     },
     {
       "id": "l6",
@@ -119,7 +169,17 @@
       "orientation": "v",
       "origin": "anchor-row",
       "support": 0,
-      "score": 0.27
+      "score": 0.27,
+      "span": [
+        {
+          "x": 150,
+          "y": 40
+        },
+        {
+          "x": 150,
+          "y": 160
+        }
+      ]
     },
     {
       "id": "l7",
@@ -128,7 +188,17 @@
       "orientation": "h",
       "origin": "anchor-row",
       "support": 0,
-      "score": 0.3
+      "score": 0.3,
+      "span": [
+        {
+          "x": 180,
+          "y": 70
+        },
+        {
+          "x": 20,
+          "y": 70
+        }
+      ]
     },
     {
       "id": "l8",
@@ -137,7 +207,17 @@
       "orientation": "h",
       "origin": "anchor-row",
       "support": 0,
-      "score": 0.3
+      "score": 0.3,
+      "span": [
+        {
+          "x": 180,
+          "y": 130
+        },
+        {
+          "x": 20,
+          "y": 130
+        }
+      ]
     }
   ],
   "axes": [

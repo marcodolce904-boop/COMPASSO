@@ -33,8 +33,17 @@ export function plan(result: AnalysisResult, opts: PlanOptions): ConstructionPla
   const out: Primitive[] = [];
 
   for (const c of result.circles) {
-    if (visible.has(c.id))
-      out.push({ type: 'circle', id: c.id, cx: c.cx, cy: c.cy, r: c.r, group: 'circles' });
+    if (!visible.has(c.id)) continue;
+    out.push({
+      type: 'circle',
+      id: c.id,
+      cx: c.cx,
+      cy: c.cy,
+      r: c.r,
+      group: 'circles',
+      // arco che approssima una curva libera: tratteggiato, con lo scarto
+      ...(c.approx !== undefined ? { dashed: true, approx: c.approx } : {}),
+    });
   }
   for (const e of result.ellipses ?? []) {
     if (visible.has(e.id))
@@ -49,8 +58,25 @@ export function plan(result: AnalysisResult, opts: PlanOptions): ConstructionPla
         group: 'circles',
       });
   }
+  const D = Math.hypot(b.width, b.height);
   for (const l of result.lines) {
     if (!visible.has(l.id)) continue;
+    if (opts.style.lineExtent === 'segment' && l.span) {
+      // solo sul tratto descritto, più un margine (10% del tratto, almeno il 4% di D)
+      const [p, q] = l.span;
+      const len = Math.hypot(q.x - p.x, q.y - p.y);
+      const ux = len > 1e-12 ? (q.x - p.x) / len : -Math.sin(l.theta);
+      const uy = len > 1e-12 ? (q.y - p.y) / len : Math.cos(l.theta);
+      const m = Math.max(0.1 * len, 0.04 * D);
+      out.push({
+        type: 'line',
+        id: l.id,
+        a: { x: p.x - ux * m, y: p.y - uy * m },
+        b: { x: q.x + ux * m, y: q.y + uy * m },
+        group: 'lines',
+      });
+      continue;
+    }
     const seg = clipLine(l.theta, l.rho, extent);
     if (seg) out.push({ type: 'line', id: l.id, a: seg[0], b: seg[1], group: 'lines' });
   }

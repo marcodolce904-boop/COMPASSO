@@ -54,6 +54,8 @@ cerchio speculare sbagliato (foglie, mandorle).
 Fatto (0.8.0): simmetria sulle forme (`core/src/fix/mirror.ts`) con «Metà da tenere» e spiegazione quando
 non si applica; funziona sui ricalchi a mano (test `mirror.test.ts`). Prossimo: specifica di GENERA
 (vedi `docs/MEMORIA.md`).
+Fatto (0.9.0): ANALIZZA costruisce le curve libere con catene di archi tangenti (tratteggiati, con
+scarto) e disegna le rette solo sul loro tratto (`GuideLine.span`, `lineExtent: 'segment'`).
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

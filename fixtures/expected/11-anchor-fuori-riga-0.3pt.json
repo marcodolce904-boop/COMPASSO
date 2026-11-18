@@ -17,7 +17,17 @@
       "orientation": "v",
       "origin": "segment",
       "support": 100,
-      "score": 0.5897
+      "score": 0.5897,
+      "span": [
+        {
+          "x": 20,
+          "y": 50
+        },
+        {
+          "x": 20,
+          "y": 150
+        }
+      ]
     },
     {
       "id": "l2",
@@ -26,7 +36,17 @@
       "orientation": "v",
       "origin": "segment",
       "support": 100,
-      "score": 0.5897
+      "score": 0.5897,
+      "span": [
+        {
+          "x": 60,
+          "y": 50
+        },
+        {
+          "x": 60,
+          "y": 150
+        }
+      ]
     },
     {
       "id": "l3",
@@ -35,7 +55,17 @@
       "orientation": "v",
       "origin": "segment",
       "support": 90.3,
-      "score": 0.546
+      "score": 0.546,
+      "span": [
+        {
+          "x": 140,
+          "y": 60
+        },
+        {
+          "x": 140,
+          "y": 150.3
+        }
+      ]
     },
     {
       "id": "l4",
@@ -44,7 +74,17 @@
       "orientation": "v",
       "origin": "segment",
       "support": 90.3,
-      "score": 0.546
+      "score": 0.546,
+      "span": [
+        {
+          "x": 180,
+          "y": 60
+        },
+        {
+          "x": 180,
+          "y": 150.3
+        }
+      ]
     },
     {
       "id": "l5",
@@ -53,7 +93,17 @@
       "orientation": "v",
       "origin": "segment",
       "support": 80,
-      "score": 0.4997
+      "score": 0.4997,
+      "span": [
+        {
+          "x": 80,
+          "y": 70
+        },
+        {
+          "x": 80,
+          "y": 150
+        }
+      ]
     },
     {
       "id": "l6",
@@ -62,7 +112,17 @@
       "orientation": "v",
       "origin": "segment",
       "support": 80,
-      "score": 0.4997
+      "score": 0.4997,
+      "span": [
+        {
+          "x": 120,
+          "y": 70
+        },
+        {
+          "x": 120,
+          "y": 150
+        }
+      ]
     },
     {
       "id": "l7",
@@ -71,7 +131,17 @@
       "orientation": "h",
       "origin": "segment",
       "support": 80,
-      "score": 0.5871
+      "score": 0.5871,
+      "span": [
+        {
+          "x": 120,
+          "y": 150
+        },
+        {
+          "x": 20,
+          "y": 150
+        }
+      ]
     },
     {
       "id": "l8",
@@ -80,7 +150,17 @@
       "orientation": "h",
       "origin": "segment",
       "support": 40,
-      "score": 0.3671
+      "score": 0.3671,
+      "span": [
+        {
+          "x": 60,
+          "y": 50
+        },
+        {
+          "x": 20,
+          "y": 50
+        }
+      ]
     },
     {
       "id": "l9",
@@ -89,7 +169,17 @@
       "orientation": "h",
       "origin": "segment",
       "support": 40,
-      "score": 0.3671
+      "score": 0.3671,
+      "span": [
+        {
+          "x": 180,
+          "y": 60
+        },
+        {
+          "x": 140,
+          "y": 60
+        }
+      ]
     },
     {
       "id": "l10",
@@ -98,7 +188,17 @@
       "orientation": "h",
       "origin": "segment",
       "support": 40,
-      "score": 0.3671
+      "score": 0.3671,
+      "span": [
+        {
+          "x": 120,
+          "y": 70
+        },
+        {
+          "x": 80,
+          "y": 70
+        }
+      ]
     },
     {
       "id": "l11",
@@ -107,7 +207,17 @@
       "orientation": "h",
       "origin": "segment",
       "support": 40,
-      "score": 0.3671
+      "score": 0.3671,
+      "span": [
+        {
+          "x": 180,
+          "y": 150.3
+        },
+        {
+          "x": 140,
+          "y": 150.3
+        }
+      ]
     }
   ],
   "axes": [],

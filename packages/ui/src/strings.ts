@@ -144,6 +144,8 @@ const en = {
   'n.circle.other': '{n} circles',
   'n.ellipse.one': '{n} oval',
   'n.ellipse.other': '{n} ovals',
+  'n.arc.one': '{n} free-curve arc',
+  'n.arc.other': '{n} free-curve arcs',
   'n.line.one': '{n} line',
   'n.line.other': '{n} lines',
   'preview.none': 'No selection',
@@ -406,6 +408,8 @@ const it: Record<StringKey, string> = {
   'n.circle.other': '{n} cerchi',
   'n.ellipse.one': '{n} ovale',
   'n.ellipse.other': '{n} ovali',
+  'n.arc.one': '{n} arco di curva libera',
+  'n.arc.other': '{n} archi di curve libere',
   'n.line.one': '{n} linea',
   'n.line.other': '{n} linee',
   'preview.none': 'Nessuna selezione',
@@ -538,7 +542,11 @@ export function num(lang: Lang, v: number, digits = 1): string {
 }
 
 /** Conteggio con singolare/plurale: `count('it', 'path', 1)` → «1 tracciato». */
-export function count(lang: Lang, noun: 'path' | 'circle' | 'ellipse' | 'line', n: number): string {
+export function count(
+  lang: Lang,
+  noun: 'path' | 'circle' | 'ellipse' | 'line' | 'arc',
+  n: number,
+): string {
   return t(lang, `n.${noun}.${n === 1 ? 'one' : 'other'}`, { n });
 }
 
@@ -546,8 +554,12 @@ export function count(lang: Lang, noun: 'path' | 'circle' | 'ellipse' | 'line', 
 export function statsText(
   lang: Lang,
   s: { paths: number; circles: number; ellipses?: number; lines: number },
+  /** Archi di costruzione delle curve libere. */
+  arcs = 0,
 ): string {
-  const ov = s.ellipses ? `, ${count(lang, 'ellipse', s.ellipses)}` : '';
+  const ov =
+    (s.ellipses ? `, ${count(lang, 'ellipse', s.ellipses)}` : '') +
+    (arcs ? `, ${count(lang, 'arc', arcs)}` : '');
   return t(lang, 'preview.stats', {
     p: count(lang, 'path', s.paths),
     c: count(lang, 'circle', s.circles) + ov,

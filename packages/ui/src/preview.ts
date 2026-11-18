@@ -69,6 +69,9 @@ export function viewBoxFor(result: AnalysisResult, plan: ConstructionPlan | null
   };
   for (const p of plan?.primitives ?? []) {
     if (p.type === 'circle') {
+      // gli archi delle curve libere possono avere raggi enormi: non allontanano la vista dal logo
+      // (escono dal riquadro; si vedono interi riducendo lo zoom)
+      if (p.dashed) continue;
       grow(p.cx - p.r, p.cy - p.r);
       grow(p.cx + p.r, p.cy + p.r);
     } else if (p.type === 'ellipse') {

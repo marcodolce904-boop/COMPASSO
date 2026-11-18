@@ -130,7 +130,7 @@ export function buildLevels(inp: LevelInput): Record<Level, string[]> {
   let lastScore: number | null = null;
   for (const e of elems) {
     if (e.support <= 0) break;
-    if (skip.has(e.id)) continue;
+    if (skip.has(e.id) || ('approx' in e && e.approx !== undefined)) continue;
     // raggiunto il 60%, entrano ancora gli elementi a pari merito con l'ultimo incluso
     // (approvato 10/11/2026: es. 4 cerchi uguali del rettangolo arrotondato)
     if (covered >= 0.6 * totalLength && e.score !== lastScore) break;
@@ -162,6 +162,8 @@ export function buildLevels(inp: LevelInput): Record<Level, string[]> {
   // contorno): la struttura non deve "dimenticare" cerchi oltre la soglia del 60% dell'essenziale
   for (const c of [...circles, ...ellipses])
     if (!skip.has(c.id) && c.support >= 0.02 * totalLength) structure.add(c.id);
+  // archi che costruiscono le curve libere: nella struttura (non nell'essenziale)
+  for (const c of circles) if (c.approx !== undefined && !skip.has(c.id)) structure.add(c.id);
   if (inp.hasUnit) structure.add(UNIT_ID);
 
   const detail = list(structure.arr);

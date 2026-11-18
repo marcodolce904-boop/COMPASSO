@@ -24,6 +24,7 @@ export {
   type RefineResult,
   type SymmetryAxis,
 } from './fix/refine';
+export { arcSpline, type ArcPiece } from './fit/arcspline';
 export { findMirrorAxis, mirrorHalf, type MirrorAxis, type MirrorKeep } from './fix/mirror';
 export { UNIT_ID } from './rank/rank';
 export {

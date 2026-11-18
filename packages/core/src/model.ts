@@ -36,6 +36,11 @@ export interface Circle {
   support: number;
   refs: SegmentRef[];
   score: number;
+  /**
+   * Presente solo per i cerchi che approssimano una curva libera (catena di archi tangenti): scarto
+   * massimo della curva dall'arco, in pt. Assente = cerchio vero del logo.
+   */
+  approx?: number;
 }
 /** Ovale (ellisse): semiassi rx ≥ ry, rotazione dell'asse maggiore in [0, π) radianti. */
 export interface Ellipse {
@@ -57,6 +62,8 @@ export interface GuideLine {
   origin: 'segment' | 'anchor-row' | 'tangent';
   support: number;
   score: number;
+  /** Estremi del tratto del logo descritto dalla retta (per disegnarla solo lì). */
+  span?: [Vec2, Vec2];
 }
 export interface Axis {
   id: string;
@@ -143,11 +150,23 @@ export interface DrawStyle {
   markerSize: number; // pt
   color: 'auto' | { r: number; g: number; b: number };
   axisDash: [number, number]; // es. [4, 3]
-  lineExtent: 'bbox-margin' | 'artboard';
+  /** 'segment': ogni retta solo sul suo tratto più un margine; gli assi restano interi. */
+  lineExtent: 'segment' | 'bbox-margin' | 'artboard';
 }
 
 export type Primitive =
-  | { type: 'circle'; id: string; cx: number; cy: number; r: number; group: 'circles' }
+  | {
+      type: 'circle';
+      id: string;
+      cx: number;
+      cy: number;
+      r: number;
+      group: 'circles';
+      /** Tratteggiato: cerchio che approssima una curva libera. */
+      dashed?: boolean;
+      /** Scarto della curva dall'arco, pt (solo per i cerchi approssimati). */
+      approx?: number;
+    }
   | {
       type: 'ellipse';
       id: string;
@@ -158,7 +177,7 @@ export type Primitive =
       rotation: number;
       group: 'circles';
     }
-  | { type: 'line'; id: string; a: Vec2; b: Vec2; group: 'lines' | 'axes' }
+  | { type: 'line'; id: string; a: Vec2; b: Vec2; group: 'lines' | 'axes'; dashed?: boolean }
   | { type: 'marker'; id: string; at: Vec2; shape: 'cross' | 'square'; group: 'markers' }
   | { type: 'unit'; id: string; x: number; y: number; size: number; label: string; group: 'specs' }
   | {

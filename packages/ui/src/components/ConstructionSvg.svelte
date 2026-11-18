@@ -68,7 +68,14 @@
       {#each plan.primitives as p (p.id)}
         {@const hl = highlight.ids.has(p.id)}
         {#if p.type === 'circle'}
-          <circle cx={p.cx} cy={p.cy} r={p.r} class:hl />
+          <circle
+            cx={p.cx}
+            cy={p.cy}
+            r={p.r}
+            class:hl
+            class:approx={p.dashed}
+            stroke-dasharray={p.dashed ? dash : undefined}
+          />
         {:else if p.type === 'ellipse'}
           <ellipse
             cx={p.cx}

@@ -6,7 +6,16 @@ export interface PVec {
   y: number;
 }
 export type PPrimitive =
-  | { type: 'circle'; id: string; cx: number; cy: number; r: number; group: 'circles' }
+  | {
+      type: 'circle';
+      id: string;
+      cx: number;
+      cy: number;
+      r: number;
+      group: 'circles';
+      dashed?: boolean;
+      approx?: number;
+    }
   | {
       type: 'ellipse';
       id: string;
@@ -17,7 +26,7 @@ export type PPrimitive =
       rotation: number;
       group: 'circles';
     }
-  | { type: 'line'; id: string; a: PVec; b: PVec; group: 'lines' | 'axes' }
+  | { type: 'line'; id: string; a: PVec; b: PVec; group: 'lines' | 'axes'; dashed?: boolean }
   | { type: 'marker'; id: string; at: PVec; shape: 'cross' | 'square'; group: 'markers' }
   | { type: 'unit'; id: string; x: number; y: number; size: number; label: string; group: 'specs' }
   | {
@@ -199,8 +208,11 @@ export function drawPlan(doc: AiDrawDocument | null, plan: PPlan, env: ColorEnv)
     var layer = subs[groupLayer[pr.group]];
     if (pr.type === 'circle') {
       var e = layer.pathItems.ellipse(Y(pr.cy - pr.r), X(pr.cx - pr.r), 2 * pr.r, 2 * pr.r);
-      e.name = 'circle#' + pr.id + ' r=' + fmt(pr.r);
-      styleLine(e, false);
+      // cerchio che approssima una curva libera: tratteggiato, con lo scarto nel nome (solo ASCII)
+      if (pr.dashed === true)
+        e.name = 'arc#' + pr.id + ' r=' + fmt(pr.r) + ' ~' + fmt(pr.approx || 0) + 'pt';
+      else e.name = 'circle#' + pr.id + ' r=' + fmt(pr.r);
+      styleLine(e, pr.dashed === true);
       count++;
     } else if (pr.type === 'ellipse') {
       // ovale ruotato: 4 anchor sugli assi, maniglie esatte (k = 0.5523) nel verso di percorrenza
@@ -243,7 +255,7 @@ export function drawPlan(doc: AiDrawDocument | null, plan: PPlan, env: ColorEnv)
         pr.a,
         pr.b,
         (pr.group === 'axes' ? 'axis#' : 'line#') + pr.id,
-        pr.group === 'axes',
+        pr.group === 'axes' || pr.dashed === true,
       );
       count++;
     } else if (pr.type === 'marker') {

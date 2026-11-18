@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.0 — 18/11/2026
+
+- **ANALIZZA, costruzione delle curve libere**: le curve che non sono archi di cerchio (onde, code, foglie
+  disegnate a mano) ora hanno la loro costruzione: una **catena di archi tangenti**, ognuno raccordato
+  al successivo senza spigoli.
+  - Gli archi sono **tratteggiati**, per distinguerli dai cerchi veri del logo.
+  - In Illustrator si chiamano `arc#… r=… ~0.8pt`, con lo scarto dalla curva.
+  - Se una curva richiederebbe troppi archi (più di 3 per tratto), resta senza costruzione invece di
+    riempirsi di cerchi.
+  - Il riepilogo li conta a parte (es. «1 cerchio, 5 archi di curve libere, 10 linee»).
+- **ANALIZZA, rette più pulite**: ogni retta si disegna solo sul tratto del logo che descrive, più un
+  piccolo margine, invece di attraversare tutto il disegno. Gli assi di simmetria restano interi.
+  - Sul logo di prova «A con coda» le rette passano da 17, lunghe, a 10, corte.
+- L'anteprima resta inquadrata sul logo anche quando un arco ha un raggio molto grande.
+
 ## 0.8.0 — 18/11/2026
 
 - **Simmetria sulle forme (CORREGGI)**: ora funziona anche sui loghi disegnati a mano e ricalcati, dove
