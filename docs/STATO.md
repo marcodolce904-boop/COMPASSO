@@ -43,6 +43,14 @@ Pages non attivo (il sito in `site/` non è online).
 Fatto (0.5.1): collaudo del ricalco con banco di prova (`pnpm bench:trace`, `trace-quality.test.ts`),
 ablazione del metodo e correzioni (vedi `docs/RICALCO.md`); segnalazioni con schizzo; build del pannello
 protetta da `pnpm typecheck` (svelte-check non riscrive più dist/).
+Fatto (0.6.0): penna in RICALCA (`core/src/edit`), immagini incorporate/ritagliate/PSD via `imageCapture`.
+Fatto (0.7.0): ricalco con meno punti agli incroci (`reduceAnchors`, direzione oltre l'incrocio,
+ricucitura che guarda la direzione), storico unico tracciati+regolazioni con Indietro/Avanti e «Azzera
+tutto»; ANALIZZA senza linee superflue (rette sopra un asse, doppioni paralleli, raccordi minuscoli: solo
+in «dettaglio»/«tutto»; fixtures 06, 09, 11 aggiornate con l'ok di Marco); CORREGGI: simmetria riscritta
+(asse sulla mediana delle coppie, maniglie speculari, gemello aggiunto all'anchor in più, passaggio
+finale dopo gli archi), «Curve fluide» (tangenti continue sotto i 12°), corretto l'arco ricostruito sul
+cerchio speculare sbagliato (foglie, mandorle).
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

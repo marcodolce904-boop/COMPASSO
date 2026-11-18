@@ -74,8 +74,25 @@ partenza degli anelli dal punto più curvo.
 
 Le modifiche a mano (`core/src/edit`) sono funzioni pure: aggiungere un punto divide la curva con
 de Casteljau (forma identica); togliere un punto ricalca le due curve con una sola (minimi quadrati,
-tangenti di prima); spostare una maniglia di un punto curvo muove l'opposta. Cambiare le regolazioni
-del ricalco azzera le modifiche, che restano recuperabili con Annulla.
+tangenti di prima); spostare una maniglia di un punto curvo muove l'opposta.
+
+Lo storico è unico: ogni passo ricorda i tracciati modificati **e** le regolazioni. «← Indietro» e
+«Avanti →» attraversano sia i ritocchi con la penna sia i movimenti delle barre (i movimenti ravvicinati
+della stessa barra contano come un passo). Cambiare le regolazioni azzera le modifiche a mano, che restano
+recuperabili con Indietro. «× Azzera tutto» rimette le barre ai valori iniziali senza togliere lo schizzo.
+
+## Punti di troppo agli incroci
+
+Dove un tratto ne incrocia un altro (es. la coda che passa dietro la gamba di una A) la linea centrale
+forma un piccolo grumo. Tre accorgimenti evitano anchor in più e tracciati spostati:
+
+- la direzione di ogni ramo si misura **oltre** il grumo, così i rami giusti vengono accoppiati;
+- la ricucitura dei tratti vicini preferisce i capi che si guardano (costo = distanza + spazio ×
+  (1 + coseno)); un tracciato si chiude su se stesso solo se i capi sono allineati;
+- dopo il calcolo delle curve, due curve consecutive si fondono se l'angolo tra loro è sotto i 25° e la
+  curva unica resta entro la precisione (`reduceAnchors`).
+
+Sul banco di prova c'è la figura «A dietro la coda».
 
 ## Segnalazioni
 

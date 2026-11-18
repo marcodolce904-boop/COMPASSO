@@ -141,3 +141,23 @@ describe('livelli: pari merito', () => {
     for (const id of circles) expect(r.levels.essential).toContain(id);
   });
 });
+
+describe('livelli: niente linee di costruzione superflue', () => {
+  it('stelo sottile sull asse: nei livelli base solo l asse; le rette tornano in «tutto»', () => {
+    const g = parseSvg(
+      '<svg><path d="M150 40 C190 80 200 140 150 200 C100 140 110 80 150 40 Z"/><rect x="146" y="200" width="8" height="80" rx="4"/></svg>',
+    );
+    const r = analyze(g);
+    expect(r.axes).toHaveLength(1);
+    const vertical = r.lines.filter((l) => l.orientation === 'v').map((l) => l.id);
+    expect(vertical.length).toBeGreaterThan(0);
+    for (const id of vertical) {
+      expect(r.levels.essential).not.toContain(id);
+      expect(r.levels.structure).not.toContain(id);
+      expect(r.levels.full).toContain(id);
+    }
+    // i raccordi minuscoli (r = 4) non sono costruzione
+    const tiny = r.circles.filter((c) => c.r < 5).map((c) => c.id);
+    for (const id of tiny) expect(r.levels.structure).not.toContain(id);
+  });
+});

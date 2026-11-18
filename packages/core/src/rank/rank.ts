@@ -72,6 +72,43 @@ export interface LevelInput {
   relations: Relation[];
   totalLength: number;
   hasUnit: boolean;
+  /** Diagonale del bbox: serve a riconoscere rette e cerchi superflui (senza, nessuna potatura). */
+  D?: number;
+}
+
+const angleGap = (a: number, b: number) => {
+  const d = Math.abs(a - b) % Math.PI;
+  return Math.min(d, Math.PI - d);
+};
+/** Distanza tra due rette quasi parallele in forma normale (θ in [0, π)). */
+const rhoGap = (a: { theta: number; rho: number }, b: { theta: number; rho: number }) =>
+  Math.abs(a.theta - b.theta) > Math.PI / 2 ? Math.abs(a.rho + b.rho) : Math.abs(a.rho - b.rho);
+
+/**
+ * Elementi che non aggiungono nulla alla costruzione nei livelli base (restano in «dettaglio» e
+ * «tutto»): rette sopra un asse di simmetria, rette parallele quasi coincidenti con una più
+ * importante (es. i due bordi di un tratto sottile), cerchi minuscoli (raccordi, punte arrotondate).
+ */
+function superfluous(inp: LevelInput): Set<string> {
+  const out = new Set<string>();
+  const D = inp.D;
+  if (!D) return out;
+  const ANG = (2 * Math.PI) / 180;
+  const near = 0.03 * D;
+  for (const l of inp.lines)
+    if (inp.axes.some((a) => angleGap(a.theta, l.theta) <= ANG && rhoGap(a, l) <= 0.01 * D))
+      out.add(l.id);
+  const byScore = [...inp.lines].sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1));
+  const kept: GuideLine[] = [];
+  for (const l of byScore) {
+    if (out.has(l.id)) continue;
+    const twin = kept.some((k) => angleGap(k.theta, l.theta) <= ANG && rhoGap(k, l) < near);
+    const onAxis = inp.axes.some((a) => angleGap(a.theta, l.theta) <= ANG && rhoGap(a, l) < near);
+    if (twin || onAxis) out.add(l.id);
+    else kept.push(l);
+  }
+  for (const c of inp.circles) if (c.r < 0.02 * D) out.add(c.id);
+  return out;
 }
 
 export const centerMarkerId = (circleId: string) => `m:${circleId}`;
@@ -84,6 +121,7 @@ const TANGENT = new Set(['tangent-line-circle', 'tangent-circle-circle']);
 export function buildLevels(inp: LevelInput): Record<Level, string[]> {
   const { circles, lines, axes, relations, totalLength } = inp;
   const ellipses = inp.ellipses ?? [];
+  const skip = superfluous(inp);
   const elems = [...circles, ...ellipses, ...lines].sort(
     (a, b) => b.score - a.score || (a.id < b.id ? -1 : 1),
   );
@@ -92,6 +130,7 @@ export function buildLevels(inp: LevelInput): Record<Level, string[]> {
   let lastScore: number | null = null;
   for (const e of elems) {
     if (e.support <= 0) break;
+    if (skip.has(e.id)) continue;
     // raggiunto il 60%, entrano ancora gli elementi a pari merito con l'ultimo incluso
     // (approvato 10/11/2026: es. 4 cerchi uguali del rettangolo arrotondato)
     if (covered >= 0.6 * totalLength && e.score !== lastScore) break;
@@ -117,14 +156,17 @@ export function buildLevels(inp: LevelInput): Record<Level, string[]> {
     };
   };
   const structure = list(essential);
-  for (const l of lines) if (l.score >= 0.35 || l.origin === 'anchor-row') structure.add(l.id);
+  for (const l of lines)
+    if (!skip.has(l.id) && (l.score >= 0.35 || l.origin === 'anchor-row')) structure.add(l.id);
   // tutti i cerchi e gli ovali che descrivono una parte non trascurabile del logo (≥ 2% del
   // contorno): la struttura non deve "dimenticare" cerchi oltre la soglia del 60% dell'essenziale
   for (const c of [...circles, ...ellipses])
-    if (c.support >= 0.02 * totalLength) structure.add(c.id);
+    if (!skip.has(c.id) && c.support >= 0.02 * totalLength) structure.add(c.id);
   if (inp.hasUnit) structure.add(UNIT_ID);
 
   const detail = list(structure.arr);
+  for (const l of lines) if (skip.has(l.id) && l.score >= 0.35) detail.add(l.id);
+  for (const c of circles) if (skip.has(c.id)) detail.add(c.id);
   for (const c of [...circles, ...ellipses]) if (c.support >= 0.02 * totalLength) detail.add(c.id);
   const markersFor = (l: ReturnType<typeof list>) => {
     for (const c of [...circles, ...ellipses]) if (l.has(c.id)) l.add(centerMarkerId(c.id));

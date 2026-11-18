@@ -307,7 +307,8 @@
             type="button"
             title="Ctrl+Shift+Z"
             disabled={!editor.canRedo}
-            onclick={() => editor.redo()}>{t(lang, 'pen.redo')}{editor.redoCount ? ` ${editor.redoCount}` : ''} →</button
+            onclick={() => editor.redo()}
+            >{t(lang, 'pen.redo')}{editor.redoCount ? ` ${editor.redoCount}` : ''} →</button
           >
           <button type="button" class="reset" onclick={resetAll}>× {t(lang, 'pen.resetAll')}</button
           >

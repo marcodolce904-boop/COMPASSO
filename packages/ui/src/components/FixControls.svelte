@@ -186,6 +186,24 @@
 </Toggle>
 
 <Toggle
+  label={t(lang, 'fix.smooth')}
+  hint={t(lang, 'fix.smooth.hint')}
+  bind:checked={options.smooth.enabled}
+  badge={report?.smoothed ?? 0}
+>
+  <Slider
+    label={t(lang, 'fix.angle')}
+    bind:value={options.smooth.angle}
+    min={1}
+    max={30}
+    step={1}
+    defaultValue={defaults.smooth.angle}
+    unit="°"
+    format={deg}
+  />
+</Toggle>
+
+<Toggle
   label={t(lang, 'fix.grid')}
   hint={t(lang, 'fix.grid.hint')}
   bind:checked={options.grid.enabled}

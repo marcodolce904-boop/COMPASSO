@@ -30,6 +30,7 @@ function only(geom: DocumentGeometry, patch: Partial<RefineOptions>): RefineOpti
     symmetry: { ...options.symmetry, enabled: false },
     grid: { ...options.grid, enabled: false },
     clean: { enabled: false },
+    smooth: { ...options.smooth, enabled: false },
   };
   return { ...off, ...patch };
 }
@@ -155,6 +156,84 @@ describe('refine: le 8 correzioni', () => {
     const a = analyze(r.geometry);
     expect(a.axes.some((x) => Math.abs(x.theta) < 1e-6 && Math.abs(x.rho - 100) < 0.01)).toBe(true);
     expect(kinds(r.geometry, 'near-symmetry')).toHaveLength(0);
+  });
+
+  // distanza massima tra il disegno e il suo riflesso rispetto alla verticale x = c (curve campionate)
+  const mirrorGap = (g: DocumentGeometry, c: number) => {
+    const pts: { x: number; y: number }[] = [];
+    for (const p of g.paths)
+      for (const s of p.segments)
+        for (let k = 0; k < 40; k++) {
+          const t = k / 40;
+          const u = 1 - t;
+          if (s.kind === 'line')
+            pts.push({ x: s.p0.x * u + s.p1.x * t, y: s.p0.y * u + s.p1.y * t });
+          else
+            pts.push({
+              x:
+                u ** 3 * s.p0.x + 3 * u * u * t * s.c1.x + 3 * u * t * t * s.c2.x + t ** 3 * s.p1.x,
+              y:
+                u ** 3 * s.p0.y + 3 * u * u * t * s.c1.y + 3 * u * t * t * s.c2.y + t ** 3 * s.p1.y,
+            });
+        }
+    let worst = 0;
+    for (const p of pts) {
+      let best = Infinity;
+      for (const q of pts) best = Math.min(best, Math.hypot(2 * c - p.x - q.x, p.y - q.y));
+      worst = Math.max(worst, best);
+    }
+    return worst;
+  };
+  const sym = (tolerance: number) => ({ enabled: true, tolerance, axis: 'auto' as const });
+
+  it('simmetria: anche le maniglie diventano speculari (curve uguali, non solo gli anchor)', () => {
+    // anchor già speculari, maniglie no: il lato destro è più «gonfio»
+    const g = parseSvg(
+      '<svg><path d="M100 0 C140 0 200 40 200 100 C200 160 150 200 100 200 C55 200 0 160 0 100 C0 45 60 0 100 0 Z"/></svg>',
+    );
+    expect(mirrorGap(g, 100)).toBeGreaterThan(1.5);
+    const r = refine(g, only(g, { symmetry: sym(4) }));
+    expect(r.report.axis).toEqual({ theta: 0, rho: 100 });
+    expect(mirrorGap(r.geometry, 100)).toBeLessThan(0.5);
+  });
+
+  it('simmetria: un anchor in più su un lato non blocca la correzione', () => {
+    const g = parseSvg(
+      '<svg><path d="M150 20 C200 45 240 48 270 46 C272 150 250 250 150.8 318 C102 285 72 245 55 200 C40 160 31 110 31 45 C61 48.5 101 44 150 20 Z"/></svg>',
+    );
+    const r = refine(g, only(g, { symmetry: sym(6) }));
+    expect(r.report.axis?.theta).toBe(0);
+    expect(Math.abs(r.report.axis!.rho - 150.5)).toBeLessThan(0.6);
+    expect(r.report.symmetric).toBeGreaterThan(0);
+    const c = r.report.axis!.rho;
+    expect(mirrorGap(r.geometry, c)).toBeLessThan(mirrorGap(g, c) / 2);
+  });
+
+  it('simmetria: un logo già simmetrico resta simmetrico con tutte le correzioni', () => {
+    const g = parseSvg(
+      '<svg><path d="M150 40 C190 80 200 140 150 200 C100 140 110 80 150 40 Z"/><path d="M160 210 C200 160 250 150 280 160 C262 210 210 230 160 210 Z"/><path d="M140 210 C100 160 50 150 20 160 C38 210 90 230 140 210 Z"/><rect x="146" y="200" width="8" height="80" rx="4"/></svg>',
+    );
+    expect(mirrorGap(g, 150)).toBeLessThan(0.01);
+    const r = refine(g, refineDefaults(g).options);
+    expect(mirrorGap(r.geometry, 150)).toBeLessThan(0.05);
+  });
+
+  it('curve fluide: un gomito di pochi gradi diventa una tangente continua, gli spigoli restano', () => {
+    // nodo (100,0): maniglie a 172° (quasi lisce); nodo (200,100): spigolo vero a 90°
+    const g = parseSvg(
+      '<svg><path d="M0 100 C0 40 40 5 100 0 C160 -2 200 40 200 100 L0 100 Z"/></svg>',
+    );
+    const r = refine(g, only(g, { smooth: { enabled: true, angle: 12 } }));
+    expect(r.report.smoothed).toBe(1);
+    const [s0, s1] = r.geometry.paths[0]!.segments as Extract<
+      (typeof r.geometry.paths)[0]['segments'][number],
+      { kind: 'cubic' }
+    >[];
+    const a = Math.atan2(s0!.p1.y - s0!.c2.y, s0!.p1.x - s0!.c2.x);
+    const b = Math.atan2(s1!.c1.y - s1!.p0.y, s1!.c1.x - s1!.p0.x);
+    expect(Math.abs(a - b)).toBeLessThan(1e-9);
+    const off = refine(g, only(g, {}));
+    expect(off.report.smoothed).toBe(0);
   });
 
   it('simmetria: un logo non simmetrico non viene forzato', () => {

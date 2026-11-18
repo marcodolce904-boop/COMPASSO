@@ -120,6 +120,7 @@ export function fixSummary(lang: Lang, r: RefineReport): string {
   add(r.aligned, 'fix.summary.aligned');
   add(r.symmetric, 'fix.summary.symmetric');
   add(r.gridded, 'fix.summary.gridded');
+  add(r.smoothed, 'fix.summary.smoothed');
   add(r.removedAnchors, 'fix.summary.removed');
   if (parts.length === 0 || r.changedPaths === 0) return t(lang, 'fix.none');
   parts.push(t(lang, 'fix.summary.shift', { d: num(lang, r.maxShift, 2) }));

@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.7.0 — 18/11/2026
+
+- **CORREGGI, simmetria rifatta**: prima bastava un solo punto senza "gemello" per rinunciare, e si
+  spostavano solo gli anchor (le curve restavano storte). Ora:
+  - l'asse si trova anche se il logo è un po' sbilanciato;
+  - anche le **maniglie** diventano speculari, quindi le due metà coincidono davvero;
+  - se un lato ha un **anchor in più**, l'altro riceve il suo gemello nello stesso punto, senza cambiare
+    la forma;
+  - un ultimo passaggio rimette speculari le metà dopo archi e pulizia.
+- **CORREGGI, Curve fluide** (nuova): dove la direzione piega solo di pochi gradi (12° di base), la
+  tangente diventa continua. Vale anche tra una retta e una curva. Gli spigoli veri restano.
+- **CORREGGI**: corretto un errore per cui un lato di una foglia o di una mandorla poteva essere rifatto
+  con il cerchio del lato opposto, e un raccordo minuscolo vicino a una curva grande veniva "agganciato"
+  a quella curva.
+- **ANALIZZA, meno linee di costruzione**: nei livelli Essenziale e Struttura non ci sono più:
+  - rette disegnate sopra un asse di simmetria;
+  - rette parallele quasi coincidenti, come i due bordi di uno stelo sottile o un bordo fuori riga di
+    pochi decimi;
+  - cerchi minuscoli (raccordi).
+
+  Restano visibili in Dettaglio e Tutto.
+
+- **RICALCA**:
+  - meno punti di troppo agli incroci, dove prima il tracciato veniva spostato;
+  - i tratti vicini si ricuciono tenendo conto della direzione;
+  - niente più chiusure sbagliate di un tracciato su se stesso.
+- **RICALCA, storico**:
+  - **← Indietro / Avanti →** con il numero di passi: comprendono sia le modifiche con la penna sia i
+    movimenti delle barre;
+  - **× Azzera tutto** rimette tutte le barre ai valori iniziali e toglie le modifiche, senza togliere
+    l'immagine caricata (e si può annullare con Indietro).
+
 ## 0.6.0 — 18/11/2026
 
 - **Strumento penna in RICALCA**, per ritoccare il ricalco prima di creare i tracciati:

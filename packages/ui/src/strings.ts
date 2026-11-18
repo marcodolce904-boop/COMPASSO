@@ -83,6 +83,7 @@ const en = {
   'fix.summary.aligned': '{n} aligned',
   'fix.summary.symmetric': '{n} symmetric',
   'fix.summary.gridded': '{n} on grid',
+  'fix.summary.smoothed': '{n} smoothed',
   'fix.summary.removed': '{n} anchors removed',
   'fix.summary.shift': 'max shift {d} pt',
   'fix.global': 'GENERAL',
@@ -105,7 +106,11 @@ const en = {
   'fix.align': 'Align anchors',
   'fix.align.hint': 'Anchors almost on the same row or column are aligned.',
   'fix.symmetry': 'Symmetry',
-  'fix.symmetry.hint': 'An almost symmetric logo becomes symmetric.',
+  'fix.symmetry.hint':
+    'An almost symmetric logo becomes symmetric: anchors, handles and curves (an extra anchor on one side gets its twin).',
+  'fix.smooth': 'Smooth curves',
+  'fix.smooth.hint':
+    'Where the direction bends by only a few degrees, the tangent becomes continuous: flowing curves, true corners stay.',
   'fix.axis.aria': 'Symmetry axis',
   'fix.axis.auto': 'Auto',
   'fix.axis.vertical': 'Vertical',
@@ -329,6 +334,7 @@ const it: Record<StringKey, string> = {
   'fix.summary.aligned': '{n} allineati',
   'fix.summary.symmetric': '{n} simmetrici',
   'fix.summary.gridded': '{n} su griglia',
+  'fix.summary.smoothed': '{n} resi fluidi',
   'fix.summary.removed': '{n} anchor in meno',
   'fix.summary.shift': 'spostamento max {d} pt',
   'fix.global': 'GENERALE',
@@ -351,7 +357,11 @@ const it: Record<StringKey, string> = {
   'fix.align': 'Allinea anchor',
   'fix.align.hint': 'Gli anchor quasi sulla stessa riga o colonna vengono allineati.',
   'fix.symmetry': 'Simmetria',
-  'fix.symmetry.hint': 'Il logo quasi simmetrico diventa simmetrico.',
+  'fix.symmetry.hint':
+    'Il logo quasi simmetrico diventa simmetrico: anchor, maniglie e curve (un anchor in più su un lato riceve il gemello).',
+  'fix.smooth': 'Curve fluide',
+  'fix.smooth.hint':
+    'Dove la direzione piega di pochi gradi la tangente diventa continua: curve sinuose, gli spigoli veri restano.',
   'fix.axis.aria': 'Asse di simmetria',
   'fix.axis.auto': 'Auto',
   'fix.axis.vertical': 'Verticale',

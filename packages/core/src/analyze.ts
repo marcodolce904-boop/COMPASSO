@@ -166,6 +166,7 @@ export function analyze(
     relations,
     totalLength,
     hasUnit: ux.unitX !== null,
+    D,
   });
 
   return {
