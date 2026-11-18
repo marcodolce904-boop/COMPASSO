@@ -1,65 +1,52 @@
-# Punto Nave · 2026-11-18 (sera)
+# Punto Nave · 2026-11-18 (dopo la 0.10.0)
 
-- **Obiettivo:** prossimo sviluppo di Compasso: la scheda **GENERA**, che ricompone il logo secondo regole
-  matematiche precise, con anteprime da confrontare e applicazione su una copia. Si parte dalle modalità
-  **Matematico** e **Minimal**.
+- **Obiettivo:** prossimo sviluppo di Compasso dopo la scheda GENERA (Matematico + Minimal): completare
+  le modalità di GENERA e rendere il percorso schizzo → logo professionale più guidato, verificando
+  tutto su loghi veri di Marco.
 - **Vincoli:**
   - Solo Windows, pannello CEP, ExtendScript ES3.
-  - Il numero di tracciati non può cambiare: Illustrator scrive la copia tracciato per tracciato.
-  - Ogni modalità deve lasciare il logo **riconoscibile**: scarto massimo e intensità sono obbligatori.
-  - Prima di scrivere codice: specifica breve approvata da Marco.
-  - Per `model.ts`, nuove dipendenze e `fixtures/expected` va chiesta conferma prima.
+  - Il numero di tracciati non cambia mai: Illustrator scrive le copie tracciato per tracciato.
+  - Ogni modalità di GENERA resta entro lo scarto massimo (3% della diagonale, regolabile).
+  - Per ogni nuova modalità: prima una specifica approvata da Marco.
+  - Prima di cambiare `model.ts`, aggiungere dipendenze o aggiornare `fixtures/expected` va chiesta
+    conferma.
 - **Variabili chiave:**
-  - versione = 0.8.0, pubblicata
-  - test = 344, tutti verdi
-  - esito su un caso reale (logo «A con coda di volpe») = buono: ottenuto con l'estensione più piccoli
-    ritocchi a penna in Illustrator. Primo logo vero completato con Compasso.
+  - versione = 0.10.0, pubblicata il 18/11/2026
+  - test = 358, tutti verdi
+  - GENERA = 2 modalità su 5 (Matematico, Minimal)
+  - tempo di calcolo GENERA ≈ 0,4 s per modalità sul logo di prova (17 anchor)
+  - loghi veri di Marco ricevuti come file = 0 (solo screenshot)
 - **Decisioni prese:**
-  - Ordine dei lavori (Marco, 18/11): simmetria sulle forme (fatta, 0.8.0) → GENERA con Matematico e
-    Minimal → Sezione aurea e Strutturato → migliorie UX.
-  - GENERA va in una scheda o tendina **a parte**, con anteprime e confronto con l'originale.
-  - La modalità Simmetrico di GENERA riusa `mirror.ts` (già pronto).
+  - Ordine dei lavori (Marco, 18/11):
+    1. simmetria sulle forme — fatto, 0.8.0;
+    2. GENERA con Matematico e Minimal — fatto, 0.10.0;
+    3. Sezione aurea e Strutturato;
+    4. migliorie UX: percorso guidato, confronto prima/dopo a tendina, preset salvabili, spiegazione
+       quando una correzione resta a 0.
+  - Strutturato = rendere davvero archi le curve libere, con gli archi tangenti della 0.9.0
+    (opzione B scelta come modalità futura).
+  - In ANALIZZA la costruzione per forma (opzione D) per ora non si fa.
 - **Questioni aperte:**
-  1. Regole esatte di **Matematico**. Proposta:
-     - angoli delle rette portati ai multipli di 15° (30°, 45°) e rette quasi parallele rese parallele;
-     - raggi e distanze portati a multipli del modulo (unità x del logo o passo scelto);
-     - centri e anchor sulla griglia del modulo;
-     - con scarto massimo dall'originale.
-  2. Regole esatte di **Minimal**. Proposta:
-     - meno anchor possibile entro lo scarto massimo;
-     - curve quasi circolari → archi, quasi-rette → rette;
-     - dettagli sotto una certa misura tolti o semplificati;
-     - "Numero massimo di anchor" come parametro.
-  3. Forma delle anteprime:
-     - prima Matematico e Minimal affiancate all'originale;
-     - poi 5 modalità quando ci saranno tutte;
-     - ogni anteprima con il riepilogo di cosa ha cambiato.
-  4. Sul logo «A con coda» la modalità Simmetrico non ha senso (logo asimmetrico): GENERA deve mostrare
-     solo le modalità applicabili, o spiegare perché una non lo è.
-  5. Il file vero del logo «A con coda» (AI/SVG o «Segnala un problema») servirebbe come caso di prova
-     reale di GENERA.
-  6. **ANALIZZA incompleta sul logo vero** (5 cerchi, 17 linee):
-     - le curve libere della coda non hanno costruzione;
-     - le rette sono troppe e troppo lunghe.
-
-     Opzioni (dettagli in `docs/MEMORIA.md` §3b):
-     - A. archi tangenti per le curve libere;
-     - B. rendi costruibile (Strutturato);
-     - C. rette più pulite;
-     - D. costruzione per forma.
-
-     **Scelto da Marco: A + C**, prima di GENERA.
+  1. Proposta di Claude, da confermare: dentro il punto 3 fare prima **Simmetrico** in GENERA
+     (`mirror.ts` è già pronto, costo basso) e **Strutturato** (`arcspline.ts` è già pronto), poi
+     **Sezione aurea**, che ha bisogno di una specifica sua: quali proporzioni (raggi in progressione
+     φ, riquadro aureo, posizioni dei centri), cosa fare se il logo non ha cerchi.
+  2. Risultati di Marco con la 0.10.0 su loghi veri: quale modalità convince, dove esagera.
+  3. Bordi paralleli in ANALIZZA (es. le gambe della A) raggruppati con un segno di parallela: rimasto
+     da fare dalla 0.9.0.
+  4. Spostare il calcolo di GENERA in un worker, se con loghi grandi il pannello esita.
+  5. Verifica completa in Illustrator vero (checklist §10.4 della SPEC).
 - **Rischi principali:**
-  - **Matematico stravolge le proporzioni.** Segnale: l'anteprima Matematico non sembra più lo stesso
-    logo (es. le gambe della A cambiano inclinazione in modo visibile).
-  - **Minimal toglie dettagli che contano**, come i tagli e le punte della coda. Segnale: spariscono gli
-    spigoli caratteristici.
-  - **Tarature solo su loghi sintetici.** Segnale: i test passano ma su un logo vero di Marco le anteprime
-    non convincono.
+  - **Tarature solo su loghi sintetici.** Segnale: test verdi, ma Marco non vede effetti utili sui suoi
+    loghi (è già successo con la simmetria).
+  - **Sezione aurea che stravolge il logo o sembra arbitraria.** Segnale: l'anteprima aurea non è
+    riconoscibile, oppure il riepilogo non sa dire quali rapporti φ ha imposto.
+  - **Pannello lento con loghi complessi** (5 modalità calcolate insieme). Segnale: più di 1 s di attesa
+    a ogni movimento di una barra.
 - **Stato:**
-  - RICALCA, penna, storico, CORREGGI (10 correzioni + simmetria sulle forme) e ANALIZZA sono rilasciati
-    (0.8.0) e già usati con successo su un logo vero.
-  - GENERA non è ancora iniziato: manca la specifica.
-- **Prossima azione:** Claude sviluppa A + C in ANALIZZA (previa conferma della modifica a `model.ts`). Poi Claude scrive la specifica di GENERA (Matematico + Minimal: regole, parametri,
-  anteprime, limiti) in `docs/GENERA.md` e la sottopone a Marco. Marco, se può, invia il file del logo
-  «A con coda» come caso di prova.
+  - Rilasciati e funzionanti: RICALCA (penna, storico), CORREGGI (10 correzioni + simmetria sulle
+    forme), ANALIZZA (curve libere ad archi tangenti, rette al tratto), GENERA (Matematico, Minimal).
+  - Primo logo vero completato con Compasso: la «A con coda».
+  - Le modalità Simmetrico, Sezione aurea e Strutturato non sono ancora iniziate.
+- **Prossima azione:** Marco conferma l'ordine proposto (Simmetrico + Strutturato, poi Sezione aurea
+  con la sua specifica) e, se può, manda il file del logo «A con coda» con «⚙ → Segnala un problema».
