@@ -464,3 +464,11 @@ export function fitLoop(input: Vec2[], tol: number): Segment[] {
   fitRange(ring, h, n, th, mul(t0, -1), tol, out);
   return toSegs(mergeFits(ring, out, tol));
 }
+
+/**
+ * Una sola cubica per i punti dati, con le tangenti agli estremi date (verso l'interno):
+ * minimi quadrati con riparametrizzazione. Usata dalla penna quando si toglie un punto.
+ */
+export function fitCubic(pts: Vec2[], t1: Vec2, t2: Vec2): [Vec2, Vec2, Vec2, Vec2] {
+  return fitOne(pts, 0, pts.length - 1, unit(t1), unit(t2), 0).b;
+}
