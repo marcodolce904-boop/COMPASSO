@@ -3,6 +3,11 @@
     plan as makePlan,
     refine,
     refineDefaults,
+    generate,
+    generateDefaults,
+    type GenerateMode,
+    type GenerateOptions,
+    type GenerateResult,
     traceDefaults,
     type AnalysisResult,
     type RefineOptions,
@@ -19,7 +24,14 @@
     UNIT_ID,
   } from '@compasso/core';
   import { untrack } from 'svelte';
-  import { elementGroups, findingDelta, findingMessage, fixSummary } from './labels';
+  import {
+    elementGroups,
+    findingDelta,
+    findingMessage,
+    fixSummary,
+    generateCaption,
+    generateSummary,
+  } from './labels';
   import { highlightFor, viewBoxFor } from './preview';
   import { num, statsText, t, type Lang } from './strings';
   import Header from './components/Header.svelte';
@@ -36,6 +48,8 @@
   import Toast from './components/Toast.svelte';
   import FixPreview, { type FixMode } from './components/FixPreview.svelte';
   import FixControls from './components/FixControls.svelte';
+  import GenerateThumbs, { type GenerateThumb } from './components/GenerateThumbs.svelte';
+  import GenerateControls from './components/GenerateControls.svelte';
   import TracePanel, { type TraceReady, type TraceSource } from './components/TracePanel.svelte';
 
   export type PanelStatus = 'empty' | 'loading' | 'ready' | 'error';
@@ -58,6 +72,12 @@
     onApplyFix?: (geometry: DocumentGeometry) => void;
     /** CORREGGI: elimina la copia corretta e rimette l'originale. */
     onRevertFix?: () => void;
+    /** GENERA: è presente una copia generata. */
+    generateApplied?: boolean;
+    /** GENERA: applica la versione scelta (l'host la scrive su una copia). */
+    onApplyGenerate?: (geometry: DocumentGeometry) => void;
+    /** GENERA: elimina la copia generata e rimette l'originale. */
+    onRevertGenerate?: () => void;
     /** Segnala un problema: salva il file e restituisce dove (o lancia un errore). */
     onReport?: (report: CompassoReport) => Promise<string> | string;
     /** Host che produce la segnalazione. */
@@ -86,6 +106,9 @@
     fixApplied = false,
     onApplyFix = () => {},
     onRevertFix = () => {},
+    generateApplied = false,
+    onApplyGenerate = () => {},
+    onRevertGenerate = () => {},
     onReport,
     host = 'harness',
     traceSource = null,
@@ -148,7 +171,7 @@
 
   // stato del pannello (valori predefiniti del §4.2)
   const DEFAULTS = { stroke: 0.75, marker: 8 };
-  let mainTab = $state<'trace' | 'inspect' | 'fix' | 'present'>('inspect');
+  let mainTab = $state<'trace' | 'inspect' | 'fix' | 'generate' | 'present'>('inspect');
   let sub = $state<'findings' | 'geometry' | 'specs'>('geometry');
   let level = $state<Level>('structure');
   let strokeWidth = $state(DEFAULTS.stroke);
@@ -173,6 +196,71 @@
   const thumbH = $derived(
     Math.round(wide ? Math.max(220, panelH - 250) : Math.min(560, Math.max(176, panelH * 0.38))),
   );
+
+  // --- GENERA (docs/GENERA.md) ------------------------------------------------------------------
+  let genOptions = $state<GenerateOptions | null>(null);
+  let genDefaults = $state<GenerateOptions | null>(null);
+  let genD = $state(100);
+  let genSel = $state<'orig' | GenerateMode>('math');
+  let genMode = $state<FixMode>('compare');
+  let genResults = $state<Partial<Record<GenerateMode, GenerateResult>>>({});
+  $effect(() => {
+    const g = geometry;
+    untrack(() => {
+      if (!g) return;
+      const d = generateDefaults(g);
+      const D = refineDefaults(g).D;
+      if (!genOptions) genOptions = structuredClone(d);
+      else if (Math.abs(D / genD - 1) > 0.01) genOptions.maxDeviation *= D / genD;
+      genDefaults = d;
+      genD = D;
+    });
+  });
+  // le versioni si ricalcolano dal vivo (con un piccolo ritardo mentre si trascina una barra)
+  $effect(() => {
+    const g = geometry;
+    const o = genOptions ? ($state.snapshot(genOptions) as GenerateOptions) : null;
+    if (mainTab !== 'generate' || !g || !o) return;
+    const id = setTimeout(() => {
+      const next: Partial<Record<GenerateMode, GenerateResult>> = {};
+      for (const m of ['math', 'minimal'] as const) {
+        try {
+          next[m] = generate(g, m, o);
+        } catch (e) {
+          console.error('[compasso] generazione non riuscita', m, e);
+        }
+      }
+      genResults = next;
+    }, 60);
+    return () => clearTimeout(id);
+  });
+  const genChosen = $derived(genSel === 'orig' ? null : (genResults[genSel] ?? null));
+  const genThumbs = $derived<GenerateThumb[]>(
+    geometry
+      ? [
+          {
+            key: 'orig',
+            label: t(lang, 'gen.orig'),
+            geometry,
+            caption: t(lang, 'gen.cap.orig', { n: genResults.math?.report.anchorsBefore ?? 0 }),
+          },
+          ...(['math', 'minimal'] as const).map((m) => {
+            const r = genResults[m];
+            return {
+              key: m,
+              label: t(lang, `gen.mode.${m}`),
+              geometry: r?.geometry ?? null,
+              guides: m === 'math' ? r?.guides : undefined,
+              anchors: m === 'minimal',
+              caption: r ? generateCaption(lang, r) : t(lang, 'preview.analyzing'),
+            };
+          }),
+        ]
+      : [],
+  );
+  function resetGenerate() {
+    if (genDefaults) genOptions = structuredClone($state.snapshot(genDefaults) as GenerateOptions);
+  }
 
   // --- CORREGGI ---------------------------------------------------------------------------------
   let fixOptions = $state<RefineOptions | null>(null);
@@ -351,6 +439,7 @@
       ...(onPickImage ? [{ value: 'trace', label: t(lang, 'tab.trace') }] : []),
       { value: 'inspect', label: t(lang, 'tab.inspect') },
       { value: 'fix', label: t(lang, 'tab.fix') },
+      { value: 'generate', label: t(lang, 'tab.generate') },
       { value: 'present', label: t(lang, 'tab.present') },
     ]}
   />
@@ -370,7 +459,40 @@
       />
     {:else}
       <div class="col main">
-        {#if mainTab === 'fix' && geometry}
+        {#if mainTab === 'generate' && geometry}
+          <GenerateThumbs
+            items={genThumbs}
+            bind:selected={genSel}
+            ariaLabel={t(lang, 'gen.aria')}
+          />
+          <FixPreview
+            title={t(lang, 'gen.preview')}
+            original={geometry}
+            fixed={genChosen?.geometry ?? null}
+            bind:mode={genMode}
+            modeLabels={{
+              after: t(lang, 'gen.mode.after'),
+              compare: t(lang, 'fix.mode.compare'),
+              before: t(lang, 'fix.mode.before'),
+            }}
+            modeAria={t(lang, 'fix.mode.aria')}
+            legend={t(lang, 'gen.legend')}
+            summary={genChosen
+              ? generateSummary(lang, genChosen)
+              : genSel === 'orig'
+                ? t(lang, 'gen.pick')
+                : t(lang, 'preview.analyzing')}
+            busy={status === 'loading'}
+            zoomLabels={{
+              in: t(lang, 'fix.zoom.in'),
+              out: t(lang, 'fix.zoom.out'),
+              fit: t(lang, 'fix.zoom.fit'),
+              area: t(lang, 'fix.zoom.area'),
+              hint: t(lang, 'fix.zoom.hint'),
+            }}
+            excludeLabels={{ count: '', clear: '' }}
+          />
+        {:else if mainTab === 'fix' && geometry}
           <FixPreview
             title={t(lang, 'fix.preview')}
             original={geometry}
@@ -432,7 +554,17 @@
 
       {#if result}
         <div class="col side">
-          {#if mainTab === 'fix'}
+          {#if mainTab === 'generate'}
+            {#if genOptions && genDefaults}
+              <GenerateControls
+                bind:options={genOptions}
+                defaults={genDefaults}
+                D={genD}
+                {lang}
+                onReset={resetGenerate}
+              />
+            {/if}
+          {:else if mainTab === 'fix'}
             {#if fixOptions && fixDefaults}
               <FixControls
                 bind:options={fixOptions}
@@ -534,6 +666,18 @@
           disabled={!traceOut || !traceSource}
           onclick={() => traceOut && onCreateTrace(traceOut)}
         />
+      </div>
+    {:else if mainTab === 'generate'}
+      <p class="stats">{t(lang, 'gen.onCopy')}</p>
+      <div class="actions">
+        <PrimaryButton
+          label={t(lang, 'gen.apply')}
+          disabled={status !== 'ready' || !genChosen}
+          onclick={() => genChosen && onApplyGenerate(genChosen.geometry)}
+        />
+        {#if generateApplied}
+          <TextButton label={t(lang, 'fix.revert')} tone="muted" onclick={onRevertGenerate} />
+        {/if}
       </div>
     {:else if mainTab === 'fix'}
       <p class="stats">{t(lang, 'fix.onCopy')}</p>

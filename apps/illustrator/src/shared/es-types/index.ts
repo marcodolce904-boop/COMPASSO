@@ -21,6 +21,8 @@ export type Scripts = {
   hasConstruction: () => boolean;
   applyFix: (paths: FixPath[]) => ApplyFixResult;
   revertFix: () => number;
+  applyGenerate: (paths: FixPath[]) => ApplyFixResult;
+  revertGenerate: () => number;
   getSelectedImage: () => SelectedImage;
   createTracePaths: (paths: FixPath[], style: TraceStyle) => CreateTraceResult;
 };

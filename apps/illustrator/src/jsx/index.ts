@@ -4,6 +4,7 @@ import { ns } from '../shared/shared';
 import type { Scripts } from '../shared/es-types';
 import {
   applyFix,
+  applyGenerate,
   createTracePaths,
   drawPlan,
   extractSelection,
@@ -13,12 +14,14 @@ import {
   hasConstruction,
   removeConstruction,
   revertFix,
+  revertGenerate,
 } from './ilst/ilst';
 
 // Oggetto esplicito (non `import *`): evita l'oggetto-namespace con `__proto__: null`.
 // La firma pubblica sta in src/shared/es-types (usata dal pannello): qui si verifica che coincida.
 var api: Scripts = {
   applyFix: applyFix,
+  applyGenerate: applyGenerate,
   createTracePaths: createTracePaths,
   drawPlan: drawPlan,
   extractSelection: extractSelection,
@@ -28,5 +31,6 @@ var api: Scripts = {
   hasConstruction: hasConstruction,
   removeConstruction: removeConstruction,
   revertFix: revertFix,
+  revertGenerate: revertGenerate,
 };
 ($ as unknown as Record<string, Scripts>)[ns] = api;

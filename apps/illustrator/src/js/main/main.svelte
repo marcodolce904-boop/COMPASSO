@@ -30,6 +30,7 @@
   let error = $state<string | null>(null);
   let drawn = $state(false);
   let fixApplied = $state(false); // c'è una copia corretta (layer «Compasso — Corretto»)
+  let generateApplied = $state(false); // c'è una copia generata (layer «Compasso — Generato»)
 
   let fingerprint = '';
   let hostError = false; // l'avviso mostrato riguarda la comunicazione con Illustrator
@@ -76,9 +77,10 @@
         hostError = false;
         error = null;
       }
-      const [fp = '', layer, fix] = String(raw ?? '').split('#');
+      const [fp = '', layer, fix, gen] = String(raw ?? '').split('#');
       drawn = layer === '1';
       fixApplied = fix === '1';
+      generateApplied = gen === '1';
       if (!force && fp === fingerprint) return;
       fingerprint = fp;
       const res = await evalTS('extractSelection');
@@ -143,6 +145,32 @@
     try {
       await evalTS('revertFix');
       fixApplied = false;
+      void refresh(true);
+    } catch (e) {
+      console.error('[compasso] ripristino non riuscito', e);
+      hostError = true;
+      error = t(lang, 'error.host', { msg: String(e) });
+    }
+  }
+
+  // --- GENERA ---
+  async function applyGenerate(g: DocumentGeometry) {
+    try {
+      const r = hostOk(await evalTS('applyGenerate', toFixPaths(g)));
+      generateApplied = true;
+      console.info(`[compasso] versione generata applicata a ${r.paths} tracciati in ${r.ms} ms`);
+      void refresh(true);
+    } catch (e) {
+      console.error('[compasso] versione generata non applicata', e);
+      hostError = true;
+      error = t(lang, 'error.host', { msg: String(e) });
+    }
+  }
+
+  async function revertGenerate() {
+    try {
+      await evalTS('revertGenerate');
+      generateApplied = false;
       void refresh(true);
     } catch (e) {
       console.error('[compasso] ripristino non riuscito', e);
@@ -267,6 +295,9 @@
     {fixApplied}
     onApplyFix={applyFix}
     onRevertFix={revertFix}
+    {generateApplied}
+    onApplyGenerate={applyGenerate}
+    onRevertGenerate={revertGenerate}
     onReport={(r) => saveReportFile(r)}
     {traceSource}
     {traceMessage}

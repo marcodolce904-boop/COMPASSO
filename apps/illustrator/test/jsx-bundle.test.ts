@@ -163,6 +163,7 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     const { api } = host([square]);
     expect(Object.keys(api).sort()).toEqual([
       'applyFix',
+      'applyGenerate',
       'createTracePaths',
       'drawPlan',
       'extractSelection',
@@ -172,6 +173,7 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
       'hasConstruction',
       'removeConstruction',
       'revertFix',
+      'revertGenerate',
     ]);
   });
 
@@ -291,7 +293,7 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
       colorMode: 'cmyk',
       artboard: 0,
     });
-    expect(api['getSelectionFingerprint']!()).toBe('logo.ai|0|1|1000,9000,5000,5000#0#0');
+    expect(api['getSelectionFingerprint']!()).toBe('logo.ai|0|1|1000,9000,5000,5000#0#0#0');
   });
 
   const plan = {
@@ -381,7 +383,7 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     api['drawPlan']!(plan);
     expect(app.activeDocument.layers).toHaveLength(1);
     expect(api['hasConstruction']!()).toBe(true);
-    expect(String(api['getSelectionFingerprint']!())).toMatch(/#1#0$/);
+    expect(String(api['getSelectionFingerprint']!())).toMatch(/#1#0#0$/);
     expect(api['removeConstruction']!()).toBe(true);
     expect(app.activeDocument.layers).toHaveLength(0);
     expect(api['hasConstruction']!()).toBe(false);
@@ -462,7 +464,7 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     expect((copy['pathPoints'] as { pointType: string }[])[0]!.pointType).toBe('CORNER');
     expect(original['hidden']).toBe(true);
     expect(original['note']).toBe('compasso:originale');
-    expect(String(api['getSelectionFingerprint']!())).toMatch(/#0#1$/);
+    expect(String(api['getSelectionFingerprint']!())).toMatch(/#0#1#0$/);
     expect(app.coordinateSystem).toBe('ARTBOARD');
 
     const n = api['revertFix']!();
@@ -470,6 +472,42 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
     expect(original['hidden']).toBe(false);
     expect(original['note']).toBe('');
     expect(doc.layers.some((l) => String(l['name']).endsWith('Corretto'))).toBe(false);
+  });
+
+  it('applyGenerate: copia nel layer «Generato», indipendente da CORREGGI; Ripristina la toglie', () => {
+    const original = editable([
+      [10, 90],
+      [50, 90.3],
+      [50, 50],
+      [10, 50],
+    ]);
+    const { api, app } = host([original]);
+    const doc = app.activeDocument as unknown as Rec & { layers: Rec[]; pageItems: Rec[] };
+    doc['pageItems'] = [original];
+    const gen = [
+      {
+        id: 'p0',
+        closed: true,
+        nodes: [
+          [10, 10],
+          [50, 10],
+          [50, 50],
+          [10, 50],
+        ].map((a) => ({ a, l: a, r: a })),
+      },
+    ];
+    const r = api['applyGenerate']!(gen) as { ok: boolean; paths: number };
+    expect(r).toMatchObject({ ok: true, paths: 1 });
+    expect(doc.layers.some((l) => String(l['name']).endsWith('Generato'))).toBe(true);
+    expect(doc.layers.some((l) => String(l['name']).endsWith('Corretto'))).toBe(false);
+    expect(original['hidden']).toBe(true);
+    expect(original['note']).toBe('compasso:originale-genera');
+    // l'impronta segnala la copia generata (terzo indicatore)
+    expect(String(api['getSelectionFingerprint']!())).toMatch(/#0#0#1$/);
+    const n = api['revertGenerate']!();
+    expect(n).toBe(1);
+    expect(original['hidden']).toBe(false);
+    expect(doc.layers.some((l) => String(l['name']).endsWith('Generato'))).toBe(false);
   });
 
   it("applyFix sulla copia gia' corretta: la aggiorna senza crearne un'altra", () => {

@@ -10,10 +10,15 @@ import {
 import type { DocInfo } from '../../shared/es-types';
 import {
   applyFix as applyFixTo,
+  FIX_LAYER,
+  GEN_LAYER,
+  GEN_NOTE,
+  ORIGINAL_NOTE,
   hasFix,
   revertFix as revertFixIn,
   type AiFixDocument,
   type ApplyFixResult,
+  type FixEnv,
   type FixPath,
 } from './fix';
 import {
@@ -104,15 +109,18 @@ export const getSelectionFingerprint = (): string => {
   try {
     var doc = drawDocument();
     var drawn = doc !== null && findLayer(doc, LAYER_NAME) !== null;
-    var fixed = hasFix(doc as unknown as AiFixDocument | null);
+    var fixed = hasFix(doc as unknown as AiFixDocument | null, FIX_LAYER);
+    var generated = hasFix(doc as unknown as AiFixDocument | null, GEN_LAYER);
     var flags = '#0';
     if (drawn) flags = '#1';
     if (fixed) flags += '#1';
     else flags += '#0';
+    if (generated) flags += '#1';
+    else flags += '#0';
     return selectionFingerprint(activeDocument()) + flags;
   } catch (e) {
     void e;
-    return 'busy#0#0';
+    return 'busy#0#0#0';
   }
 };
 
@@ -146,23 +154,51 @@ export const hasConstruction = (): boolean => {
   return doc !== null && findLayer(doc, LAYER_NAME) !== null;
 };
 
+const fixEnv = function (): FixEnv {
+  return {
+    placeAtEnd: ElementPlacement.PLACEATEND,
+    smooth: PointType.SMOOTH,
+    corner: PointType.CORNER,
+    now: function () {
+      return new Date().getTime();
+    },
+  };
+};
+
 /** CORREGGI: applica i tracciati corretti su una copia (l'originale resta, nascosto). */
 export const applyFix = (paths: FixPath[]): ApplyFixResult => {
   return withDocumentCoordinates(function () {
-    return applyFixTo(drawDocument() as unknown as AiFixDocument | null, paths, {
-      placeAtEnd: ElementPlacement.PLACEATEND,
-      smooth: PointType.SMOOTH,
-      corner: PointType.CORNER,
-      now: function () {
-        return new Date().getTime();
-      },
-    });
+    return applyFixTo(
+      drawDocument() as unknown as AiFixDocument | null,
+      paths,
+      fixEnv(),
+      FIX_LAYER,
+      ORIGINAL_NOTE,
+    );
   });
 };
 
 /** CORREGGI: elimina la copia corretta e rimostra l'originale. */
 export const revertFix = (): number => {
-  return revertFixIn(drawDocument() as unknown as AiFixDocument | null);
+  return revertFixIn(drawDocument() as unknown as AiFixDocument | null, FIX_LAYER, ORIGINAL_NOTE);
+};
+
+/** GENERA: applica la versione scelta su una copia (layer «Compasso — Generato»). */
+export const applyGenerate = (paths: FixPath[]): ApplyFixResult => {
+  return withDocumentCoordinates(function () {
+    return applyFixTo(
+      drawDocument() as unknown as AiFixDocument | null,
+      paths,
+      fixEnv(),
+      GEN_LAYER,
+      GEN_NOTE,
+    );
+  });
+};
+
+/** GENERA: elimina la copia generata e rimostra l'originale. */
+export const revertGenerate = (): number => {
+  return revertFixIn(drawDocument() as unknown as AiFixDocument | null, GEN_LAYER, GEN_NOTE);
 };
 
 /** RICALCA: l'immagine selezionata (file collegato) e la sua posizione sulla tavola. */

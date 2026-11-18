@@ -1,4 +1,10 @@
-import type { AnalysisResult, Finding, GuideLine, RefineReport } from '@compasso/core';
+import type {
+  AnalysisResult,
+  Finding,
+  GenerateResult,
+  GuideLine,
+  RefineReport,
+} from '@compasso/core';
 import { num, t, type Lang, type Params } from './strings';
 
 const deg = (rad: number) => (rad * 180) / Math.PI;
@@ -104,6 +110,34 @@ export function findingMessage(lang: Lang, f: Finding): string {
 /** Delta del finding con unità: «0.80 pt», «0.73°». */
 export function findingDelta(f: Finding): string {
   return f.unit === 'deg' ? `${f.delta.toFixed(2)}°` : `${f.delta.toFixed(2)} ${f.unit}`;
+}
+
+/** Riga sotto la miniatura di GENERA: «somiglianza 97% · 64 → 22 anchor». */
+export function generateCaption(lang: Lang, r: GenerateResult): string {
+  const parts = [t(lang, 'gen.similarity', { n: num(lang, r.report.similarity, 1) })];
+  if (r.report.mode === 'minimal' || r.report.anchorsAfter !== r.report.anchorsBefore)
+    parts.push(t(lang, 'gen.anchors', { a: r.report.anchorsBefore, b: r.report.anchorsAfter }));
+  return parts.join(' · ');
+}
+
+/** Riepilogo della versione scelta: cosa ha cambiato, cosa no e perché. */
+export function generateSummary(lang: Lang, r: GenerateResult): string {
+  const rp = r.report;
+  const parts: string[] = [];
+  if (rp.mode === 'math') {
+    if (rp.angles) parts.push(t(lang, 'gen.sum.angles', { n: rp.angles }));
+    if (rp.radii) parts.push(t(lang, 'gen.sum.radii', { n: rp.radii }));
+    if (rp.positions) parts.push(t(lang, 'gen.sum.positions', { n: rp.positions }));
+    parts.push(t(lang, 'gen.sum.module', { m: num(lang, rp.module, 2), d: rp.division }));
+  } else {
+    parts.push(t(lang, 'gen.anchors', { a: rp.anchorsBefore, b: rp.anchorsAfter }));
+    if (rp.anchorsAfter >= rp.anchorsBefore) parts.push(t(lang, 'gen.sum.alreadyMinimal'));
+    if (rp.smallShapes) parts.push(t(lang, 'gen.sum.small', { n: rp.smallShapes }));
+  }
+  parts.push(t(lang, 'gen.similarity', { n: num(lang, rp.similarity, 1) }));
+  for (const n of rp.notes)
+    parts.push(t(lang, `gen.note.${n}`, { s: Math.round(rp.strengthUsed * 100) }));
+  return parts.join(' · ');
 }
 
 /** Riepilogo delle correzioni: «4 archi · 2 allineati · spostamento max 0,97 pt». */

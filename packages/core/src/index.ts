@@ -74,3 +74,15 @@ export {
   type EditPath,
   type NodeRef,
 } from './edit/edit';
+export {
+  generate,
+  generateDefaults,
+  type GenerateMode,
+  type GenerateOptions,
+  type GenerateReport,
+  type GenerateGuides,
+  type GenerateResult,
+  type GenerateNote,
+  type MinimalLevel,
+} from './generate/generate';
+export type { MathOptions } from './generate/math';

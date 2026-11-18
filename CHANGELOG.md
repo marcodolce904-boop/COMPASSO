@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.10.0 — 18/11/2026
+
+- **Nuova scheda GENERA** (specifica in `docs/GENERA.md`): versioni del logo ricomposte secondo una
+  regola, affiancate all'originale, da applicare su una copia (layer «Compasso — Generato», distinto
+  da quello di CORREGGI).
+  - **Matematico**:
+    - rette a multipli di 15° (o 30°, 45°, 90°); le quasi parallele diventano parallele;
+    - raggi a multipli del modulo (l'unità x del logo);
+    - spigoli e centri sulla griglia del modulo; gli spigoli tra due rette sono le loro intersezioni.
+
+    La miniatura mostra la griglia e i cerchi di costruzione.
+
+  - **Minimal**: lo stesso logo con meno anchor. Restano gli spigoli veri, gli smussi minuscoli tornano
+    spigoli vivi, le curve si rifanno con il minimo di tratti e le quasi-circolari diventano archi
+    esatti. Le forme molto piccole vengono segnalate. Si può fissare un numero massimo di anchor.
+  - **Sempre riconoscibile.** Ogni versione resta entro lo scarto massimo (3% della diagonale, regolabile).
+    Se una regola deformerebbe troppo:
+    - la griglia si fa più fine da sola;
+    - le rette troppo lunghe restano al loro angolo;
+    - in ultimo, l'intensità scende.
+
+    Il riepilogo dice sempre cosa è cambiato, la somiglianza (es. 99,3%) e perché qualcosa non è
+    stato fatto.
+
+  - Anteprima grande con zoom e confronto Generato / Confronto / Prima; parametri di ogni modalità in
+    una tendina.
+
 ## 0.9.0 — 18/11/2026
 
 - **ANALIZZA, costruzione delle curve libere**: le curve che non sono archi di cerchio (onde, code, foglie

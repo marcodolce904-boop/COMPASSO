@@ -1,6 +1,7 @@
-# GENERA — specifica (bozza da approvare)
+# GENERA — specifica
 
-_Bozza del 18/11/2026, dopo la 0.9.0. Da approvare con Marco prima di scrivere codice._
+_Approvata da Marco il 18/11/2026 («ok a tutte le proposte» del §8). Matematico e Minimal
+realizzati nella 0.10.0._
 _Primo rilascio previsto: modalità **Matematico** e **Minimal**. Le altre (Simmetrico, Sezione aurea,
 Strutturato) seguono con le stesse regole di base._
 

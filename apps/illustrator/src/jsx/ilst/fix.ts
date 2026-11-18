@@ -8,6 +8,9 @@ import { findLayer, type AiDrawDocument, type AiLayer } from './draw';
 
 export var FIX_LAYER = 'Compasso ' + String.fromCharCode(8212) + ' Corretto';
 export var ORIGINAL_NOTE = 'compasso:originale';
+/** GENERA: layer e marcatura distinti, cosi' le due copie (corretta e generata) convivono. */
+export var GEN_LAYER = 'Compasso ' + String.fromCharCode(8212) + ' Generato';
+export var GEN_NOTE = 'compasso:originale-genera';
 
 /** Nodo di un tracciato corretto, in coordinate del core (tavola attiva, Y in giu'). */
 export interface FixNode {
@@ -90,7 +93,13 @@ export function writePath(
  * Applica i tracciati corretti alla selezione. Se la selezione e' gia' la copia corretta (layer
  * "Compasso - Corretto") la aggiorna; altrimenti crea la copia e nasconde l'originale.
  */
-export function applyFix(doc: AiFixDocument | null, fixed: FixPath[], env: FixEnv): ApplyFixResult {
+export function applyFix(
+  doc: AiFixDocument | null,
+  fixed: FixPath[],
+  env: FixEnv,
+  layerName: string,
+  note: string,
+): ApplyFixResult {
   var t0 = env.now();
   if (!doc) return { ok: false, paths: 0, ms: 0, reason: 'no-document' };
   var selection = doc.selection as { length?: number; [i: number]: AiItem } | null;
@@ -103,23 +112,23 @@ export function applyFix(doc: AiFixDocument | null, fixed: FixPath[], env: FixEn
   for (var f = 0; f < fixed.length; f++) byId[fixed[f].id] = fixed[f];
 
   var allCopies = true;
-  for (var c = 0; c < items.length; c++) if (!inLayer(items[c], FIX_LAYER)) allCopies = false;
+  for (var c = 0; c < items.length; c++) if (!inLayer(items[c], layerName)) allCopies = false;
 
   var targets: AiItem[] = [];
   if (allCopies) {
     targets = items;
   } else {
-    var layer: AiLayer | null = findLayer(doc, FIX_LAYER);
+    var layer: AiLayer | null = findLayer(doc, layerName);
     if (!layer) {
       layer = doc.layers.add();
-      layer.name = FIX_LAYER;
+      layer.name = layerName;
     }
     layer.locked = false;
     layer.visible = true;
     for (var d = 0; d < items.length; d++) {
       var copy = items[d].duplicate!(layer, env.placeAtEnd);
       targets.push(copy);
-      items[d].note = ORIGINAL_NOTE;
+      items[d].note = note;
       items[d].hidden = true;
     }
   }
@@ -154,9 +163,9 @@ export function applyFix(doc: AiFixDocument | null, fixed: FixPath[], env: FixEn
 }
 
 /** Elimina la copia corretta e rimostra (e riseleziona) l'originale. */
-export function revertFix(doc: AiFixDocument | null): number {
+export function revertFix(doc: AiFixDocument | null, layerName: string, note: string): number {
   if (!doc) return 0;
-  var layer = findLayer(doc, FIX_LAYER);
+  var layer = findLayer(doc, layerName);
   if (layer) {
     layer.locked = false;
     layer.remove();
@@ -164,7 +173,7 @@ export function revertFix(doc: AiFixDocument | null): number {
   var restored: AiItem[] = [];
   for (var i = 0; i < doc.pageItems.length; i++) {
     var it = doc.pageItems[i];
-    if (it.note === ORIGINAL_NOTE) restored.push(it);
+    if (it.note === note) restored.push(it);
   }
   for (var k = 0; k < restored.length; k++) {
     restored[k].hidden = false;
@@ -179,6 +188,6 @@ export function revertFix(doc: AiFixDocument | null): number {
   return restored.length;
 }
 
-export function hasFix(doc: AiFixDocument | null): boolean {
-  return doc !== null && findLayer(doc, FIX_LAYER) !== null;
+export function hasFix(doc: AiFixDocument | null, layerName: string): boolean {
+  return doc !== null && findLayer(doc, layerName) !== null;
 }

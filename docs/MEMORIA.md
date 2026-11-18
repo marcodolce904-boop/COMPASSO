@@ -4,8 +4,8 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 18/11/2026, dopo il rilascio della 0.9.0 (§0). Prossimo passo: specifica di
-GENERA (Matematico e Minimal) da far approvare a Marco._
+_Ultimo aggiornamento: 18/11/2026, dopo il rilascio della 0.10.0 (scheda GENERA con Matematico e
+Minimal). Prossimo passo: prove di Marco su loghi veri, poi le altre modalità di GENERA._
 
 ## 0. Fatto nella 0.9.0 (18/11 pomeriggio): A + C in ANALIZZA
 
@@ -32,11 +32,32 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
 - **Ancora da fare:** raggruppare i bordi paralleli (es. le due gambe della A) con un segno di
   parallela; per ora le rette corte bastano a togliere il disordine.
 
-**Prossimo passo:** specifica di GENERA scritta in `docs/GENERA.md` (18/11), **in attesa di approvazione** di Marco (decisioni al §8 del documento).
+**GENERA:** la specifica è in `docs/GENERA.md`, **approvata da Marco il 18/11 («ok a tutte le proposte»)**.
+- Scarto massimo di base: 3% di D.
+- Matematico: angolo base 15°; modulo automatico (unità x del logo) con suddivisione m/2.
+- Minimal: le forme piccole vengono solo segnalate, non nascoste.
+- Posizione: una scheda a sé, «GENERA».
+
+**Fatto nella 0.10.0:** scheda GENERA con Matematico + Minimal.
+- Core: `core/src/generate/` (`generate.ts`, `math.ts`, `minimal.ts`, `geometry.ts`); test in
+  `test/generate.test.ts`.
+- UI: `GenerateThumbs.svelte` e `GenerateControls.svelte`.
+- Illustrator: `applyGenerate` e `revertGenerate`, layer «Compasso — Generato» con marcatura propria;
+  l'impronta della selezione ha un terzo indicatore.
+- Guardia di riconoscibilità, in quest'ordine:
+  1. griglia più fine (m/2 → m/4 → m/8);
+  2. gruppi di rette lasciati al loro angolo se la rotazione sposta oltre l'80% dello scarto;
+  3. intensità ridotta (ricerca binaria).
+- Minimal parte dalla versione con meno anchor (originale o corretta).
+
+**Prossimi passi su GENERA:**
+- modalità Simmetrico (riusa `mirror.ts`), Sezione aurea (serve una specifica sua) e Strutturato
+  (archi tangenti della 0.9.0);
+- calcolo in un worker se diventa lento (oggi ~0,4 s per modalità sul logo di prova).
 
 ## 1. Dove siamo
 
-- Versione pubblicata: **0.9.0**. Installer:
+- Versione pubblicata: **0.10.0**. Installer:
   `https://github.com/marcodolce904-boop/COMPASSO/releases/download/vX.Y.Z/Compasso-Setup.exe`.
   Si pubblica da solo con un push su `main` quando la versione in `apps/illustrator/package.json` è nuova.
 - Schede funzionanti:
