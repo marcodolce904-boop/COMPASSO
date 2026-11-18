@@ -1,7 +1,7 @@
 // Banco di prova del ricalco: `pnpm bench:trace`. Per ogni figura e livello di difficoltà
 // ricalca lo schizzo e misura scarto, pezzi mancanti, anchor e spigoli; poi spegne una parte
 // del metodo alla volta (ablazione) per vedere quanto conta.
-import { trace, traceDefaults, type TraceTuning } from '../packages/core/src';
+import { downscale, trace, traceDefaults, type TraceTuning } from '../packages/core/src';
 import {
   FIGURES,
   LEVEL_WIDTH,
@@ -86,6 +86,7 @@ const variants: [string, Partial<TraceTuning>][] = [
   ['senza spigoli esatti', { exactCorners: false }],
   ['senza ricucitura', { joinGaps: false }],
   ['senza verso (orario)', { orient: false }],
+  ['senza ingrandimento', { upscale: false }],
 ];
 for (const level of ['normale', 'difficile'] as Level[]) {
   console.log(`\n== ablazione, livello ${level} (medie su tutte le figure) ==`);
@@ -106,4 +107,37 @@ for (const level of ['normale', 'difficile'] as Level[]) {
         `${s.ms.toFixed(0)}`,
     );
   }
+}
+
+// foto piccole: lo stesso schizzo ridotto a 1/3 (≈ 170–210 px), riportato in scala per il confronto
+console.log('\n== foto piccole (1/3 della risoluzione, livello normale) ==');
+console.log('variante                    scarto  max    anchor/ideale  spigoli  tracciati ok');
+for (const [name, tu] of [
+  ['con ingrandimento', {}],
+  ['senza ingrandimento', { upscale: false }],
+] as [string, Partial<TraceTuning>][]) {
+  const rows: { fig: string; s: Score; ms: number }[] = [];
+  for (const fig of FIGURES)
+    for (const seed of SEEDS) {
+      const { image } = downscale(
+        sketch(fig, 'normale', seed),
+        Math.ceil(Math.max(fig.w, fig.h) / 3),
+      );
+      const out = trace(
+        image,
+        traceDefaults(image.width, image.height),
+        { x: 0, y: 0, scale: 3 },
+        tu,
+      );
+      rows.push({ fig: fig.name, s: score(out.geometry, fig, LEVEL_WIDTH.normale), ms: 0 });
+    }
+  const s = summary(rows);
+  console.log(
+    name.padEnd(28) +
+      `${f1(s.meanDev)}`.padEnd(8) +
+      `${f1(s.maxDev)}`.padEnd(7) +
+      `${s.anchorsRatio.toFixed(2)}`.padEnd(15) +
+      `${f1(s.cornerErr)}`.padEnd(9) +
+      `${f1(s.pathsOk)}%`,
+  );
 }

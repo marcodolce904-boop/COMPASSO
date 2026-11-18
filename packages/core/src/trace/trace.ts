@@ -14,6 +14,7 @@ import {
   clean,
   close,
   fillThinHoles,
+  upscale,
   type Mask,
   type RasterImage,
 } from './raster';
@@ -62,6 +63,8 @@ export interface TraceTuning {
   joinGaps: boolean;
   /** Verso: forme in senso orario, buchi antiorario. */
   orient: boolean;
+  /** Immagini piccole (< 450 px) ingrandite prima del ricalco: linee senza scalini. */
+  upscale: boolean;
 }
 export const FULL_TUNING: TraceTuning = {
   resample: true,
@@ -72,6 +75,7 @@ export const FULL_TUNING: TraceTuning = {
   exactCorners: true,
   joinGaps: true,
   orient: true,
+  upscale: true,
 };
 
 /** Dove va il risultato: angolo in alto a sinistra e pt per pixel. */
@@ -501,12 +505,20 @@ function dropTiny(segs: Segment[], closed: boolean, min: number): Segment[] {
 }
 
 export function trace(
-  img: RasterImage,
-  o: TraceOptions,
-  place: TracePlacement,
+  source: RasterImage,
+  opts: TraceOptions,
+  where: TracePlacement,
   tuning: Partial<TraceTuning> = {},
 ): TraceOutput {
   const tu: TraceTuning = { ...FULL_TUNING, ...tuning };
+  // foto piccole (< 450 px): con pochi pixel per tratto la linea centrale è a scalini e gli
+  // spigoli si spostano. Si ingrandisce (bilineare) fino a ~900 px; le misure in px crescono
+  // insieme. Sulle immagini più grandi non serve (misurato con pnpm bench:trace) e rallenta.
+  const long = Math.max(source.width, source.height);
+  const up = tu.upscale && long < 450 ? Math.min(3, Math.ceil(900 / long)) : 1;
+  const img = upscale(source, up);
+  const o: TraceOptions = { ...opts, merge: opts.merge * up, minArea: opts.minArea * up * up };
+  const place: TracePlacement = { ...where, scale: where.scale / up };
   const t0 = now();
   const win = Math.max(15, Math.round(Math.max(img.width, img.height) / 20) | 1);
   let mask: Mask = adaptiveThreshold(img, o.sensitivity, win);

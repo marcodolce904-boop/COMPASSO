@@ -306,3 +306,33 @@ export function fillThinHoles(m: Mask, maxHalf: number): Mask {
   }
   return { width: m.width, height: m.height, data };
 }
+
+/** Ingrandisce l'immagine di un fattore intero (interpolazione bilineare). */
+export function upscale(img: RasterImage, f: number): RasterImage {
+  if (f <= 1) return img;
+  const W = img.width * f;
+  const H = img.height * f;
+  const data = new Uint8ClampedArray(W * H * 4);
+  const s = img.data;
+  for (let y = 0; y < H; y++) {
+    const sy = Math.min(img.height - 1, Math.max(0, (y + 0.5) / f - 0.5));
+    const y0 = Math.floor(sy);
+    const y1 = Math.min(img.height - 1, y0 + 1);
+    const fy = sy - y0;
+    for (let x = 0; x < W; x++) {
+      const sx = Math.min(img.width - 1, Math.max(0, (x + 0.5) / f - 0.5));
+      const x0 = Math.floor(sx);
+      const x1 = Math.min(img.width - 1, x0 + 1);
+      const fx = sx - x0;
+      for (let c = 0; c < 4; c++) {
+        const a = s[(y0 * img.width + x0) * 4 + c]!;
+        const b = s[(y0 * img.width + x1) * 4 + c]!;
+        const d = s[(y1 * img.width + x0) * 4 + c]!;
+        const e = s[(y1 * img.width + x1) * 4 + c]!;
+        data[(y * W + x) * 4 + c] =
+          (a * (1 - fx) + b * fx) * (1 - fy) + (d * (1 - fx) + e * fx) * fy;
+      }
+    }
+  }
+  return { width: W, height: H, data };
+}

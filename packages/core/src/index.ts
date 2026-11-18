@@ -58,3 +58,17 @@ export {
   FULL_TUNING,
 } from './trace/trace';
 export { downscale, type RasterImage, type Mask } from './trace/raster';
+export {
+  toEdit,
+  fromEdit,
+  isSmooth,
+  moveNodes,
+  moveHandle,
+  insertNode,
+  removeNode,
+  toggleCorner,
+  nearestOnPaths,
+  type EditNode,
+  type EditPath,
+  type NodeRef,
+} from './edit/edit';
