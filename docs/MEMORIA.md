@@ -4,8 +4,44 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 18/11/2026 sera. Prossimo sviluppo: §3b A + C (archi per le curve
-libere, rette più pulite), poi specifica di GENERA (Matematico e Minimal)._
+_Ultimo aggiornamento: 18/11/2026 sera. PRIORITÀ: vedi §0 (A + C in ANALIZZA, prima
+la conferma di Marco sulle modifiche a `model.ts`); poi specifica di GENERA._
+
+## 0. PRIORITÀ DELLA PROSSIMA SESSIONE (fissata da Marco il 18/11, ripresa alle 15:00)
+
+**Riprendere da qui, prima di tutto il resto.** Sviluppare in ANALIZZA le opzioni **A + C** del §3b,
+scelte da Marco:
+- **A. Archi per le curve libere**: ogni curva libera (es. la coda della «A con coda») spiegata con la
+  catena minima di archi tangenti, tratteggiati e con lo scarto indicato.
+- **C. Rette più pulite**: rette accorciate al tratto, bordi paralleli raggruppati.
+
+**Domanda ancora aperta, da fare a Marco per prima.** Serve la sua conferma su queste modifiche a
+`core/src/model.ts`, tutte aggiunte facoltative:
+1. `Circle.approx?: number`: lo scarto in pt di un cerchio che approssima una curva libera; assente =
+   cerchio vero. Si disegna tratteggiato e se ne mostra lo scarto.
+2. `dashed?: boolean` sui `Primitive` cerchio e linea: tratteggio in Illustrator (`draw.ts`, ES3).
+3. `GuideLine.span?: [Vec2, Vec2]`: estremi del tratto descritto dalla retta, più una nuova estensione
+   `lineExtent: 'segment'` («al tratto»).
+
+Le opzioni da proporre a Marco:
+- **(a)** tutto, con le rette «al tratto» come predefinite: cambiano tutte le rette disegnate e quindi
+  `fixtures/expected`, da aggiornare mostrando il diff. **È la consigliata.**
+- **(b)** i campi, ma con le rette lunghe come predefinite e «al tratto» solo come opzione.
+- **(c)** fermarsi.
+
+Piano tecnico di A, dopo l'ok:
+- nuovo modulo `core/src/fit/arcspline.ts`, che approssima una curva libera con biarchi o archi
+  tangenti, col minimo di archi entro la tolleranza (G1 nei punti di passaggio);
+- gli archi entrano in `analyze` come cerchi con `approx`, più segni quadrati nei punti di passaggio;
+- si rinuncia se servirebbero più di ~4 archi per curva: in quel caso il pannello lo dice;
+- test prima, con la coda della «A con coda» ricostruita come figura di prova.
+
+Piano tecnico di C:
+- `span` dai segmenti del cluster;
+- in `plan`, retta = span + 10% del tratto per lato;
+- rette parallele vicine raggruppate nei livelli base.
+
+Dopo A + C: specifica di GENERA (§3, §5).
 
 ## 1. Dove siamo
 
