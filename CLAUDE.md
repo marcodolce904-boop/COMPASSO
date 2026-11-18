@@ -4,6 +4,8 @@ Plugin per Adobe Illustrator (pannello CEP, Bolt CEP + Svelte 5 + TS) che deduce
 costruzione geometrica di un logo dai suoi tracciati e la disegna su un layer dedicato.
 Specifica completa: docs/SPEC.md (leggi SOLO le sezioni indicate nel prompt).
 Avanzamento: docs/STATO.md (aggiornalo a fine fase).
+Memoria di lavoro (decisioni, priorità, piano GENERA): leggila sempre all'inizio e aggiornala
+quando cambia una decisione → @docs/MEMORIA.md
 
 ## Struttura
 - packages/core   motore geometrico, TS puro, nessun DOM/host. API: analyze(), plan(), parseSvg()

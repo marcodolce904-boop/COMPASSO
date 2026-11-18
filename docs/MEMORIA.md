@@ -1,0 +1,111 @@
+# Memoria di lavoro — Compasso
+
+Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessioni.
+Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
+Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
+
+_Ultimo aggiornamento: 18/11/2026, dopo il rilascio della 0.7.0._
+
+## 1. Dove siamo
+
+- Versione pubblicata: **0.7.0**. Installer:
+  `https://github.com/marcodolce904-boop/COMPASSO/releases/download/vX.Y.Z/Compasso-Setup.exe`.
+  Si pubblica da solo con un push su `main` quando la versione in `apps/illustrator/package.json` è nuova.
+- Schede funzionanti:
+  - **RICALCA**: schizzo → tracciati, con penna, storico Indietro/Avanti e Azzera tutto.
+  - **CORREGGI**: 10 correzioni su una copia del logo.
+  - **ANALIZZA**: costruzione a livelli Essenziale, Struttura, Dettaglio e Tutto.
+- Test: 335, tutti verdi.
+- Ancora da fare: la verifica di Marco in Illustrator vero (checklist §10.4 della SPEC).
+
+## 2. Problema aperto più urgente: la simmetria
+
+**Segnalazione di Marco (18/11):** "non vedo un reale funzionamento di simmetria".
+
+**Causa verificata.** La simmetria di CORREGGI lavora sugli anchor: cerca un gemello speculare per ogni
+punto e rinuncia se meno del 75% dei punti ne ha uno. Sui ricalchi a mano i punti dei due lati non
+cadono mai in posizioni speculari. Sullo schizzo vero di Marco corregge **0 punti**, anche con una
+tolleranza al 12% della diagonale del logo. Sui loghi di prova disegnati al computer invece funzionava.
+
+**Soluzione proposta:** lavorare sulle **forme**, non sugli anchor.
+1. Si sceglie l'asse (automatico, verticale oppure orizzontale).
+2. Si sceglie la **metà buona** (sinistra/destra oppure sopra/sotto).
+3. Quella metà viene riflessa e le due metà vengono cucite sull'asse.
+4. In alternativa: media tra la forma e il suo riflesso.
+
+Quando una correzione non agisce, il pannello deve dire **perché**
+(es. "simmetria non applicata: lati troppo diversi").
+
+## 3. Nuova funzione proposta: tendina GENERA
+
+**Idea di Marco (18/11).** Generare versioni del logo ricomposte secondo regole visive e matematiche
+precise, con anteprime. Va in una tendina o scheda **a parte**.
+
+### Le 5 modalità
+
+| Modalità | Cosa fa al logo | Fattibilità |
+|---|---|---|
+| **Simmetrico** | riflette la metà scelta (metodo del §2) | alta, ed è la più urgente |
+| **Sezione aurea** | raggi dei cerchi in progressione φ (1 : 1,618 : 2,618…), proporzioni del riquadro e posizioni dei centri sulla griglia aurea | media |
+| **Matematico** | tutto multiplo di un modulo: raggi, distanze, angoli a 15°, 30° o 45° | alta |
+| **Minimal** | meno anchor possibile, dettagli piccoli tolti, curve ridotte ad archi e rette | alta |
+| **Strutturato** | ogni curva diventa un arco di un cerchio di costruzione, con tangenti continue | media |
+
+### Come appare nel pannello
+
+- 5 anteprime affiancate, ognuna con il logo ricomposto e le sue linee guida.
+- Clic su un'anteprima: si ingrandisce, con confronto rispetto all'originale.
+- **Applica**: il risultato va su una copia, come in CORREGGI.
+- Ogni modalità dice cosa ha cambiato (es. "3 raggi portati in rapporto φ").
+
+### Parametri
+
+- **Intensità**: da 0 = originale a 100% = regola piena.
+- **Rapporto di base**: φ 1,618 · √2 · 3:2 · 1:1.
+- **Modulo**: unità x del logo oppure passo di griglia.
+- **Asse** e **metà da riflettere** (solo per Simmetrico).
+- **Angoli ammessi**: 15°, 30° o 45°.
+- **Numero massimo di anchor** (solo per Minimal).
+- **Scarto massimo dall'originale**, in % della diagonale: il logo deve restare **riconoscibile**.
+
+### Rischio principale
+
+Le regole applicate alla cieca rendono il logo irriconoscibile. Lo scarto massimo e l'intensità sono
+obbligatori, non facoltativi.
+
+## 4. Altre migliorie concordate da valutare
+
+- **Percorso guidato** RICALCA → CORREGGI → ANALIZZA, con un pulsante «Avanti».
+- **Confronto prima/dopo** con una tendina trascinabile sull'anteprima.
+- **Preset salvabili** delle regolazioni.
+- **Spiegazione** quando una correzione resta a 0.
+
+## 5. Ordine di lavoro proposto (in attesa dell'ok di Marco)
+
+1. **Simmetria sulle forme** in CORREGGI; diventa anche la modalità Simmetrico di GENERA.
+2. **Scheda GENERA** con **Matematico** e **Minimal**, le più sicure.
+3. **Sezione aurea** e **Strutturato**.
+4. Migliorie del §4.
+
+Prima di scrivere codice per GENERA: una specifica breve da far approvare a Marco, con le regole
+esatte di ogni modalità. Le modifiche a `core/src/model.ts` vanno chieste prima.
+
+## 6. Lezioni imparate (da non ripetere)
+
+- **Mai considerare finita una correzione provata solo su loghi sintetici.** Va provata anche su un
+  ricalco vero (es. lo schizzo in `fixtures/reports` o i file di «Segnala un problema»).
+- I loghi veri di Marco come file sono la risorsa che manca di più: chiederli.
+  Strada più semplice: «⚙ → Segnala un problema».
+- Due archi con gli stessi estremi possono stare su cerchi speculari: per decidere se due archi sono
+  "lo stesso cerchio" serve controllare anche il punto a metà (bug corretto nella 0.7.0).
+
+## 7. Modo di lavorare con Marco
+
+- Rispondere in italiano, in modo conciso. Spiegare le scelte tecniche in 1–2 frasi: Marco è un
+  designer che sta imparando lo sviluppo.
+- Rilascio:
+  - commit sul ramo di lavoro, poi push sul ramo e su `main` con versione nuova;
+  - controllare che la release esca;
+  - dare il link dell'installer.
+- Chiedere conferma prima di aggiornare `fixtures/expected`, aggiungere dipendenze o cambiare
+  `model.ts` (vedi `CLAUDE.md`).
