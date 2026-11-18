@@ -107,7 +107,17 @@ const en = {
   'fix.align.hint': 'Anchors almost on the same row or column are aligned.',
   'fix.symmetry': 'Symmetry',
   'fix.symmetry.hint':
-    'An almost symmetric logo becomes symmetric: anchors, handles and curves (an extra anchor on one side gets its twin).',
+    'An almost symmetric logo becomes symmetric. Auto: balances the two sides, or reflects the cleaner half if the points do not match (hand tracings). Or choose the half to keep.',
+  'fix.keep': 'Half to keep',
+  'fix.keep.left': 'Left',
+  'fix.keep.right': 'Right',
+  'fix.keep.top': 'Top',
+  'fix.keep.bottom': 'Bottom',
+  'fix.symmetry.note.too-different':
+    'Not applied: the two sides differ more than the tolerance. Raise it or choose the half to keep.',
+  'fix.symmetry.note.partial':
+    'Some shapes have no twin on the other side and were left as they were.',
+  'fix.symmetry.note.shape': 'One half kept, the other is its exact reflection.',
   'fix.smooth': 'Smooth curves',
   'fix.smooth.hint':
     'Where the direction bends by only a few degrees, the tangent becomes continuous: flowing curves, true corners stay.',
@@ -358,7 +368,17 @@ const it: Record<StringKey, string> = {
   'fix.align.hint': 'Gli anchor quasi sulla stessa riga o colonna vengono allineati.',
   'fix.symmetry': 'Simmetria',
   'fix.symmetry.hint':
-    'Il logo quasi simmetrico diventa simmetrico: anchor, maniglie e curve (un anchor in più su un lato riceve il gemello).',
+    'Il logo quasi simmetrico diventa simmetrico. Auto: bilancia i due lati, o riflette la metà più pulita se i punti non coincidono (ricalchi a mano). Oppure scegli tu la metà da tenere.',
+  'fix.keep': 'Metà da tenere',
+  'fix.keep.left': 'Sinistra',
+  'fix.keep.right': 'Destra',
+  'fix.keep.top': 'Sopra',
+  'fix.keep.bottom': 'Sotto',
+  'fix.symmetry.note.too-different':
+    'Non applicata: i due lati differiscono più della tolleranza. Alzala o scegli la metà da tenere.',
+  'fix.symmetry.note.partial':
+    "Alcune forme non hanno un gemello sull'altro lato e sono rimaste com'erano.",
+  'fix.symmetry.note.shape': "Una metà resta com'è, l'altra è il suo riflesso esatto.",
   'fix.smooth': 'Curve fluide',
   'fix.smooth.hint':
     'Dove la direzione piega di pochi gradi la tangente diventa continua: curve sinuose, gli spigoli veri restano.',

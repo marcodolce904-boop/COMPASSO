@@ -173,6 +173,19 @@
       { value: 'horizontal', label: t(lang, 'fix.axis.horizontal') },
     ]}
   />
+  <div class="lbl">{t(lang, 'fix.keep')}</div>
+  <Segmented
+    ariaLabel={t(lang, 'fix.keep')}
+    bind:value={options.symmetry.keep}
+    dense
+    options={[
+      { value: 'auto', label: t(lang, 'fix.axis.auto') },
+      { value: 'left', label: t(lang, 'fix.keep.left') },
+      { value: 'right', label: t(lang, 'fix.keep.right') },
+      { value: 'top', label: t(lang, 'fix.keep.top') },
+      { value: 'bottom', label: t(lang, 'fix.keep.bottom') },
+    ]}
+  />
   <Slider
     label={t(lang, 'fix.tolerance')}
     bind:value={options.symmetry.tolerance}
@@ -183,6 +196,11 @@
     unit="pt"
     format={pt}
   />
+  {#if options.symmetry.enabled && report?.symmetryNote}
+    <p class="note">{t(lang, `fix.symmetry.note.${report.symmetryNote}`)}</p>
+  {:else if options.symmetry.enabled && report?.symmetryMethod === 'shape'}
+    <p class="note ok">{t(lang, 'fix.symmetry.note.shape')}</p>
+  {/if}
 </Toggle>
 
 <Toggle
@@ -265,5 +283,17 @@
   }
   .reset {
     padding-top: var(--sp-1);
+  }
+  .lbl {
+    font: 400 var(--fs-xs) var(--f-sans);
+    color: var(--c-text-3);
+  }
+  .note {
+    margin: 0;
+    font: 400 var(--fs-xs) var(--f-sans);
+    color: var(--c-warn, var(--c-text-2));
+  }
+  .note.ok {
+    color: var(--c-text-3);
   }
 </style>

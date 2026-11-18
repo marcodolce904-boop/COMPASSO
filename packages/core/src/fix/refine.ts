@@ -9,6 +9,7 @@ import { ellipsePoint, fitEllipse, nearestParam } from '../fit/ellipse';
 import { fitCircleTaubin } from '../fit/taubin';
 import { normalizeGeometry } from '../normalize';
 import { UnionFind } from '../primitives/unionFind';
+import { autoKeep, findMirrorAxis, mirrorHalf, type MirrorKeep } from './mirror';
 
 export type SymmetryAxis = 'auto' | 'vertical' | 'horizontal';
 
@@ -30,8 +31,17 @@ export interface RefineOptions {
   lines: { enabled: boolean; angle: number };
   /** Anchor quasi sulla stessa riga o colonna → allineati (scarto massimo, pt). */
   align: { enabled: boolean; tolerance: number };
-  /** Logo quasi simmetrico → simmetrico (scarto massimo tra punti speculari, pt). */
-  symmetry: { enabled: boolean; tolerance: number; axis: SymmetryAxis };
+  /**
+   * Logo quasi simmetrico → simmetrico. `tolerance` = scarto ammesso tra i due lati (pt).
+   * `keep`: 'auto' bilancia i due lati se gli anchor sono speculari, altrimenti riflette la metà
+   * più pulita; con un lato scelto quella metà resta com'è e l'altra diventa il suo riflesso.
+   */
+  symmetry: {
+    enabled: boolean;
+    tolerance: number;
+    axis: SymmetryAxis;
+    keep: 'auto' | MirrorKeep;
+  };
   /** Aggancio a una griglia (passo in pt) di anchor e centri; facoltativo l'arrotondamento dei raggi. */
   grid: { enabled: boolean; step: number; radii: boolean };
   /** Meno anchor: archi ricostruiti con il minimo di tratti, rette consecutive allineate unite. */
@@ -62,6 +72,13 @@ export interface RefineReport {
   symmetric: number;
   /** Asse usato per la simmetria, se applicata. */
   axis: { theta: number; rho: number } | null;
+  /** Come è stata fatta la simmetria: bilanciando gli anchor o riflettendo una metà. */
+  symmetryMethod: 'points' | 'shape' | null;
+  /**
+   * Perché la simmetria non è stata applicata (o solo in parte): 'too-different' = i due lati
+   * differiscono più della tolleranza; 'partial' = qualche tracciato è rimasto com'era.
+   */
+  symmetryNote: 'too-different' | 'partial' | null;
   /** Anchor agganciati alla griglia. */
   gridded: number;
   /** Anchor resi lisci (tangente continua) dalle curve fluide. */
@@ -93,7 +110,7 @@ export function refineDefaults(geom: DocumentGeometry): { D: number; options: Re
       centers: { enabled: true, tolerance: pt(0.01) },
       lines: { enabled: true, angle: 2 },
       align: { enabled: true, tolerance: pt(0.005) },
-      symmetry: { enabled: true, tolerance: pt(0.015), axis: 'auto' },
+      symmetry: { enabled: true, tolerance: pt(0.015), axis: 'auto', keep: 'auto' },
       grid: { enabled: false, step: 1, radii: false },
       clean: { enabled: true },
       smooth: { enabled: true, angle: 12 },
@@ -277,11 +294,14 @@ function clusters1d<T>(items: T[], value: (t: T) => number, tol: number): T[][] 
 // ---------------------------------------------------------------------------------------------
 
 export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResult {
-  const ng = normalizeGeometry(geom.paths);
-  const D = ng.D || 1;
   const excluded = new Set(opts.exclude ?? []);
   const isExcluded = (p: PathData) =>
     excluded.has(p.id) || (!!p.glyphId && excluded.has(p.glyphId));
+  const symOn = opts.symmetry.enabled && opts.symmetry.tolerance > 0;
+  // 0. Simmetria sulle forme (prima di tutto: cambia la struttura dei tracciati)
+  const shape = symOn ? mirrorShapes(geom.paths, opts, isExcluded) : null;
+  const ng = normalizeGeometry(shape?.paths ?? geom.paths);
+  const D = ng.D || 1;
   const work = ng.paths.filter((p) => !isExcluded(p)).map(toWork);
   const strength = Math.max(0, Math.min(1, opts.strength));
   const structural = opts.clean.enabled && strength >= 0.999;
@@ -292,8 +312,10 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
     centers: 0,
     lines: 0,
     aligned: 0,
-    symmetric: 0,
+    symmetric: shape?.anchors ?? 0,
     axis: null,
+    symmetryMethod: shape ? 'shape' : null,
+    symmetryNote: shape && shape.skipped > 0 ? 'partial' : null,
     gridded: 0,
     smoothed: 0,
     removedAnchors: 0,
@@ -372,9 +394,11 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
     }
   };
   const angleTol = (opts.lines.angle * Math.PI) / 180;
-  const symOn = opts.symmetry.enabled && opts.symmetry.tolerance > 0;
   const alignOn = opts.align.enabled && opts.align.tolerance > 0;
-  let fixedAxis: { vertical: boolean; c: number } | null = null;
+  let fixedAxis: { vertical: boolean; c: number } | null = shape
+    ? { vertical: shape.axis.vertical, c: shape.axis.c }
+    : null;
+  if (shape) report.axis = { theta: shape.axis.vertical ? 0 : Math.PI / 2, rho: shape.axis.c };
   const counted = { sym: new Set<Node>(), lines: new Set<string>(), aligned: new Set<Node>() };
   for (let iter = 0; iter < 12; iter++) {
     let moved = 0;
@@ -388,9 +412,10 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
         work,
         iter === 0 && strength >= 0.999 ? splitSeg : null,
       );
-      if (iter === 0 && sres.axis) {
+      if (iter === 0 && sres.axis && !shape) {
         fixedAxis = { vertical: Math.abs(sres.axis.theta) < 1e-9, c: sres.axis.rho };
         report.axis = sres.axis;
+        report.symmetryMethod = 'points';
       }
       sres.moved.forEach((n) => counted.sym.add(n));
       moved += sres.shift;
@@ -464,6 +489,7 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
   }
 
   report.symmetric += counted.sym.size;
+  if (symOn && !report.axis) report.symmetryNote = 'too-different';
 
   // 9. Intensità: sfuma tra originale e corretto (solo se la struttura dei tracciati non è cambiata).
   work.forEach((w, k) => {
@@ -481,7 +507,7 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
         n.hout = mix(o.hout, n.hout);
       });
     }
-    let changed = !sameShape;
+    let changed = !sameShape || (shape?.changed.has(w.src.id) ?? false);
     if (sameShape) {
       w.nodes.forEach((n, i) => {
         const o = orig[i]!;
@@ -500,6 +526,7 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
     }
     if (changed) report.changedPaths++;
   });
+  if (shape) report.maxShift = Math.max(report.maxShift, shape.shift);
   report.maxShift = round2(report.maxShift * 1000) / 1000;
 
   // tracciati scartati dalla normalizzazione (solo segmenti degeneri): restano come sono,
@@ -510,6 +537,92 @@ export function refine(geom: DocumentGeometry, opts: RefineOptions): RefineResul
 }
 
 // ---------------------------------------------------------------------------------------------
+
+/**
+ * Simmetria sulle forme. Con un lato scelto si riflette sempre; in automatico solo se gli anchor
+ * non sono già speculari (in quel caso li bilancia `symmetrize`, più fedele) e se i due lati
+ * differiscono meno della tolleranza.
+ */
+function mirrorShapes(
+  paths: PathData[],
+  opts: RefineOptions,
+  isExcluded: (p: PathData) => boolean,
+): {
+  paths: PathData[];
+  axis: { vertical: boolean; c: number };
+  anchors: number;
+  skipped: number;
+  changed: Set<string>;
+  shift: number;
+} | null {
+  const keep = opts.symmetry.keep ?? 'auto'; // opzioni salvate prima della 0.8
+  const editable = (p: PathData) => !isExcluded(p);
+  const cand = paths.filter(editable);
+  if (!cand.length) return null;
+  let axis: ReturnType<typeof findMirrorAxis> = null;
+  let side: MirrorKeep;
+  if (keep !== 'auto') {
+    axis = findMirrorAxis(cand, keep === 'left' || keep === 'right');
+    if (!axis) return null;
+    side = keep;
+  } else {
+    // anchor già speculari: ci pensa il bilanciamento dei punti
+    const nodes = normalizeGeometry(cand).paths.map(toWork);
+    const probe = symmetrize(
+      nodes.flatMap((w) => w.nodes),
+      [],
+      opts.symmetry.tolerance,
+      opts.symmetry.axis,
+      null,
+      nodes,
+    );
+    if (probe.axis) return null;
+    const options: boolean[] =
+      opts.symmetry.axis === 'vertical'
+        ? [true]
+        : opts.symmetry.axis === 'horizontal'
+          ? [false]
+          : [true, false];
+    for (const v of options) {
+      const a = findMirrorAxis(cand, v);
+      if (a && (!axis || a.mismatch < axis.mismatch)) axis = a;
+    }
+    if (!axis || axis.mismatch > opts.symmetry.tolerance) return null;
+    side = autoKeep(cand, axis);
+  }
+  const r = mirrorHalf(paths, axis, side, editable);
+  const changed = new Set<string>();
+  let shift = 0;
+  let reshaped = false;
+  r.paths.forEach((p, i) => {
+    if (p === paths[i]) return;
+    changed.add(p.id);
+    // spostamento: distanza dei nuovi anchor dalla curva di prima
+    const before = sampleNodes(toWork(paths[i]!).nodes, paths[i]!.closed);
+    let x0 = Infinity,
+      y0 = Infinity,
+      x1 = -Infinity,
+      y1 = -Infinity;
+    for (const q of before) {
+      x0 = Math.min(x0, q.x);
+      y0 = Math.min(y0, q.y);
+      x1 = Math.max(x1, q.x);
+      y1 = Math.max(y1, q.y);
+    }
+    let own = 0;
+    for (const s of p.segments) {
+      let best = Infinity;
+      for (const q of before) best = Math.min(best, dist(q, s.p0));
+      if (best < Infinity) own = Math.max(own, best);
+    }
+    shift = Math.max(shift, own);
+    // in automatico ogni forma deve restare riconoscibile (es. ovali inclinati nello stesso verso
+    // non sono speculari: rifletterli li girerebbe)
+    if (own > 0.08 * Math.hypot(x1 - x0, y1 - y0)) reshaped = true;
+  });
+  if (!changed.size || (keep === 'auto' && reshaped)) return null;
+  return { paths: r.paths, axis: r.axis, anchors: r.anchors, skipped: r.skipped, changed, shift };
+}
 
 /** Anchor (originali) di un tratto d'arco, dal primo all'ultimo. */
 function runNodes(w: WPath, run: Run): Node[] {

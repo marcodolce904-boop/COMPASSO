@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.0 — 18/11/2026
+
+- **Simmetria sulle forme (CORREGGI)**: ora funziona anche sui loghi disegnati a mano e ricalcati, dove
+  i punti dei due lati non sono mai speculari. Prima lì non succedeva nulla.
+  - L'asse si trova confrontando le curve, non i punti.
+  - Una metà resta com'è e l'altra diventa il suo **riflesso esatto**. I tracciati che attraversano
+    l'asse vengono tagliati e ricomposti; dove la curva passa l'asse quasi di traverso la giunzione è
+    liscia, mentre le punte (fondo di uno scudo, incavo di un cuore) restano punte.
+  - Le forme tutte da un lato, come gli occhi o le foglie, prendono la forma del gemello riflesso.
+  - **Metà da tenere**: Auto, Sinistra, Destra, Sopra o Sotto.
+    - In Auto i loghi disegnati al computer vengono bilanciati come prima.
+    - I ricalchi a mano vengono riflessi dalla metà più pulita, ma solo se ogni forma resta
+      riconoscibile.
+  - Il pannello ora dice **perché** la simmetria non è stata applicata (lati troppo diversi, forme senza
+    gemello) e quando una metà è stata riflessa.
+- Provato su scudo, cuore e goccia con occhi disegnati a mano: in automatico 5 casi su 6 diventano
+  simmetrici, prima 2 su 6. Il sesto ha un occhio ricalcato male e lì conviene scegliere la metà.
+
 ## 0.7.0 — 18/11/2026
 
 - **CORREGGI, simmetria rifatta**: prima bastava un solo punto senza "gemello" per rinunciare, e si

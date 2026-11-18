@@ -51,6 +51,9 @@ in «dettaglio»/«tutto»; fixtures 06, 09, 11 aggiornate con l'ok di Marco); C
 (asse sulla mediana delle coppie, maniglie speculari, gemello aggiunto all'anchor in più, passaggio
 finale dopo gli archi), «Curve fluide» (tangenti continue sotto i 12°), corretto l'arco ricostruito sul
 cerchio speculare sbagliato (foglie, mandorle).
+Fatto (0.8.0): simmetria sulle forme (`core/src/fix/mirror.ts`) con «Metà da tenere» e spiegazione quando
+non si applica; funziona sui ricalchi a mano (test `mirror.test.ts`). Prossimo: specifica di GENERA
+(vedi `docs/MEMORIA.md`).
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

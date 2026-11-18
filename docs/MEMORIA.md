@@ -4,11 +4,12 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 18/11/2026, dopo il rilascio della 0.7.0._
+_Ultimo aggiornamento: 18/11/2026, dopo il rilascio della 0.8.0. Prossimo passo: specifica di
+GENERA (Matematico e Minimal) da far approvare a Marco._
 
 ## 1. Dove siamo
 
-- Versione pubblicata: **0.7.0**. Installer:
+- Versione pubblicata: **0.8.0**. Installer:
   `https://github.com/marcodolce904-boop/COMPASSO/releases/download/vX.Y.Z/Compasso-Setup.exe`.
   Si pubblica da solo con un push su `main` quando la versione in `apps/illustrator/package.json` è nuova.
 - Schede funzionanti:
@@ -18,7 +19,26 @@ _Ultimo aggiornamento: 18/11/2026, dopo il rilascio della 0.7.0._
 - Test: 335, tutti verdi.
 - Ancora da fare: la verifica di Marco in Illustrator vero (checklist §10.4 della SPEC).
 
-## 2. Problema aperto più urgente: la simmetria
+## 2. Simmetria — RISOLTO nella 0.8.0 (simmetria sulle forme)
+
+Fatto: `core/src/fix/mirror.ts`.
+- `findMirrorAxis`: l'asse si cerca confrontando le curve.
+- `mirrorHalf`: taglia sull'asse, ricompone e riflette i gemelli.
+- In CORREGGI c'è l'opzione **Metà da tenere** (Auto, Sinistra, Destra, Sopra, Sotto) e il report dà
+  `symmetryMethod` e `symmetryNote`.
+- In Auto: se gli anchor sono speculari si bilanciano come prima; altrimenti si riflette la metà con meno
+  anchor, solo se lo scarto medio è entro la tolleranza **e** ogni forma cambia meno dell'8% della sua
+  misura.
+- Il numero di tracciati non cambia mai: Illustrator scrive la copia tracciato per tracciato.
+- Test: `test/mirror.test.ts`, con scudo, cuore e goccia disegnati a mano e ricalcati.
+
+Limiti noti:
+- Un tracciato che attraversa l'asse in più punti con più pezzi sul lato tenuto resta com'è (nota
+  'partial').
+- Sulla goccia «difficile» il ricalco disegna male un occhio: l'automatico rifiuta, bisogna scegliere la
+  metà a mano.
+
+Storia del problema (per non ripeterlo):
 
 **Segnalazione di Marco (18/11):** "non vedo un reale funzionamento di simmetria".
 
@@ -80,9 +100,10 @@ obbligatori, non facoltativi.
 - **Preset salvabili** delle regolazioni.
 - **Spiegazione** quando una correzione resta a 0.
 
-## 5. Ordine di lavoro proposto (in attesa dell'ok di Marco)
+## 5. Ordine di lavoro (approvato da Marco il 18/11/2026)
 
-1. **Simmetria sulle forme** in CORREGGI; diventa anche la modalità Simmetrico di GENERA.
+1. ~~**Simmetria sulle forme** in CORREGGI~~ — fatto nella 0.8.0; diventa anche la modalità Simmetrico
+   di GENERA.
 2. **Scheda GENERA** con **Matematico** e **Minimal**, le più sicure.
 3. **Sezione aurea** e **Strutturato**.
 4. Migliorie del §4.

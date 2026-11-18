@@ -150,7 +150,10 @@ describe('refine: le 8 correzioni', () => {
 
   it('simmetria (10: la gronda destra torna speculare, asse x = 100)', () => {
     const g = load('10-marchio-quasi-simmetrico.svg');
-    const r = refine(g, only(g, { symmetry: { enabled: true, tolerance: 3, axis: 'auto' } }));
+    const r = refine(
+      g,
+      only(g, { symmetry: { enabled: true, tolerance: 3, axis: 'auto', keep: 'auto' } }),
+    );
     expect(r.report.axis).toEqual({ theta: 0, rho: 100 });
     expect(r.report.symmetric).toBeGreaterThan(0);
     const a = analyze(r.geometry);
@@ -184,7 +187,12 @@ describe('refine: le 8 correzioni', () => {
     }
     return worst;
   };
-  const sym = (tolerance: number) => ({ enabled: true, tolerance, axis: 'auto' as const });
+  const sym = (tolerance: number) => ({
+    enabled: true,
+    tolerance,
+    axis: 'auto' as const,
+    keep: 'auto' as const,
+  });
 
   it('simmetria: anche le maniglie diventano speculari (curve uguali, non solo gli anchor)', () => {
     // anchor già speculari, maniglie no: il lato destro è più «gonfio»
@@ -238,7 +246,10 @@ describe('refine: le 8 correzioni', () => {
 
   it('simmetria: un logo non simmetrico non viene forzato', () => {
     const g = parseSvg('<svg><path d="M0 0 L100 0 L30 80 Z"/></svg>');
-    const r = refine(g, only(g, { symmetry: { enabled: true, tolerance: 2, axis: 'auto' } }));
+    const r = refine(
+      g,
+      only(g, { symmetry: { enabled: true, tolerance: 2, axis: 'auto', keep: 'auto' } }),
+    );
     expect(r.report.symmetric).toBe(0);
     expect(r.report.axis).toBeNull();
   });
