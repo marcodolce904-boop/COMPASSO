@@ -168,7 +168,26 @@ export const revertFix = (): number => {
 /** RICALCA: l'immagine selezionata (file collegato) e la sua posizione sulla tavola. */
 export const getSelectedImage = (): SelectedImage => {
   return withDocumentCoordinates(function () {
-    return selectedImage(drawDocument() as unknown as AiTraceDocument | null);
+    var doc = drawDocument() as unknown as AiTraceDocument | null;
+    return selectedImage(doc, {
+      tempFile: function () {
+        return Folder.temp.fsName + '/compasso-ricalco-' + new Date().getTime() + '.png';
+      },
+      capture: function (file, bounds, ppi) {
+        // (nei tipi le proprietà risultano statiche: nell'oggetto vero sono d'istanza)
+        var opts = new ImageCaptureOptions() as unknown as {
+          resolution: number;
+          antiAliasing: boolean;
+          transparency: boolean;
+        };
+        opts.resolution = ppi;
+        opts.antiAliasing = true;
+        opts.transparency = false;
+        (
+          doc as unknown as { imageCapture: (f: unknown, b: number[], o: unknown) => void }
+        ).imageCapture(new File(file), bounds, opts);
+      },
+    });
   });
 };
 

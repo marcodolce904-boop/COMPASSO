@@ -165,7 +165,8 @@
         const place = b
           ? { x: b.x, y: b.y, scale: b.width / loaded.image.width }
           : { x: 0, y: 0, scale: 500 / Math.max(loaded.image.width, loaded.image.height) };
-        traceSource = { loaded, place, name: r.image.name };
+        const name = r.image.captured ? t(lang, 'trace.captured') : r.image.name;
+        traceSource = { loaded, place, name };
         traceMessage = '';
       } else if (r.reason)
         traceMessage = t(lang, `trace.error.${r.reason}` as 'trace.error.embedded');

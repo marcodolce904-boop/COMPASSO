@@ -73,6 +73,15 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
         artboards: Object.assign([{ artboardRect: [0, 100, 100, 0] }], {
           getActiveArtboardIndex: () => 0,
         }),
+        captures: [] as unknown[],
+        imageCapture(
+          this: { captures: unknown[] },
+          f: { fsName: string },
+          b: number[],
+          o: unknown,
+        ) {
+          this.captures.push({ file: f.fsName, bounds: b, opts: { ...(o as object) } });
+        },
       },
     };
     runInNewContext(code, {
@@ -84,6 +93,14 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
       CMYKColor: class {},
       RGBColor: class {},
       ElementPlacement: { PLACEATEND: 'END' },
+      Folder: { temp: { fsName: '/tmp' } },
+      File: class {
+        fsName: string;
+        constructor(n: string) {
+          this.fsName = n;
+        }
+      },
+      ImageCaptureOptions: class {},
       PointType: { SMOOTH: 'SMOOTH', CORNER: 'CORNER' },
     });
     return { api: $['com.marcodolce.compasso']!, app };
@@ -178,7 +195,49 @@ describe.skipIf(!existsSync(bundle))('ExtendScript compilato', () => {
       },
       geometricBounds: [0, 100, 10, 90],
     };
-    expect(host([embedded]).api['getSelectedImage']!()).toEqual({ ok: false, reason: 'embedded' });
+    // incorporata: Illustrator ne fa una "foto" PNG dell'area (sola lettura del documento)
+    const h = host([embedded]);
+    const cap = h.api['getSelectedImage']!() as {
+      ok: boolean;
+      path: string;
+      captured: boolean;
+      bounds: unknown;
+    };
+    expect(cap).toMatchObject({
+      ok: true,
+      captured: true,
+      bounds: { x: 0, y: 0, width: 10, height: 10 },
+    });
+    expect(cap.path).toMatch(/^\/tmp\/compasso-ricalco-\d+\.png$/);
+    const c0 = (h.app.activeDocument as unknown as { captures: Rec[] }).captures[0]!;
+    expect(c0['bounds']).toEqual([0, 100, 10, 90]);
+    expect(c0['opts']).toMatchObject({ resolution: 600, antiAliasing: true, transparency: false });
+    // dentro una maschera di ritaglio: conta l'area visibile (il gruppo)
+    const clipped = {
+      typename: 'GroupItem',
+      clipped: true,
+      geometricBounds: [20, 80, 60, 40],
+      pageItems: [
+        { typename: 'PathItem', clipping: true },
+        {
+          typename: 'PlacedItem',
+          file: { fsName: 'C:\\a.jpg' },
+          geometricBounds: [0, 100, 100, 0],
+        },
+      ],
+    };
+    expect(host([clipped]).api['getSelectedImage']!()).toMatchObject({
+      ok: true,
+      captured: true,
+      bounds: { x: 20, y: 20, width: 40, height: 40 },
+    });
+    // collegata ma in un formato che il pannello non legge (PSD): anche qui la "foto"
+    const psd = {
+      typename: 'PlacedItem',
+      file: { fsName: 'C:\\s.psd' },
+      geometricBounds: [0, 100, 50, 50],
+    };
+    expect(host([psd]).api['getSelectedImage']!()).toMatchObject({ ok: true, captured: true });
     expect(host([square]).api['getSelectedImage']!()).toEqual({ ok: false, reason: 'not-image' });
   });
 
