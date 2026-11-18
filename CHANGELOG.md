@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.6.0 — 18/11/2026
+
+- **Strumento penna in RICALCA**, per ritoccare il ricalco prima di creare i tracciati:
+  - **Sposta**: clic su un punto per selezionarlo (Maiusc: più punti), trascina per spostarlo; le maniglie
+    dei punti selezionati si trascinano per piegare la curva (nei punti curvi l'altra maniglia segue,
+    con Alt si muove da sola); doppio clic su un punto: spigolo ↔ curva.
+  - **+ Punto**: clic su un tracciato per aggiungere un punto lì, senza cambiare la forma; si può subito
+    trascinare.
+  - **− Punto**: clic su un punto per toglierlo; il precedente si collega al successivo e la nuova curva
+    ricalca il più possibile quella di prima.
+  - **Angolo**: clic su un punto: lo spigolo diventa curva, la curva spigolo.
+  - **Annulla / Ripeti** (Ctrl+Z, Ctrl+Maiusc+Z), frecce per spostare di 1 pt (Maiusc: 10), Canc per
+    togliere i punti selezionati, Ctrl+A per selezionarli tutti; tasti V, P o +, −, Maiusc+C.
+- **Immagini già nel documento**: RICALCA ora funziona anche con immagini **incorporate**, **ritagliate**
+  (maschere, «Ritaglia immagine») e in formati come **PSD e TIFF**: Illustrator fa una "foto" dell'area
+  visibile in un file temporaneo, il documento non cambia. Prima funzionava solo con immagini collegate in
+  JPEG/PNG selezionate direttamente.
+- Foto piccole (sotto i 450 px) ingrandite prima del ricalco: spigoli più precisi.
+
 ## 0.5.1 — 17/11/2026
 
 - **Ricalco collaudato e migliorato** con un banco di prova (`pnpm bench:trace`: 10 figure dalla forma

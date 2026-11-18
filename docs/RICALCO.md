@@ -62,6 +62,21 @@ più severi su punte e spigoli esatti, anelli con codino (punte acute di forme c
 sdoppiati, doppioni, estremi aperti, buchetti nella traccia, misura degli spigoli su due finestre,
 partenza degli anelli dal punto più curvo.
 
+## Immagini piccole e immagini nel documento
+
+- Sotto i 450 px l'immagine si ingrandisce (bilineare, fino a ~900 px) prima del ricalco: sul banco di
+  prova a 1/3 della risoluzione l'errore sugli spigoli scende da 3,1 a 2,8 px. Sopra non serve.
+- Immagini incorporate, ritagliate o in formati non leggibili dal pannello (PSD, TIFF…): Illustrator ne
+  fa una "foto" PNG dell'area visibile (`Document.imageCapture`, ~1600 px sul lato lungo, tra 72 e
+  600 ppi) in un file temporaneo, che il pannello legge e cancella.
+
+## Penna
+
+Le modifiche a mano (`core/src/edit`) sono funzioni pure: aggiungere un punto divide la curva con
+de Casteljau (forma identica); togliere un punto ricalca le due curve con una sola (minimi quadrati,
+tangenti di prima); spostare una maniglia di un punto curvo muove l'opposta. Cambiare le regolazioni
+del ricalco azzera le modifiche, che restano recuperabili con Annulla.
+
 ## Segnalazioni
 
 «⚙ → Segnala un problema» con uno schizzo caricato salva anche lo schizzo (scala di grigi) e le
