@@ -8,7 +8,7 @@
 
 import type { DocumentGeometry, PathData, Segment, Vec2 } from '../model';
 import { contours } from './contour';
-import { corners, fitLoop, fitPiece, resample, smooth, smoothCurves } from './fit';
+import { corners, fitCubic, fitLoop, fitPiece, resample, smooth, smoothCurves } from './fit';
 import {
   adaptiveThreshold,
   clean,
@@ -149,16 +149,28 @@ export function joinGaps(
 ): { pts: Vec2[]; closed: boolean }[] {
   const out = lines.map((l) => ({ pts: [...l.pts], closed: l.closed, dead: false }));
   const d = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.y - b.y);
+  // direzione "in uscita" da un estremo (dal tratto verso l'esterno), misurata qualche px indietro
+  const outward = (pts: Vec2[], atEnd: boolean): Vec2 => {
+    const n = pts.length;
+    const k = Math.min(n - 1, Math.max(3, Math.round(gap)));
+    const e = atEnd ? pts[n - 1]! : pts[0]!;
+    const q = atEnd ? pts[n - 1 - k]! : pts[k]!;
+    const l = d(e, q) || 1;
+    return { x: (e.x - q.x) / l, y: (e.y - q.y) / l };
+  };
   for (let guard = 0; guard < 1000; guard++) {
-    let best: { i: number; ei: 0 | 1; j: number; ej: 0 | 1; dist: number } | null = null;
+    // costo = distanza + quanto i due tratti NON proseguono l'uno nell'altro. Dove si incontrano
+    // più estremi (es. una gamba che arriva su un contorno spezzato) si uniscono quelli che
+    // continuano dritti; la gamba resta un incontro a T e non devia il contorno.
+    let best: { i: number; ei: 0 | 1; j: number; ej: 0 | 1; cost: number } | null = null;
     for (let i = 0; i < out.length; i++) {
       const A = out[i]!;
       if (A.dead || A.closed) continue;
       const aEnds = [A.pts[0]!, A.pts[A.pts.length - 1]!];
       // estremi dello stesso tratto: chiusura
       const self = d(aEnds[0]!, aEnds[1]!);
-      if (A.pts.length > 8 && self <= gap && (!best || self < best.dist))
-        best = { i, ei: 1, j: i, ej: 0, dist: self };
+      if (A.pts.length > 8 && self <= gap && (!best || self < best.cost))
+        best = { i, ei: 1, j: i, ej: 0, cost: self };
       for (let j = i + 1; j < out.length; j++) {
         const B = out[j]!;
         if (B.dead || B.closed) continue;
@@ -166,7 +178,11 @@ export function joinGaps(
         for (const ei of [0, 1] as const)
           for (const ej of [0, 1] as const) {
             const dist = d(aEnds[ei]!, bEnds[ej]!);
-            if (dist <= gap && (!best || dist < best.dist)) best = { i, ei, j, ej, dist };
+            if (dist > gap) continue;
+            const ua = outward(A.pts, ei === 1);
+            const ub = outward(B.pts, ej === 1);
+            const cost = dist + gap * (1 + (ua.x * ub.x + ua.y * ub.y));
+            if (!best || cost < best.cost) best = { i, ei, j, ej, cost };
           }
       }
     }
@@ -203,9 +219,25 @@ export function joinGaps(
       }
       if (!best) continue;
       if (best.line === A) {
+        // punta acuta: la fine tocca il tratto vicino al suo inizio, e chiudere vuol dire
+        // proseguire dritti fino all'inizio (la punta). Solo se il pezzo scavalcato è corto e
+        // la chiusura continua la direzione della fine; altrimenti è un incontro a T.
         const n = A.pts.length;
-        const nearOther = atEnd ? best.idx < n / 3 : best.idx > (2 * n) / 3;
-        if (nearOther) A.closed = true;
+        const start = atEnd ? A.pts[0]! : A.pts[n - 1]!;
+        const skipped = atEnd ? best.idx : n - 1 - best.idx;
+        const k = Math.min(n - 1, Math.max(3, Math.round(gap)));
+        const back = atEnd ? A.pts[n - 1 - k]! : A.pts[k]!;
+        const ox = e.x - back.x;
+        const oy = e.y - back.y;
+        const cx = start.x - e.x;
+        const cy = start.y - e.y;
+        const cos = (ox * cx + oy * cy) / ((Math.hypot(ox, oy) || 1) * (Math.hypot(cx, cy) || 1));
+        if (skipped <= 3 * gap && cos > Math.cos((35 * Math.PI) / 180)) A.closed = true;
+        else {
+          const target = { ...A.pts[best.idx]! };
+          if (atEnd) A.pts.push(target);
+          else A.pts.unshift(target);
+        }
       } else {
         const target = { ...best.line.pts[best.idx]! };
         if (atEnd) A.pts.push(target);
@@ -314,7 +346,9 @@ export function extendEnds(
       const dy = e.y - q.y;
       const dl = Math.hypot(dx, dy) || 1;
       let t = 0;
-      while (t < 6 * width && ink(e.x + (dx / dl) * (t + 0.5), e.y + (dy / dl) * (t + 0.5)))
+      // al massimo ~2 spessori: oltre, l'inchiostro è di un'altra linea (es. una punta che
+      // passa lì vicino) e il prolungamento porterebbe il tracciato fuori dal disegno
+      while (t < 2 * width && ink(e.x + (dx / dl) * (t + 0.5), e.y + (dy / dl) * (t + 0.5)))
         t += 0.5;
       const ext = t - width / 2;
       if (ext > 1) {
@@ -374,9 +408,86 @@ function fitStroke(
     const trim = Math.max(2.5 * unit, 0.15 * Math.hypot(b.x - a.x, b.y - a.y));
     segs.push(...fitPiece(avg(piece, false), tol, tk, trim));
   }
-  const tiny = dropTiny(segs, closed, Math.max(4, 2 * unit));
+  const tiny = reduceAnchors(dropTiny(segs, closed, Math.max(4, 2 * unit)), closed, tol);
   if (!tu.exactCorners) return tiny;
   return snapCorners(sharpenTips(tiny, closed, 2.5 * unit, 5 * unit), closed, 4 * unit);
+}
+
+const bezAt = (s: Segment, t: number): Vec2 => {
+  if (s.kind === 'line')
+    return { x: s.p0.x + (s.p1.x - s.p0.x) * t, y: s.p0.y + (s.p1.y - s.p0.y) * t };
+  const u = 1 - t;
+  return {
+    x: u * u * u * s.p0.x + 3 * u * u * t * s.c1.x + 3 * u * t * t * s.c2.x + t * t * t * s.p1.x,
+    y: u * u * u * s.p0.y + 3 * u * u * t * s.c1.y + 3 * u * t * t * s.c2.y + t * t * t * s.p1.y,
+  };
+};
+/** Direzione della curva all'inizio (atStart) o alla fine, verso l'esterno del segmento. */
+function tangent(s: Segment, atStart: boolean): Vec2 {
+  const a = atStart ? s.p0 : s.p1;
+  let b: Vec2;
+  if (s.kind === 'line') b = atStart ? s.p1 : s.p0;
+  else {
+    const h = atStart ? s.c1 : s.c2;
+    b = Math.hypot(h.x - a.x, h.y - a.y) > 1e-6 ? h : atStart ? s.c2 : s.c1;
+  }
+  const l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  return { x: (b.x - a.x) / l, y: (b.y - a.y) / l };
+}
+
+/**
+ * Meno anchor: un punto dove la curva non fa spigolo (le tangenti si scostano meno di 25°)
+ * si toglie se le due curve accanto si possono sostituire con una sola entro la precisione.
+ * Due rette quasi allineate diventano una retta. Così i pezzi divisi da falsi spigoli o dagli
+ * incroci tornano interi.
+ */
+function reduceAnchors(segs: Segment[], closed: boolean, tol: number): Segment[] {
+  const out = segs.map((s) => ({ ...s }) as Segment);
+  const smoothJoint = (a: Segment, b: Segment) => {
+    const u = tangent(a, false); // verso l'indietro dalla fine di a
+    const v = tangent(b, true); // verso l'avanti dall'inizio di b
+    return -(u.x * v.x + u.y * v.y) > Math.cos((25 * Math.PI) / 180);
+  };
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const n = out.length;
+    const joints = closed ? n : n - 1;
+    if (n < (closed ? 3 : 2)) break;
+    for (let j = 0; j < joints; j++) {
+      const a = out[j]!;
+      const b = out[(j + 1) % n]!;
+      if (!smoothJoint(a, b)) continue;
+      const pts: Vec2[] = [];
+      for (let k = 0; k <= 16; k++) pts.push(bezAt(a, k / 16));
+      for (let k = 1; k <= 16; k++) pts.push(bezAt(b, k / 16));
+      let merged: Segment;
+      if (a.kind === 'line' && b.kind === 'line') merged = { kind: 'line', p0: a.p0, p1: b.p1 };
+      else {
+        const c = fitCubic(pts, tangent(a, true), tangent(b, false));
+        merged = { kind: 'cubic', p0: a.p0, c1: c[1], c2: c[2], p1: b.p1 };
+      }
+      let err = 0;
+      for (const q of pts) {
+        let best = Infinity;
+        for (let k = 0; k <= 48; k++) {
+          const r = bezAt(merged, k / 48);
+          best = Math.min(best, Math.hypot(r.x - q.x, r.y - q.y));
+        }
+        err = Math.max(err, best);
+      }
+      if (err > tol) continue;
+      if (j + 1 < n) out.splice(j, 2, merged);
+      else {
+        // giunto tra l'ultimo e il primo (chiuso): il nuovo segmento prende il posto del primo
+        out.splice(n - 1, 1);
+        out[0] = merged;
+      }
+      changed = true;
+      break;
+    }
+  }
+  return out;
 }
 
 /** Intersezione delle rette per (a0,a1) e (b0,b1), o null se parallele. */

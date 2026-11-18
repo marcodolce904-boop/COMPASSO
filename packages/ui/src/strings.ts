@@ -38,11 +38,12 @@ const en = {
   'pen.add': '+ Point',
   'pen.delete': '− Point',
   'pen.convert': 'Corner',
-  'pen.undo': 'Undo',
-  'pen.redo': 'Redo',
+  'pen.undo': 'Back',
+  'pen.redo': 'Forward',
+  'pen.resetAll': 'Reset all',
   'pen.toggle': 'Corner ↔ curve',
   'pen.remove': 'Delete ({n})',
-  'pen.reset': 'The settings changed: hand edits were reset (Undo brings them back).',
+  'pen.reset': 'The settings changed: hand edits were reset (Back brings them back).',
   'pen.hint.select':
     'Click a point to select it (Shift: more), drag to move it, drag the handles to shape the curve (Alt: one side only), double click: corner ↔ curve. Keys: arrows, Delete, Ctrl+Z.',
   'pen.hint.add': 'Click on a path to add a point there (the shape does not change), then drag it.',
@@ -279,12 +280,13 @@ const it: Record<StringKey, string> = {
   'pen.add': '+ Punto',
   'pen.delete': '− Punto',
   'pen.convert': 'Angolo',
-  'pen.undo': 'Annulla',
-  'pen.redo': 'Ripeti',
+  'pen.undo': 'Indietro',
+  'pen.redo': 'Avanti',
+  'pen.resetAll': 'Azzera tutto',
   'pen.toggle': 'Spigolo ↔ curva',
   'pen.remove': 'Elimina ({n})',
   'pen.reset':
-    'Regolazioni cambiate: le modifiche a mano sono state azzerate («Annulla» le riporta).',
+    'Regolazioni cambiate: le modifiche a mano sono state azzerate («Indietro» le riporta).',
   'pen.hint.select':
     'Clic su un punto per selezionarlo (Maiusc: più punti), trascina per spostarlo, trascina le maniglie per piegare la curva (Alt: un lato solo), doppio clic: spigolo ↔ curva. Tasti: frecce, Canc, Ctrl+Z.',
   'pen.hint.add':

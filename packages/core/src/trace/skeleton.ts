@@ -298,11 +298,15 @@ export function strokes(sk: Mask, spur: number, tip = spur * 3): Stroke[] {
   for (const e of edges) if (!e.dead && e.pts.length < 3) e.dead = true;
 
   // unione attraverso i nodi: grado 2 sempre; grado 4 per coppie che proseguono dritte
+  // direzione di un ramo che esce da un incrocio, letta OLTRE la macchia dell'incrocio (dove la
+  // linea centrale si piega verso gli altri rami): tra 1 e 3 volte `spur` dal nodo
   const dirAt = (e: Edge, atStart: boolean): Vec2 => {
     const pts = e.pts;
-    const k = Math.min(pts.length - 1, Math.max(3, spur));
-    const p = atStart ? pts[0]! : pts[pts.length - 1]!;
-    const q = atStart ? pts[k]! : pts[pts.length - 1 - k]!;
+    const n = pts.length;
+    const k1 = Math.min(n - 1, Math.max(3, 3 * spur));
+    const k0 = Math.min(Math.max(0, k1 - 3), Math.max(0, spur));
+    const p = atStart ? pts[k0]! : pts[n - 1 - k0]!;
+    const q = atStart ? pts[k1]! : pts[n - 1 - k1]!;
     const dx = q.x - p.x;
     const dy = q.y - p.y;
     const l = Math.hypot(dx, dy) || 1;

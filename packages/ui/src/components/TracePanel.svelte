@@ -67,6 +67,30 @@
   let traced = $state.raw<TraceReady | null>(null);
   const editor = new PenEditor();
   let editNote = $state('');
+  // regolazioni come testo: nello storico insieme ai tracciati
+  const settingsKey = () =>
+    JSON.stringify({ options: $state.snapshot(options), markSide, perfect });
+  editor.settings = () => untrack(settingsKey);
+  editor.applySettings = (s: string) => {
+    const v = JSON.parse(s) as { options: TraceOptions; markSide: number; perfect: boolean };
+    options = v.options;
+    markSide = v.markSide;
+    perfect = v.perfect;
+  };
+  let lastSettings = '';
+
+  /** «×»: barre ai valori predefiniti e via le modifiche; lo schizzo resta (si può annullare). */
+  function resetAll() {
+    if (!defaults) return;
+    editor.checkpoint();
+    editor.paths = null;
+    editor.clearSelection();
+    options = { ...defaults };
+    markSide = Math.round(Math.sqrt(defaults.minArea));
+    perfect = true;
+    lastSettings = untrack(settingsKey); // non è un movimento di cursore: niente secondo passo
+    editNote = '';
+  }
 
   // nuova immagine: valori predefiniti proporzionati alla sua dimensione
   $effect(() => {
@@ -75,6 +99,7 @@
       if (!s) return;
       editor.reset();
       editNote = '';
+      lastSettings = '';
       const d = traceDefaults(s.loaded.image.width, s.loaded.image.height);
       const mode = options?.mode ?? d.mode;
       defaults = d;
@@ -88,6 +113,7 @@
     const s = source;
     const o = options ? { ...$state.snapshot(options), minArea: markSide * markSide } : null;
     const p = perfect;
+    const key = settingsKey();
     if (!s || !o) {
       traced = null;
       return;
@@ -99,8 +125,14 @@
         let g = out.geometry;
         if (p && g.paths.length) g = refine(g, refineDefaults(g).options).geometry;
         ms = out.stats.ms;
-        // regolazioni cambiate: le modifiche a mano non valgono più (restano in «Annulla»)
-        if (untrack(() => editor.rebase())) editNote = t(lang, 'pen.reset');
+        // regolazioni cambiate: passo nello storico; le modifiche a mano non valgono più
+        // (restano recuperabili con «Indietro»)
+        untrack(() => {
+          if (lastSettings && key !== lastSettings && editor.settled(lastSettings))
+            editNote = t(lang, 'pen.reset');
+          else if (editor.pending !== undefined) editor.settled(lastSettings);
+          lastSettings = key;
+        });
         traced = {
           geometry: g,
           style: { filled: o.mode === 'shapes', strokeWidth: Math.max(0.25, out.strokeWidth) },
@@ -265,11 +297,19 @@
           ]}
         />
         <div class="undo">
-          <button type="button" disabled={!editor.canUndo} onclick={() => editor.undo()}
-            >{t(lang, 'pen.undo')}</button
+          <button
+            type="button"
+            title="Ctrl+Z"
+            disabled={!editor.canUndo}
+            onclick={() => editor.undo()}>← {t(lang, 'pen.undo')} {editor.undoCount || ''}</button
           >
-          <button type="button" disabled={!editor.canRedo} onclick={() => editor.redo()}
-            >{t(lang, 'pen.redo')}</button
+          <button
+            type="button"
+            title="Ctrl+Shift+Z"
+            disabled={!editor.canRedo}
+            onclick={() => editor.redo()}>{t(lang, 'pen.redo')}{editor.redoCount ? ` ${editor.redoCount}` : ''} →</button
+          >
+          <button type="button" class="reset" onclick={resetAll}>× {t(lang, 'pen.resetAll')}</button
           >
           {#if editor.selection.length}
             <button type="button" onclick={() => editor.toggleSelected(shown)}
@@ -447,6 +487,9 @@
   .undo button:hover:not(:disabled) {
     color: var(--c-text);
     border-color: var(--c-accent);
+  }
+  .undo .reset {
+    margin-left: auto;
   }
   .undo button:disabled {
     opacity: 0.4;

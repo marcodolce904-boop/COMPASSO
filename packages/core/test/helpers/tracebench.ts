@@ -38,6 +38,83 @@ const curve = (f: (t: number) => Vec2, n = 400, closed = true): Vec2[] =>
 
 const P = (pts: [number, number][]) => pts.map(([x, y]) => ({ x, y }));
 
+function insidePoly(p: Vec2, poly: Vec2[]): boolean {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i]!;
+    const b = poly[j]!;
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) c = !c;
+  }
+  return c;
+}
+
+/**
+ * Come lo schizzo di Marco (A + coda di volpe): una A a contorno le cui gambe passano DIETRO una
+ * coda sinuosa. Le linee della A finiscono contro il contorno della coda (incroci a T).
+ */
+function aDietroLaCoda(): Figure {
+  const A: [number, number][] = [
+    [245, 60],
+    [325, 60],
+    [500, 600],
+    [420, 600],
+    [375, 460],
+    [195, 460],
+    [150, 600],
+    [70, 600],
+  ];
+  const counter: [number, number][] = [
+    [285, 175],
+    [345, 380],
+    [225, 380],
+  ];
+  const tail = curve((t) => {
+    const a = t * 6.2832;
+    return {
+      x: 300 - 250 * Math.cos(a),
+      y: 380 + 70 * Math.sin(a) - 40 * Math.sin(2 * a) + 30 * Math.cos(a),
+    };
+  }, 500);
+  // parti della A fuori dalla coda: tratti aperti che finiscono sul contorno della coda
+  const runs: { pts: Vec2[]; closed: boolean }[] = [];
+  const corners: Vec2[] = [];
+  let ideal = 6; // la coda
+  for (const shape of [A, counter]) {
+    const dense = poly(shape, true, 1);
+    const n = dense.length;
+    // si parte da un punto fuori dalla coda, così nessun tratto attraversa l'inizio
+    let start = 0;
+    while (start < n && insidePoly(dense[start]!, tail)) start++;
+    let cur: Vec2[] = [];
+    let allOutside = true;
+    for (let k = 0; k <= n; k++) {
+      const q = dense[(start + k) % n]!;
+      if (insidePoly(q, tail)) {
+        allOutside = false;
+        if (cur.length > 4) runs.push({ pts: cur, closed: false });
+        cur = [];
+      } else cur.push(q);
+    }
+    if (allOutside) runs.push({ pts: dense, closed: true });
+    else if (cur.length > 4) runs.push({ pts: cur, closed: false });
+    for (const [x, y] of shape) if (!insidePoly({ x, y }, tail)) corners.push({ x, y });
+  }
+  for (const r of runs) {
+    const inner = corners.filter((c) =>
+      r.pts.some((q) => Math.hypot(q.x - c.x, q.y - c.y) < 1.5),
+    ).length;
+    ideal += inner + (r.closed ? 0 : 2);
+  }
+  return {
+    name: 'A dietro la coda',
+    w: 600,
+    h: 660,
+    paths: [...runs, { pts: tail, closed: true }],
+    corners,
+    ideal,
+  };
+}
+
 export const FIGURES: Figure[] = [
   {
     name: 'cerchio',
@@ -283,6 +360,7 @@ export const FIGURES: Figure[] = [
     corners: [],
     ideal: 4,
   },
+  aDietroLaCoda(),
 ];
 
 const LEVELS: Record<
@@ -313,6 +391,20 @@ export function sketch(fig: Figure, level: Level, seed = 1): RasterImage {
         k--;
       }
       pts = pts.slice(0, k + 1);
+    }
+    // linee aperte disegnate a mano: si fermano prima o vanno oltre di qualche px
+    if (!p.closed && L.passes > 1 && pts.length > 4) {
+      const r = rng(seed * 13 + i * 5 + 1);
+      const fix = (atEnd: boolean) => {
+        const d = (r() - 0.4) * 2 * (L.width + 4); // da −0,8 a +1,2 volte (spessore + 4 px)
+        const e = atEnd ? pts[pts.length - 1]! : pts[0]!;
+        const q = atEnd ? pts[pts.length - 4]! : pts[3]!;
+        const l = Math.hypot(e.x - q.x, e.y - q.y) || 1;
+        const np = { x: e.x + ((e.x - q.x) / l) * d, y: e.y + ((e.y - q.y) / l) * d };
+        pts = atEnd ? [...pts.slice(0, -1), np] : [np, ...pts.slice(1)];
+      };
+      fix(false);
+      fix(true);
     }
     pencil(img, pts, {
       passes: L.passes,
