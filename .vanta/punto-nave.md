@@ -38,6 +38,17 @@
      solo le modalità applicabili, o spiegare perché una non lo è.
   5. Il file vero del logo «A con coda» (AI/SVG o «Segnala un problema») servirebbe come caso di prova
      reale di GENERA.
+  6. **ANALIZZA incompleta sul logo vero** (5 cerchi, 17 linee):
+     - le curve libere della coda non hanno costruzione;
+     - le rette sono troppe e troppo lunghe.
+
+     Opzioni (dettagli in `docs/MEMORIA.md` §3b):
+     - A. archi tangenti per le curve libere;
+     - B. rendi costruibile (Strutturato);
+     - C. rette più pulite;
+     - D. costruzione per forma.
+
+     Consiglio: A + C (+ D) prima di GENERA. In attesa della scelta di Marco.
 - **Rischi principali:**
   - **Matematico stravolge le proporzioni.** Segnale: l'anteprima Matematico non sembra più lo stesso
     logo (es. le gambe della A cambiano inclinazione in modo visibile).
@@ -49,6 +60,6 @@
   - RICALCA, penna, storico, CORREGGI (10 correzioni + simmetria sulle forme) e ANALIZZA sono rilasciati
     (0.8.0) e già usati con successo su un logo vero.
   - GENERA non è ancora iniziato: manca la specifica.
-- **Prossima azione:** Claude scrive la specifica di GENERA (Matematico + Minimal: regole, parametri,
+- **Prossima azione:** Marco sceglie tra le opzioni A–D per ANALIZZA. Poi Claude scrive la specifica di GENERA (Matematico + Minimal: regole, parametri,
   anteprime, limiti) in `docs/GENERA.md` e la sottopone a Marco. Marco, se può, invia il file del logo
   «A con coda» come caso di prova.

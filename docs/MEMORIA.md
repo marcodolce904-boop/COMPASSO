@@ -4,8 +4,8 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 18/11/2026, dopo il rilascio della 0.8.0. Prossimo passo: specifica di
-GENERA (Matematico e Minimal) da far approvare a Marco._
+_Ultimo aggiornamento: 18/11/2026 sera. In attesa della scelta di Marco sulle opzioni del §3b (archi
+per le curve libere, rette più pulite); poi specifica di GENERA (Matematico e Minimal)._
 
 ## 1. Dove siamo
 
@@ -92,6 +92,28 @@ precise, con anteprime. Va in una tendina o scheda **a parte**.
 
 Le regole applicate alla cieca rendono il logo irriconoscibile. Lo scarto massimo e l'intensità sono
 obbligatori, non facoltativi.
+
+## 3b. ANALIZZA sul logo vero «A con coda» (segnalazione di Marco, 18/11 sera)
+
+**Problemi visti:** «mancano dei passaggi». In ANALIZZA il logo risulta in 5 cerchi e 17 linee.
+- Le curve libere della coda (onda a S) non hanno costruzione: il motore riconosce solo archi di cerchio o
+  di ovale.
+- Troppe rette, lunghe da bordo a bordo: ogni gamba della A dà due bordi quasi paralleli.
+
+**Risposta data:** si può fare. Una curva libera si costruisce come **catena di archi tangenti**
+(arc spline / biarchi), entro una tolleranza.
+
+**Opzioni proposte:**
+
+| | Cosa fa | Cambia il logo? |
+|---|---|---|
+| **A. Archi per le curve libere** | ogni curva libera spiegata col minimo di archi tangenti; centri e punti di passaggio da un arco al successivo; disegnati tratteggiati con lo scarto indicato («approssimato, 0,8 pt»); se servirebbero troppi archi, lo dice | no |
+| **B. Rendi costruibile** | le curve diventano davvero quegli archi; è la modalità **Strutturato** di GENERA | sì, di poco |
+| **C. Rette più pulite** | rette accorciate al tratto più un margine; bordi paralleli raggruppati (una retta + segno di parallela); rette sulla stessa linea tra due forme unite | no |
+| **D. Costruzione per forma** | clic su una forma per vederne solo la costruzione; legenda dei colori | no |
+
+**Consiglio di Claude:** A + C (+ D) prima di GENERA; poi B come modalità Strutturato.
+**In attesa della scelta di Marco.**
 
 ## 4. Altre migliorie concordate da valutare
 
