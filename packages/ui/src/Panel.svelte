@@ -412,6 +412,32 @@
   function draw() {
     if (currentPlan) onDraw(currentPlan);
   }
+
+  // percorso guidato (docs/MIGLIORIE.md §3): Ricalca → Correggi → Analizza → Genera
+  type FlowTab = 'trace' | 'fix' | 'inspect' | 'generate';
+  const flow = $derived<FlowTab[]>([
+    ...(onPickImage ? (['trace'] as const) : []),
+    'fix',
+    'inspect',
+    'generate',
+  ]);
+  const flowLabel: Record<FlowTab, 'flow.trace' | 'flow.fix' | 'flow.inspect' | 'flow.generate'> = {
+    trace: 'flow.trace',
+    fix: 'flow.fix',
+    inspect: 'flow.inspect',
+    generate: 'flow.generate',
+  };
+  /** «Avanti →»: l'azione della scheda (se c'è) e poi il passo successivo. */
+  function next() {
+    if (mainTab === 'trace') {
+      if (!traceOut || !traceSource) return;
+      onCreateTrace(traceOut);
+      mainTab = 'fix';
+    } else if (mainTab === 'fix') {
+      if (canApply) applyFix();
+      mainTab = 'inspect';
+    } else if (mainTab === 'inspect') mainTab = 'generate';
+  }
 </script>
 
 <div class="panel" bind:clientWidth={panelW} bind:clientHeight={panelH}>
@@ -465,6 +491,19 @@
       { value: 'present', label: t(lang, 'tab.present') },
     ]}
   />
+  {#if mainTab !== 'present'}
+    <nav class="flow" aria-label={t(lang, 'flow.aria')}>
+      {#each flow as f, i (f)}
+        {#if i > 0}<span class="sep">·</span>{/if}
+        <button
+          type="button"
+          class:on={mainTab === f}
+          aria-current={mainTab === f ? 'step' : undefined}
+          onclick={() => (mainTab = f)}>{i + 1} {t(lang, flowLabel[f])}</button
+        >
+      {/each}
+    </nav>
+  {/if}
 
   <div class="body" class:wide style="--h-thumb:{thumbH}px">
     {#if mainTab === 'present'}
@@ -692,6 +731,11 @@
           disabled={!traceOut || !traceSource}
           onclick={() => traceOut && onCreateTrace(traceOut)}
         />
+        <TextButton
+          label={t(lang, 'flow.next.trace')}
+          disabled={!traceOut || !traceSource}
+          onclick={next}
+        />
       </div>
     {:else if mainTab === 'generate'}
       <p class="stats">{t(lang, 'gen.onCopy')}</p>
@@ -712,6 +756,11 @@
         {#if fixApplied}
           <TextButton label={t(lang, 'fix.revert')} tone="muted" onclick={onRevertFix} />
         {/if}
+        <TextButton
+          label={canApply ? t(lang, 'flow.next.fix') : t(lang, 'flow.next.inspect')}
+          disabled={!geometry}
+          onclick={next}
+        />
       </div>
     {:else}
       <p class="stats">{stats}</p>
@@ -727,12 +776,29 @@
             onclick={draw}
           />
         {/if}
+        <TextButton label={t(lang, 'flow.next.generate')} disabled={!geometry} onclick={next} />
       </div>
     {/if}
   </footer>
 </div>
 
 <style>
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-1);
+    padding: var(--sp-1) var(--sp-3);
+    font: 400 var(--fs-xs) var(--f-mono);
+    color: var(--c-text-3);
+  }
+  .flow button {
+    color: var(--c-text-3);
+    letter-spacing: var(--ls-caps);
+  }
+  .flow button.on {
+    color: var(--c-accent);
+  }
   .panel {
     position: relative;
     width: 100%;
