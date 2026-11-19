@@ -43,7 +43,7 @@ const offMultiple = (v: number, step: number) => {
 };
 
 describe('GENERA: regole comuni', () => {
-  for (const mode of ['math', 'minimal', 'symmetric', 'structured'] as const) {
+  for (const mode of ['math', 'minimal', 'symmetric', 'structured', 'golden'] as const) {
     it(`${mode}: stesso numero di tracciati, entro lo scarto massimo, deterministico`, () => {
       for (const svg of [LOGO_A, LOGO_C]) {
         const g = parseSvg(svg);
@@ -66,7 +66,7 @@ describe('GENERA: regole comuni', () => {
     fc.assert(
       fc.property(fc.double({ min: 0.005, max: 0.1, noNaN: true }), (f) => {
         const o = { ...generateDefaults(g), maxDeviation: f * D };
-        for (const mode of ['math', 'minimal', 'symmetric', 'structured'] as const)
+        for (const mode of ['math', 'minimal', 'symmetric', 'structured', 'golden'] as const)
           expect(geometryDrift(generate(g, mode, o).geometry, g)).toBeLessThanOrEqual(
             o.maxDeviation + 1e-6,
           );
@@ -269,5 +269,78 @@ describe('GENERA: Strutturato', () => {
     const r = generate(g, 'structured', generateDefaults(g));
     expect(r.report.arcCurves).toBe(0);
     expect(r.report.notes).toContain('nothing-to-do');
+  });
+});
+
+const PHI = (1 + Math.sqrt(5)) / 2;
+
+describe('GENERA: Sezione aurea', () => {
+  // riquadro 0..200 (cornice) con tre cerchi quasi in serie aurea: 50, 31.5 (≈ 50/φ), 19.6 (≈ 50/φ²)
+  const RINGS =
+    '<svg><path d="M0 0 L200 0 L200 200 L0 200 Z M8 8 L8 192 L192 192 L192 8 Z"/><circle cx="100" cy="100" r="50"/><circle cx="76" cy="160" r="31.5"/><circle cx="150" cy="45" r="19.6"/></svg>';
+
+  it('raggi in serie R, R/φ, R/φ² (il più grande resta com è), con le etichette', () => {
+    const g = parseSvg(RINGS);
+    const o = { ...generateDefaults(g), maxDeviation: 0.05 * diag(g) };
+    const r = generate(g, 'golden', o);
+    const cs = analyze(r.geometry)
+      .circles.filter((c) => c.approx === undefined && c.r < 90)
+      .map((c) => c.r)
+      .sort((a, b) => b - a);
+    expect(cs.length).toBe(3);
+    expect(cs[0]).toBeCloseTo(50, 1);
+    expect(cs[1]).toBeCloseTo(50 / PHI, 1);
+    expect(cs[2]).toBeCloseTo(50 / PHI ** 2, 1);
+    expect(r.report.radii).toBeGreaterThanOrEqual(2);
+    const labels = r.guides.circles.map((c) => c.label).sort();
+    expect(labels).toEqual(['R', 'R/φ', 'R/φ²'].sort());
+  });
+
+  it('centri vicini alla griglia aurea ci si appoggiano (0,382 della larghezza)', () => {
+    const g = parseSvg(RINGS);
+    const o = { ...generateDefaults(g), maxDeviation: 0.05 * diag(g) };
+    const r = generate(g, 'golden', o);
+    const c = analyze(r.geometry).circles.find(
+      (k) => k.approx === undefined && Math.abs(k.cy - 160) < 10,
+    )!;
+    expect(c.cx).toBeCloseTo(200 / PHI ** 2, 1); // 76,39
+    expect(r.report.positions).toBeGreaterThan(0);
+    expect(r.guides.lines.length).toBeGreaterThan(4);
+    expect(r.guides.spiral.length).toBeGreaterThan(10);
+  });
+
+  it('spessori quasi in rapporto φ diventano esattamente φ', () => {
+    // due barre verticali larghe 30 e 19 (30/19 ≈ 1,58)
+    const g = parseSvg(
+      '<svg><path d="M0 0 L30 0 L30 200 L0 200 Z"/><path d="M100 0 L119 0 L119 200 L100 200 Z"/></svg>',
+    );
+    const o = { ...generateDefaults(g), maxDeviation: 0.05 * diag(g) };
+    const r = generate(g, 'golden', o);
+    const w = r.geometry.paths.map((p) => {
+      const xs = p.segments.map((s) => s.p0.x);
+      return Math.max(...xs) - Math.min(...xs);
+    });
+    const [thick, thin] = [Math.max(...w), Math.min(...w)];
+    expect(thick / thin).toBeCloseTo(PHI, 2);
+    expect(r.report.thickness).toBeGreaterThan(0);
+  });
+
+  it('rapporto 1:1: i cerchi diventano tutti uguali', () => {
+    const g = parseSvg(RINGS);
+    const o = generateDefaults(g);
+    const r = generate(g, 'golden', {
+      ...o,
+      maxDeviation: 0.2 * diag(g),
+      golden: { ...o.golden, ratio: '1:1' },
+    });
+    const cs = analyze(r.geometry).circles.filter((c) => c.approx === undefined && c.r < 90);
+    for (const c of cs) expect(c.r).toBeCloseTo(50, 1);
+  });
+
+  it('nessuna misura vicina alla sezione aurea: il logo resta com era e la nota lo dice', () => {
+    const g = parseSvg('<svg><path d="M0 0 L100 0 L30 80 Z"/></svg>');
+    const r = generate(g, 'golden', generateDefaults(g));
+    expect(r.report.notes).toContain('no-golden');
+    expect(geometryDrift(r.geometry, g)).toBeLessThan(1);
   });
 });

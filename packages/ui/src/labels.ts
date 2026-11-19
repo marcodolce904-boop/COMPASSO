@@ -129,6 +129,11 @@ export function generateSummary(lang: Lang, r: GenerateResult): string {
     if (rp.radii) parts.push(t(lang, 'gen.sum.radii', { n: rp.radii }));
     if (rp.positions) parts.push(t(lang, 'gen.sum.positions', { n: rp.positions }));
     parts.push(t(lang, 'gen.sum.module', { m: num(lang, rp.module, 2), d: rp.division }));
+  } else if (rp.mode === 'golden') {
+    if (rp.radii) parts.push(t(lang, 'gen.sum.goldenRadii', { n: rp.radii }));
+    if (rp.positions) parts.push(t(lang, 'gen.sum.goldenGrid', { n: rp.positions }));
+    if (rp.thickness) parts.push(t(lang, 'gen.sum.goldenThickness', { n: rp.thickness }));
+    if (rp.boxed) parts.push(t(lang, 'gen.sum.goldenBox'));
   } else if (rp.mode === 'symmetric') {
     if (!rp.notes.includes('no-axis')) parts.push(t(lang, 'gen.sum.symmetric'));
   } else if (rp.mode === 'structured') {

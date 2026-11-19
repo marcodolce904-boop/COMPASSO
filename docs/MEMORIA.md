@@ -4,8 +4,9 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.11.0 (GENERA con Matematico, Minimal,
-Simmetrico e Strutturato). Prossimo passo: specifica della Sezione aurea; prove di Marco su loghi veri._
+_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.12.0 (GENERA completo: Simmetrico,
+Sezione aurea, Matematico, Strutturato, Minimal). Prossimo passo: prove di Marco su loghi veri, poi
+le migliorie del §4 (ordine di lavoro, punto 4)._
 
 ## 0. Fatto nella 0.9.0 (18/11 pomeriggio): A + C in ANALIZZA
 
@@ -60,12 +61,21 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
 - UI: 4 miniature calcolate una alla volta, partendo dalla scelta; tendina «Simmetrico: parametri».
 
 **Prossimi passi su GENERA:**
-- **Sezione aurea**: specifica scritta in `docs/GENERA.md` §7c (19/11), **in attesa di approvazione** di Marco (5 decisioni in fondo alla sezione);
+- **Sezione aurea**: specifica in `docs/GENERA.md` §7c, **approvata da Marco il 19/11 («ok a tutte le proposte»)**.
+  - Riferimento: il cerchio più grande.
+  - Passo intero.
+  - Riquadro aureo spento di base.
+  - Spirale aurea nell'anteprima.
+  - Rapporti √2, 3:2 e 1:1 disponibili da subito.
+
+  **Fatto nella 0.12.0:** `generate/golden.ts` (`goldenCompose`, `goldenSpiral`); raggi solo sui
+  cerchi interi (gli archi parziali si staccherebbero); spessori = coppie di rette parallele della
+  stessa forma; nota `no-golden`; guide `lines` e `spiral`;
 - calcolo in un worker se diventa lento (oggi ~0,4 s per modalità sul logo di prova).
 
 ## 1. Dove siamo
 
-- Versione pubblicata: **0.11.0**. Installer:
+- Versione pubblicata: **0.12.0**. Installer:
   `https://github.com/marcodolce904-boop/COMPASSO/releases/download/vX.Y.Z/Compasso-Setup.exe`.
   Si pubblica da solo con un push su `main` quando la versione in `apps/illustrator/package.json` è nuova.
 - Schede funzionanti:

@@ -60,6 +60,7 @@ Fatto (0.10.0): scheda GENERA con Matematico e Minimal (`core/src/generate`, `do
 applicazione su una copia nel layer «Compasso — Generato».
 Fatto (0.11.0): GENERA con Simmetrico (simmetria sulle forme) e Strutturato (curve libere → archi
 tangenti). Manca la Sezione aurea (serve una specifica).
+Fatto (0.12.0): GENERA con Sezione aurea (`core/src/generate/golden.ts`). GENERA completo.
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

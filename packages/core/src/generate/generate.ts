@@ -1,6 +1,6 @@
 // GENERA (docs/GENERA.md): versioni del logo ricomposte secondo una regola, entro uno scarto massimo.
 
-import type { DocumentGeometry, PathData } from '../model';
+import type { DocumentGeometry, PathData, Vec2 } from '../model';
 import { analyze } from '../analyze';
 import { normalizeGeometry } from '../normalize';
 import { refine, refineDefaults } from '../fix/refine';
@@ -8,10 +8,11 @@ import { anchorCount, bboxOf, driftStats, toNodes, fromNodes } from './geometry'
 import { mathCompose, type MathOptions } from './math';
 import { minimalCompose } from './minimal';
 import { structureCompose } from './structured';
+import { goldenCompose, goldenSpiral, type GoldenOptions } from './golden';
 import type { MirrorKeep } from '../fix/mirror';
 import type { SymmetryAxis } from '../fix/refine';
 
-export type GenerateMode = 'math' | 'minimal' | 'symmetric' | 'structured';
+export type GenerateMode = 'math' | 'minimal' | 'symmetric' | 'structured' | 'golden';
 export type MinimalLevel = 'light' | 'medium' | 'strong';
 
 export interface GenerateOptions {
@@ -23,6 +24,8 @@ export interface GenerateOptions {
   minimal: { level: MinimalLevel; maxAnchors: number | null };
   /** Simmetrico: asse e metà da tenere (come in CORREGGI). */
   symmetric: { axis: SymmetryAxis; keep: 'auto' | MirrorKeep };
+  /** Sezione aurea (docs/GENERA.md §7c). */
+  golden: GoldenOptions;
 }
 
 export type GenerateNote =
@@ -41,7 +44,9 @@ export type GenerateNote =
   /** Strutturato: nessuna curva libera da trasformare. */
   | 'nothing-to-do'
   /** Strutturato: alcune curve richiederebbero troppi archi e restano com'erano. */
-  | 'curves-skipped';
+  | 'curves-skipped'
+  /** Sezione aurea: nessuna misura vicina a un rapporto aureo entro lo scarto. */
+  | 'no-golden';
 
 export interface GenerateReport {
   mode: GenerateMode;
@@ -64,6 +69,9 @@ export interface GenerateReport {
   /** Strutturato: curve libere diventate archi, e archi usati. */
   arcCurves: number;
   arcs: number;
+  /** Sezione aurea: spessori portati in rapporto; riquadro portato a φ. */
+  thickness: number;
+  boxed: boolean;
   notes: GenerateNote[];
 }
 
@@ -74,6 +82,10 @@ export interface GenerateGuides {
   circles: { cx: number; cy: number; r: number; label: string }[];
   /** Asse di simmetria (Simmetrico). */
   axis: { x1: number; y1: number; x2: number; y2: number } | null;
+  /** Linee guida libere (griglia aurea). */
+  lines: { x1: number; y1: number; x2: number; y2: number }[];
+  /** Spirale aurea (polilinea, solo anteprima). */
+  spiral: Vec2[];
 }
 
 export interface GenerateResult {
@@ -98,6 +110,12 @@ export function generateDefaults(geom: DocumentGeometry): GenerateOptions {
     },
     minimal: { level: 'medium', maxAnchors: null },
     symmetric: { axis: 'auto', keep: 'auto' },
+    golden: {
+      ratio: 'phi',
+      half: false,
+      rules: { radii: true, grid: true, thickness: true, box: false },
+      spiral: true,
+    },
   };
 }
 
@@ -156,8 +174,10 @@ export function generate(
     smallShapes: 0,
     arcCurves: 0,
     arcs: 0,
+    thickness: 0,
+    boxed: false,
   };
-  let guides: GenerateGuides = { grid: null, circles: [], axis: null };
+  let guides: GenerateGuides = { grid: null, circles: [], axis: null, lines: [], spiral: [] };
 
   if (mode === 'math') {
     const a = analyze(start);
@@ -213,6 +233,45 @@ export function generate(
         label: `r = ${round(c.r / module, 2)}m`,
       })),
       axis: null,
+      lines: [],
+      spiral: [],
+    };
+  } else if (mode === 'golden') {
+    const a = analyze(start);
+    const bb = bboxOf(base);
+    const circles = a.circles.filter((c) => c.approx === undefined);
+    const full = goldenCompose(base, circles, opts.golden, bb, 0.8 * limit);
+    const changed = full.radii + full.positions + full.thickness + (full.boxed ? 1 : 0);
+    const at = (s: number) => merge(start, blend(base, full.paths, s));
+    let s = Math.max(0, Math.min(1, opts.strength));
+    if (changed === 0) {
+      s = 0;
+      notes.push('no-golden');
+    } else if (!within(at(s))) {
+      let lo = 0;
+      let hi = s;
+      for (let k = 0; k < 8; k++) {
+        const m = (lo + hi) / 2;
+        if (within(at(m))) lo = m;
+        else hi = m;
+      }
+      s = lo > 0.02 ? lo : 0;
+      notes.push(s > 0 ? 'strength-reduced' : 'unchanged');
+    }
+    strengthUsed = round(s, 3);
+    out = s > 0 ? at(s) : start;
+    if (s > 0) {
+      report.radii = full.radii;
+      report.positions = full.positions;
+      report.thickness = full.thickness;
+      report.boxed = full.boxed;
+    }
+    guides = {
+      grid: null,
+      circles: full.circles,
+      axis: null,
+      lines: full.lines,
+      spiral: opts.golden.spiral && opts.golden.ratio === 'phi' ? goldenSpiral(bb) : [],
     };
   } else if (mode === 'symmetric') {
     // simmetria sulle forme (la stessa di CORREGGI, con la tolleranza = scarto massimo)

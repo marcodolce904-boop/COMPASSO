@@ -198,7 +198,7 @@ Il logo diventa interamente costruibile con riga e compasso.
 - L'anteprima mostra i **cerchi** degli archi nuovi.
 - Il riepilogo dice quante curve sono diventate archi e quanti archi sono stati usati.
 
-## 7c. Modalità SEZIONE AUREA (bozza da approvare, 19/11/2026)
+## 7c. Modalità SEZIONE AUREA (approvata da Marco il 19/11/2026, «ok a tutte le proposte»)
 
 Idea: il logo ricomposto su **rapporti aurei**. Le misure principali stanno tra loro come
 φ = 1,618…: ogni misura è la precedente divisa o moltiplicata per φ (1 : 0,618 : 0,382 : 0,236…).
@@ -218,12 +218,15 @@ Idea: il logo ricomposto su **rapporti aurei**. Le misure principali stanno tra 
    - Ogni altro cerchio prende il raggio della serie più vicino al suo: R/φ, R/φ², R/φ³…
    - I cerchi con raggi uguali restano uguali; quelli concentrici restano concentrici.
    - I cerchi vengono scalati intorno al proprio centro, come in Matematico.
+   - Vale per i **cerchi interi**: un pezzo d'arco dentro un contorno resta com'è, perché cambiarne il
+     raggio lo staccherebbe dalle curve vicine.
 2. **Griglia aurea.** Sul riquadro del logo si tracciano le linee che lo dividono in proporzione aurea:
    - verticali a 0,382 e 0,618 della larghezza, poi le suddivisioni successive (0,236 e 0,764);
    - orizzontali allo stesso modo sull'altezza.
 
    I **centri dei cerchi** e le **rette orizzontali e verticali** del logo (bordi, tagli, assi) vicini
    a una linea della griglia ci si spostano sopra. Gli spigoli si ricollegano come in Matematico.
+
 3. **Proporzioni tra spessori.** Dove il logo ha tratti di due spessori diversi e il loro rapporto è
    vicino a φ (tra 1,45 e 1,8), il più sottile diventa esattamente il più spesso diviso φ.
 4. **Riquadro aureo (facoltativo, spento di base).** Se il rapporto larghezza/altezza del logo è vicino

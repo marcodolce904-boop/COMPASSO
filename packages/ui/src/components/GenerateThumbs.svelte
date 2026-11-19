@@ -75,6 +75,18 @@
             {/each}
           </g>
         {/if}
+        {#if it.guides?.lines.length}
+          <g class="glines" style="stroke-width:{unit * 0.2}">
+            {#each it.guides.lines as l, i (i)}<line {...l} />{/each}
+          </g>
+        {/if}
+        {#if it.guides?.spiral.length}
+          <polyline
+            class="spiral"
+            points={it.guides.spiral.map((p) => `${p.x},${p.y}`).join(' ')}
+            style="stroke-width:{unit * 0.4}"
+          />
+        {/if}
         {#if it.guides?.axis}
           <line
             class="axis"
@@ -150,6 +162,12 @@
   .cons circle {
     fill: none;
     stroke: var(--c-preview-line);
+  }
+  .glines line,
+  .spiral {
+    fill: none;
+    stroke: var(--c-warn);
+    opacity: 0.7;
   }
   .axis {
     stroke: var(--c-accent);

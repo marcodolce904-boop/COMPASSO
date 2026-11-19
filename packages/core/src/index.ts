@@ -86,3 +86,4 @@ export {
   type MinimalLevel,
 } from './generate/generate';
 export type { MathOptions } from './generate/math';
+export type { GoldenOptions, GoldenRatio } from './generate/golden';

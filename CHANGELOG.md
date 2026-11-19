@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.12.0 — 19/11/2026
+
+- **GENERA, modalità Sezione aurea** (specifica approvata in `docs/GENERA.md` §7c):
+  - **raggi in serie aurea**: il cerchio più grande resta R, gli altri diventano R/φ, R/φ², R/φ³…
+    (solo i cerchi interi, così i contorni non si staccano);
+  - **griglia aurea** a 0,382 e 0,618 del riquadro (e 0,236 e 0,764): i centri dei cerchi e le rette
+    orizzontali e verticali vicini ci si appoggiano;
+  - **spessori**: due tratti quasi in rapporto φ lo diventano esattamente;
+  - **riquadro aureo**, spento di base: allunga il logo fino a φ:1 se è già vicino.
+
+  Rapporti alternativi: √2, 3:2 e 1:1 (cerchi tutti uguali), più i mezzi passi, che cambiano meno il
+  logo. La miniatura mostra la griglia aurea, la spirale e le etichette dei cerchi («R», «R/φ»,
+  «R/φ²»). Se nessuna misura è vicina a un rapporto aureo lo dice, invece di forzare.
+
+- GENERA ha ora tutte e cinque le modalità previste: Simmetrico, Sezione aurea, Matematico,
+  Strutturato e Minimal.
+
 ## 0.11.0 — 19/11/2026
 
 - **GENERA, modalità Simmetrico**: il logo perfettamente simmetrico con il metodo sulle forme. Una metà

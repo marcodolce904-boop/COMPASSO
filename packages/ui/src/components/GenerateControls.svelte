@@ -82,6 +82,46 @@
 </details>
 
 <details class="dd">
+  <summary>{t(lang, 'gen.golden.params')}</summary>
+  <div class="lbl">{t(lang, 'gen.golden.ratio')}</div>
+  <Segmented
+    ariaLabel={t(lang, 'gen.golden.ratio')}
+    bind:value={options.golden.ratio}
+    dense
+    options={[
+      { value: 'phi', label: 'φ 1,618' },
+      { value: 'sqrt2', label: '√2' },
+      { value: '3:2', label: '3:2' },
+      { value: '1:1', label: '1:1' },
+    ]}
+  />
+  <label class="chk">
+    <input type="checkbox" bind:checked={options.golden.half} />
+    {t(lang, 'gen.golden.half')}
+  </label>
+  <label class="chk">
+    <input type="checkbox" bind:checked={options.golden.rules.radii} />
+    {t(lang, 'gen.golden.rule.radii')}
+  </label>
+  <label class="chk">
+    <input type="checkbox" bind:checked={options.golden.rules.grid} />
+    {t(lang, 'gen.golden.rule.grid')}
+  </label>
+  <label class="chk">
+    <input type="checkbox" bind:checked={options.golden.rules.thickness} />
+    {t(lang, 'gen.golden.rule.thickness')}
+  </label>
+  <label class="chk">
+    <input type="checkbox" bind:checked={options.golden.rules.box} />
+    {t(lang, 'gen.golden.rule.box')}
+  </label>
+  <label class="chk">
+    <input type="checkbox" bind:checked={options.golden.spiral} />
+    {t(lang, 'gen.golden.spiral')}
+  </label>
+</details>
+
+<details class="dd">
   <summary>{t(lang, 'gen.math.params')}</summary>
   <div class="lbl">{t(lang, 'gen.math.angle')}</div>
   <Segmented

@@ -198,7 +198,7 @@
   );
 
   // --- GENERA (docs/GENERA.md) ------------------------------------------------------------------
-  const GEN_MODES = ['symmetric', 'math', 'structured', 'minimal'] as const;
+  const GEN_MODES = ['symmetric', 'golden', 'math', 'structured', 'minimal'] as const;
   let genOptions = $state<GenerateOptions | null>(null);
   let genDefaults = $state<GenerateOptions | null>(null);
   let genD = $state(100);
