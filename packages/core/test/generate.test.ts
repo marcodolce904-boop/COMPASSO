@@ -37,6 +37,9 @@ const angleDeg = (a: Vec2, b: Vec2) => {
   if (d < 0) d += 180;
   return d % 180;
 };
+/** Modalità limitata (vecchio comportamento): scarto massimo al 3% della diagonale. */
+const limited = (g: DocumentGeometry) => ({ ...generateDefaults(g), maxDeviation: 0.03 * diag(g) });
+
 const offMultiple = (v: number, step: number) => {
   const r = Math.abs(v / step - Math.round(v / step));
   return r * step;
@@ -47,12 +50,12 @@ describe('GENERA: regole comuni', () => {
     it(`${mode}: stesso numero di tracciati, entro lo scarto massimo, deterministico`, () => {
       for (const svg of [LOGO_A, LOGO_C]) {
         const g = parseSvg(svg);
-        const o = generateDefaults(g);
+        const o = limited(g);
         const a = generate(g, mode, o);
         const b = generate(g, mode, o);
         expect(a.geometry.paths).toHaveLength(g.paths.length);
         expect(a.geometry.paths.map((p) => p.id)).toEqual(g.paths.map((p) => p.id));
-        expect(geometryDrift(a.geometry, g)).toBeLessThanOrEqual(o.maxDeviation + 1e-6);
+        expect(geometryDrift(a.geometry, g)).toBeLessThanOrEqual(o.maxDeviation! + 1e-6);
         expect(JSON.stringify(a)).toEqual(JSON.stringify(b));
         expect(a.report.similarity).toBeGreaterThan(90);
         expect(a.report.similarity).toBeLessThanOrEqual(100);
@@ -68,7 +71,7 @@ describe('GENERA: regole comuni', () => {
         const o = { ...generateDefaults(g), maxDeviation: f * D };
         for (const mode of ['math', 'minimal', 'symmetric', 'structured', 'golden'] as const)
           expect(geometryDrift(generate(g, mode, o).geometry, g)).toBeLessThanOrEqual(
-            o.maxDeviation + 1e-6,
+            o.maxDeviation! + 1e-6,
           );
       }),
       { numRuns: 12 },
@@ -143,11 +146,11 @@ describe('GENERA: Minimal', () => {
 
   it('numero massimo di anchor: si semplifica di più finché lo scarto lo permette', () => {
     const g = parseSvg(LOGO_A);
-    const base = generate(g, 'minimal', generateDefaults(g));
-    const o = { ...generateDefaults(g), minimal: { level: 'medium' as const, maxAnchors: 10 } };
+    const base = generate(g, 'minimal', limited(g));
+    const o = { ...limited(g), minimal: { level: 'medium' as const, maxAnchors: 10 } };
     const r = generate(g, 'minimal', o);
     expect(r.report.anchorsAfter).toBeLessThanOrEqual(base.report.anchorsAfter);
-    expect(geometryDrift(r.geometry, g)).toBeLessThanOrEqual(o.maxDeviation + 1e-6);
+    expect(geometryDrift(r.geometry, g)).toBeLessThanOrEqual(o.maxDeviation! + 1e-6);
   });
 
   it('segnala le forme molto piccole (senza toglierle)', () => {
@@ -218,9 +221,9 @@ describe('GENERA: Simmetrico', () => {
     expect(mirrorGap(r.geometry, r.guides.axis!.x1)).toBeLessThan(1);
   });
 
-  it('un logo asimmetrico resta com è e il riepilogo dice perché', () => {
+  it('modalità limitata: un logo asimmetrico resta com è e il riepilogo dice perché', () => {
     const g = parseSvg(LOGO_A);
-    const r = generate(g, 'symmetric', generateDefaults(g));
+    const r = generate(g, 'symmetric', limited(g));
     expect(r.guides.axis).toBeNull();
     expect(r.report.notes).toContain('no-axis');
   });
@@ -230,7 +233,7 @@ describe('GENERA: Strutturato', () => {
   it('le curve libere diventano archi di cerchio veri, tangenti tra loro', () => {
     const g = parseSvg(LOGO_A);
     const before = analyze(g);
-    const r = generate(g, 'structured', generateDefaults(g));
+    const r = generate(g, 'structured', limited(g));
     expect(r.report.arcCurves).toBeGreaterThan(0);
     expect(r.report.arcs).toBeGreaterThanOrEqual(r.report.arcCurves);
     expect(r.guides.circles.length).toBe(r.report.arcs);
@@ -264,9 +267,9 @@ describe('GENERA: Strutturato', () => {
     expect(kinks).toBeLessThanOrEqual(kinksBefore);
   });
 
-  it('un logo fatto solo di rette e cerchi non cambia', () => {
+  it('modalità limitata: un logo fatto solo di rette e cerchi non cambia', () => {
     const g = parseSvg(LOGO_C);
-    const r = generate(g, 'structured', generateDefaults(g));
+    const r = generate(g, 'structured', limited(g));
     expect(r.report.arcCurves).toBe(0);
     expect(r.report.notes).toContain('nothing-to-do');
   });
@@ -339,7 +342,7 @@ describe('GENERA: Sezione aurea', () => {
 
   it('nessuna misura vicina alla sezione aurea: il logo resta com era e la nota lo dice', () => {
     const g = parseSvg('<svg><path d="M0 0 L100 0 L30 80 Z"/></svg>');
-    const r = generate(g, 'golden', generateDefaults(g));
+    const r = generate(g, 'golden', limited(g));
     expect(r.report.notes).toContain('no-golden');
     expect(geometryDrift(r.geometry, g)).toBeLessThan(1);
   });

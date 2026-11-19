@@ -8,7 +8,17 @@ import { anchorCount, bboxOf, driftStats, toNodes, fromNodes } from './geometry'
 import { mathCompose, type MathOptions } from './math';
 import { minimalCompose } from './minimal';
 import { structureCompose } from './structured';
-import { goldenCompose, goldenSpiral, type GoldenOptions } from './golden';
+import { goldenCompose, goldenSpiral, gridFractions, RATIO, type GoldenOptions } from './golden';
+import {
+  constructionCircles,
+  fromConstruction,
+  lineAngles,
+  finalize,
+  solve,
+  toConstruction,
+  type CanonRules,
+} from './canon';
+import { autoKeep, findMirrorAxis, mirrorHalf } from '../fix/mirror';
 import type { MirrorKeep } from '../fix/mirror';
 import type { SymmetryAxis } from '../fix/refine';
 
@@ -18,8 +28,11 @@ export type MinimalLevel = 'light' | 'medium' | 'strong';
 export interface GenerateOptions {
   /** 0 = logo corretto, 1 = regola piena. */
   strength: number;
-  /** Scarto massimo dall'originale, in pt (di base il 3% della diagonale del logo). */
-  maxDeviation: number;
+  /**
+   * Limite di stravolgimento (pt). null = nessun limite (di base): il logo diventa canonico alla
+   * regola anche se cambia molto (docs/GENERA.md §0). Con un numero valgono le attenuazioni.
+   */
+  maxDeviation: number | null;
   math: MathOptions;
   minimal: { level: MinimalLevel; maxAnchors: number | null };
   /** Simmetrico: asse e metà da tenere (come in CORREGGI). */
@@ -69,6 +82,8 @@ export interface GenerateReport {
   /** Strutturato: curve libere diventate archi, e archi usati. */
   arcCurves: number;
   arcs: number;
+  /** Ricostruzione canonica (nessun limite di somiglianza). */
+  canonical: boolean;
   /** Sezione aurea: spessori portati in rapporto; riquadro portato a φ. */
   thickness: number;
   boxed: boolean;
@@ -96,19 +111,22 @@ export interface GenerateResult {
 
 const round = (v: number, d: number) => Math.round(v * 10 ** d) / 10 ** d;
 
-/** Valori di base (approvati da Marco il 18/11/2026). */
-export function generateDefaults(geom: DocumentGeometry): GenerateOptions {
-  const D = normalizeGeometry(geom.paths).D || 100;
+/**
+ * Valori di base (approvati da Marco il 18/11/2026; dal 19/11 nessun limite di somiglianza: la
+ * ricostruzione è canonica, docs/GENERA.md §0).
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- firma stabile per chi la usa
+export function generateDefaults(_geom: DocumentGeometry): GenerateOptions {
   return {
     strength: 1,
-    maxDeviation: round(0.03 * D, 2),
+    maxDeviation: null,
     math: {
       angle: 15,
       module: null,
       half: true,
       rules: { angles: true, radii: true, positions: true },
     },
-    minimal: { level: 'medium', maxAnchors: null },
+    minimal: { level: 'strong', maxAnchors: null },
     symmetric: { axis: 'auto', keep: 'auto' },
     golden: {
       ratio: 'phi',
@@ -154,7 +172,8 @@ export function generate(
   opts: GenerateOptions,
 ): GenerateResult {
   const D = normalizeGeometry(geom.paths).D || 1;
-  const limit = Math.max(0, opts.maxDeviation);
+  const canon = opts.maxDeviation === null;
+  const limit = canon ? Infinity : Math.max(0, opts.maxDeviation!);
   const notes: GenerateNote[] = [];
   const within = (g: DocumentGeometry) => driftStats(g, geom).max <= limit + 1e-9;
 
@@ -179,7 +198,16 @@ export function generate(
   };
   let guides: GenerateGuides = { grid: null, circles: [], axis: null, lines: [], spiral: [] };
 
-  if (mode === 'math') {
+  if (canon && (mode === 'golden' || mode === 'math' || mode === 'structured')) {
+    const r = canonical(start, mode, opts, D);
+    if (r) {
+      out = r.geometry;
+      strengthUsed = 1;
+      Object.assign(report, r.counts);
+      guides = r.guides;
+      if (r.changed === 0) notes.push(mode === 'golden' ? 'no-golden' : 'nothing-to-do');
+    } else notes.push('unchanged');
+  } else if (mode === 'math') {
     const a = analyze(start);
     const auto = a.specs.unitX ?? Math.max(0.5, Math.round((D / 24) * 2) / 2);
     const module = opts.math.module && opts.math.module > 0 ? opts.math.module : auto;
@@ -277,19 +305,54 @@ export function generate(
     // simmetria sulle forme (la stessa di CORREGGI, con la tolleranza = scarto massimo)
     const strength = Math.max(0, Math.min(1, opts.strength));
     const ro = refineDefaults(start).options;
+    // canonico: si riflette sempre, rispetto all'asse più plausibile e dalla metà più pulita; solo il
+    // riflesso, senza le altre correzioni di CORREGGI (che sul risultato riflesso fanno danni)
+    const keep = opts.symmetric.keep;
+    if (canon) {
+      const ps = normalizeGeometry(start.paths).paths;
+      const vs =
+        keep === 'left' || keep === 'right'
+          ? [true]
+          : keep === 'top' || keep === 'bottom'
+            ? [false]
+            : opts.symmetric.axis === 'vertical'
+              ? [true]
+              : opts.symmetric.axis === 'horizontal'
+                ? [false]
+                : [true, false];
+      let ax: ReturnType<typeof findMirrorAxis> = null;
+      for (const v of vs) {
+        const x = findMirrorAxis(ps, v);
+        if (x && (!ax || x.mismatch < ax.mismatch)) ax = x;
+      }
+      if (ax && strength > 0) {
+        const side = keep === 'auto' ? autoKeep(ps, ax) : keep;
+        const m = mirrorHalf(ps, ax, side);
+        out = merge(start, m.paths);
+        strengthUsed = 1;
+        if (m.skipped > 0) notes.push('partial');
+        const bb = bboxOf(normalizeGeometry(out.paths).paths);
+        const mg = 0.06 * Math.max(bb.width, bb.height);
+        guides.axis = ax.vertical
+          ? { x1: ax.c, y1: bb.y - mg, x2: ax.c, y2: bb.y + bb.height + mg }
+          : { x1: bb.x - mg, y1: ax.c, x2: bb.x + bb.width + mg, y2: ax.c };
+      } else notes.push('no-axis');
+    }
     const r =
-      strength > 0
+      !canon && strength > 0
         ? refine(start, {
             ...ro,
             symmetry: {
               enabled: true,
-              tolerance: Math.max(1e-6, limit),
+              tolerance: canon ? 0.25 * D : Math.max(1e-6, limit),
               axis: opts.symmetric.axis,
-              keep: opts.symmetric.keep,
+              keep,
             },
           })
         : null;
-    if (r && r.report.axis && within(r.geometry)) {
+    if (canon) {
+      // già fatto sopra
+    } else if (r && r.report.axis && within(r.geometry)) {
       out = r.geometry;
       strengthUsed = 1;
       if (r.report.symmetryNote === 'partial') notes.push('partial');
@@ -381,11 +444,197 @@ export function generate(
       similarity: round(Math.max(0, 100 - (100 * ds.mean) / D), 1),
       drift: round(ds.max, 3),
       strengthUsed,
+      canonical: canon,
       anchorsBefore: anchorCount(geom),
       anchorsAfter: anchorCount(out),
       ...report,
       notes,
     },
     guides,
+  };
+}
+
+const PHI = (1 + Math.sqrt(5)) / 2;
+
+/** Raggruppa valori vicini (rapporto entro `ratio`) e restituisce la media del gruppo di ciascuno. */
+function clusterValues(values: number[], ratio: number): (v: number) => number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const groups: number[][] = [];
+  for (const v of sorted) {
+    const g = groups[groups.length - 1];
+    if (g && v / g[0]! <= ratio) g.push(v);
+    else groups.push([v]);
+  }
+  const means = groups.map((g) => ({
+    lo: g[0]!,
+    hi: g[g.length - 1]!,
+    m: g.reduce((a, b) => a + b, 0) / g.length,
+  }));
+  return (v) => means.find((g) => v >= g.lo - 1e-9 && v <= g.hi + 1e-9)?.m ?? v;
+}
+
+/**
+ * GENERA canonico (docs/GENERA.md §0): costruzione (rette, archi, raccordi) + risolutore. Il logo
+ * diventa esattamente conforme alla regola, anche se cambia molto.
+ */
+function canonical(
+  start: DocumentGeometry,
+  mode: 'golden' | 'math' | 'structured',
+  opts: GenerateOptions,
+  D: number,
+): {
+  geometry: DocumentGeometry;
+  counts: Partial<GenerateReport>;
+  guides: GenerateGuides;
+  changed: number;
+} | null {
+  const a = analyze(start);
+  const paths = normalizeGeometry(start.paths).paths;
+  const bb = bboxOf(paths);
+  const k = toConstruction(
+    paths,
+    a.circles.filter((c) => c.approx === undefined),
+    D,
+    0.006 * D,
+  );
+  const before = k.ctr.map((c) => ({ ...c.c, r: c.r }));
+  const anglesBefore = lineAngles(k);
+  const radii = k.ctr.map((c) => c.r);
+  const nearest = (v: number, list: number[]) =>
+    list.reduce((b, x) => (Math.abs(x - v) < Math.abs(b - v) ? x : b), list[0]!);
+  const inBox = (c: { x: number; y: number }, m: number) =>
+    c.x >= bb.x - m && c.x <= bb.x + bb.width + m && c.y >= bb.y - m && c.y <= bb.y + bb.height + m;
+  let rules: CanonRules;
+  let guides: GenerateGuides = { grid: null, circles: [], axis: null, lines: [], spiral: [] };
+  let label: (r: number) => string = (r) => `r = ${round(r, 1)} pt`;
+  let module = 0;
+  if (mode === 'golden') {
+    const g = opts.golden;
+    const q = RATIO[g.ratio];
+    // riferimento: il cerchio intero più grande; se non ce n'è, l'arco più grande non quasi piatto
+    const fullR = k.ctr.filter((c) => c.full).map((c) => c.r);
+    const R = fullR.length ? Math.max(...fullR) : Math.max(0, ...radii.filter((r) => r <= 0.6 * D));
+    const fr = gridFractions(q);
+    const xs = fr.map((f) => bb.x + f * bb.width);
+    const ys = fr.map((f) => bb.y + f * bb.height);
+    const angStep = Math.PI / 10; // 18°: la famiglia dei triangoli aurei
+    rules = {
+      radius: g.rules.radii
+        ? (r) => {
+            if (R <= 0 || r > 0.6 * D) return r; // archi quasi piatti: quasi rette, raggio libero
+            if (q <= 1 + 1e-9) return R;
+            const e = Math.log(R / r) / Math.log(q);
+            const kk = g.half ? Math.round(e * 2) / 2 : Math.round(e);
+            return R / q ** Math.max(0, kk);
+          }
+        : undefined,
+      angle: (t) => (Math.round(t / angStep) * angStep) % Math.PI,
+      center: g.rules.grid
+        ? (c, full) =>
+            full && inBox(c, 0.1 * Math.max(bb.width, bb.height))
+              ? { x: nearest(c.x, xs), y: nearest(c.y, ys) }
+              : null
+        : undefined,
+      axisLine: g.rules.grid ? (v, vertical) => nearest(v, vertical ? xs : ys) : undefined,
+    };
+    const sym = { phi: 'φ', sqrt2: '√2', '3:2': '1,5', '1:1': '1' }[g.ratio];
+    const sup = ['', '', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+    label = (r) => {
+      if (q <= 1 + 1e-9 || R <= 0) return 'R';
+      const e = Math.round((Math.log(R / r) / Math.log(q)) * 2) / 2;
+      if (e === 0) return 'R';
+      if (Number.isInteger(e)) return e === 1 ? `R/${sym}` : `R/${sym}${sup[e] ?? `^${e}`}`;
+      return `R/${sym}^${String(e).replace('.', ',')}`;
+    };
+    guides = {
+      grid: null,
+      circles: [],
+      axis: null,
+      lines: [
+        ...xs.map((x) => ({ x1: x, y1: bb.y, x2: x, y2: bb.y + bb.height })),
+        ...ys.map((y) => ({ x1: bb.x, y1: y, x2: bb.x + bb.width, y2: y })),
+      ],
+      spiral: g.spiral && g.ratio === 'phi' ? goldenSpiral(bb) : [],
+    };
+    void PHI;
+  } else if (mode === 'math') {
+    const auto = a.specs.unitX ?? Math.max(0.5, Math.round((D / 24) * 2) / 2);
+    module = opts.math.module && opts.math.module > 0 ? opts.math.module : auto;
+    const step = opts.math.half ? module / 2 : module;
+    const snap = (v: number, o: number) => o + Math.round((v - o) / step) * step;
+    const base = (opts.math.angle * Math.PI) / 180;
+    rules = {
+      radius: opts.math.rules.radii
+        ? (r) => Math.max(step, Math.round(r / step) * step)
+        : undefined,
+      angle: opts.math.rules.angles ? (t) => (Math.round(t / base) * base) % Math.PI : undefined,
+      center: opts.math.rules.positions
+        ? (c) => ({ x: snap(c.x, bb.x), y: snap(c.y, bb.y) })
+        : undefined,
+      axisLine: opts.math.rules.positions
+        ? (v, vertical) => snap(v, vertical ? bb.x : bb.y)
+        : undefined,
+      corner: opts.math.rules.positions
+        ? (p) => ({ x: snap(p.x, bb.x), y: snap(p.y, bb.y) })
+        : undefined,
+    };
+    label = (r) => `r = ${round(r / module, 2)}m`;
+    guides = {
+      grid: { x: bb.x, y: bb.y, width: bb.width, height: bb.height, step },
+      circles: [],
+      axis: null,
+      lines: [],
+      spiral: [],
+    };
+  } else {
+    // strutturato: raggi simili (entro l'8%) unificati, raccordi tangenti
+    const rr = clusterValues(radii, 1.08);
+    rules = { radius: rr };
+  }
+  solve(k, rules);
+  // la rifinitura degli archi può incrinare un raccordo: qualche giro di risolutore e di nuovo
+  for (let i = 0; i < 4; i++) {
+    finalize(k, rules);
+    solve(k, rules, 80);
+  }
+  finalize(k, rules);
+  const out = fromConstruction(k);
+  const bad = out.some((p) =>
+    p.segments.some((sg) =>
+      [sg.p0, sg.p1, ...(sg.kind === 'cubic' ? [sg.c1, sg.c2] : [])].some(
+        (v) => !Number.isFinite(v.x) || !Number.isFinite(v.y),
+      ),
+    ),
+  );
+  if (bad) return null;
+  const circles = constructionCircles(k);
+  guides.circles = circles.map((c) => ({ ...c, label: label(c.r) }));
+  let radiiChanged = 0;
+  let centersMoved = 0;
+  k.ctr.forEach((c, i) => {
+    if (Math.abs(c.target - before[i]!.r) > 1e-6) radiiChanged++;
+    if (Math.hypot(c.c.x - before[i]!.x, c.c.y - before[i]!.y) > 1e-6) centersMoved++;
+  });
+  const anglesAfter = lineAngles(k);
+  let angles = 0;
+  anglesAfter.forEach((t, i) => {
+    const d = Math.abs(t - anglesBefore[i]!);
+    if (Math.min(d, Math.PI - d) > 1e-6) angles++;
+  });
+  const freeArcs = k.paths.reduce((s, p) => s + p.els.filter((e) => e.kind === 'arc').length, 0);
+  return {
+    geometry: merge(start, out),
+    counts: {
+      radii: radiiChanged,
+      positions: centersMoved,
+      angles,
+      arcs: freeArcs,
+      // raggi diversi usati dalla costruzione
+      arcCurves: new Set(circles.map((c) => Math.round(c.r * 100))).size,
+      module: round(module, 3),
+      division: opts.math.half ? 2 : 1,
+    },
+    guides,
+    changed: radiiChanged + centersMoved + angles,
   };
 }

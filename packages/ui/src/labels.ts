@@ -124,7 +124,21 @@ export function generateCaption(lang: Lang, r: GenerateResult): string {
 export function generateSummary(lang: Lang, r: GenerateResult): string {
   const rp = r.report;
   const parts: string[] = [];
-  if (rp.mode === 'math') {
+  if (rp.canonical && (rp.mode === 'golden' || rp.mode === 'math' || rp.mode === 'structured')) {
+    if (rp.arcs) parts.push(t(lang, 'gen.sum.canon', { a: rp.arcs, r: rp.arcCurves }));
+    const rk =
+      rp.mode === 'math'
+        ? 'gen.sum.radii'
+        : rp.mode === 'golden'
+          ? 'gen.sum.goldenRadii'
+          : 'gen.sum.unified';
+    if (rp.radii) parts.push(t(lang, rk, { n: rp.radii }));
+    if (rp.angles) parts.push(t(lang, 'gen.sum.angles', { n: rp.angles }));
+    if (rp.positions && rp.mode !== 'structured')
+      parts.push(t(lang, 'gen.sum.canonCenters', { n: rp.positions }));
+    if (rp.mode === 'math')
+      parts.push(t(lang, 'gen.sum.module', { m: num(lang, rp.module, 2), d: rp.division }));
+  } else if (rp.mode === 'math') {
     if (rp.angles) parts.push(t(lang, 'gen.sum.angles', { n: rp.angles }));
     if (rp.radii) parts.push(t(lang, 'gen.sum.radii', { n: rp.radii }));
     if (rp.positions) parts.push(t(lang, 'gen.sum.positions', { n: rp.positions }));

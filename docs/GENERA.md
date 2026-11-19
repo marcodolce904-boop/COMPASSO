@@ -5,6 +5,31 @@ realizzati nella 0.10.0._
 _Primo rilascio previsto: modalità **Matematico** e **Minimal**. Le altre (Simmetrico, Sezione aurea,
 Strutturato) seguono con le stesse regole di base._
 
+## 0. PRINCIPIO (cambiato da Marco il 19/11/2026: vale su tutto il resto del documento)
+
+> «La versione GENERA non deve assomigliare troppo all'originale: se serve lo stravolge completamente,
+> verso la correttezza matematica. Deve renderlo **canonico** ai parametri che gli diamo: con la sezione
+> aurea deve essere perfettamente canonico alla sezione aurea, e così via.» (Marco)
+
+Quindi:
+- **Nessuna guardia di somiglianza di base.** Lo «scarto massimo» diventa un'opzione **spenta di base**
+  («Limita lo stravolgimento»). Solo se la si accende valgono le attenuazioni dei paragrafi sotto
+  (griglia più fine, regole saltate, intensità ridotta).
+- **Ricostruzione, non ritocco.** Ogni tracciato diventa una **costruzione**: rette, archi di cerchio e
+  raccordi. Le curve libere diventano archi tangenti, come in Strutturato. Un **risolutore** impone la
+  regola a tutto il logo insieme e tiene esatti i raccordi tangenti, così il risultato resta continuo.
+- **Regole canoniche, senza eccezioni:**
+
+  | Modalità | Regola |
+  |---|---|
+  | **Sezione aurea** | ogni raggio (anche degli archi delle curve) nella serie R/φᵏ del più grande; angoli delle rette a multipli di 18° (la famiglia dei triangoli aurei: 36°, 72°…); centri, rette orizzontali e verticali sulla griglia aurea |
+  | **Matematico** | ogni raggio multiplo del passo (m/2); centri e spigoli sulla griglia del modulo; angoli a multipli dell'angolo base |
+  | **Strutturato** | tutto archi e rette; raggi simili (entro il 12%) unificati; centri vicini resi coincidenti; raccordi tangenti esatti |
+  | **Simmetrico** | riflette sempre la metà migliore rispetto all'asse più plausibile |
+  | **Minimal** | semplificazione forte di base, poi archi e rette |
+
+- La **somiglianza** resta nel riepilogo solo come informazione («quanto è cambiato»), non come limite.
+
 ## 1. Cos'è
 
 Una scheda nuova, **GENERA**, accanto ad ANALIZZA, CORREGGI e RICALCA.

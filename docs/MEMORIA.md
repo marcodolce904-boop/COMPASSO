@@ -4,9 +4,33 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.12.0 (GENERA completo: Simmetrico,
-Sezione aurea, Matematico, Strutturato, Minimal). Prossimo passo: prove di Marco su loghi veri, poi
-le migliorie del §4 (ordine di lavoro, punto 4)._
+_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.13.0 (GENERA canonico, §0bis). Prossimo
+passo: prove di Marco su loghi veri con la 0.13.0, poi le migliorie del §4._
+
+## 0bis. DIREZIONE DI GENERA CAMBIATA (Marco, 19/11/2026) — PRIORITÀ
+
+Marco: «La versione GENERA non deve assomigliare troppo all'originale… deve renderlo canonico ai
+parametri… se il logo è una m**** rimane una m****, io voglio che diventi la Nutella. Impegnati e non
+farmelo ripetere.»
+- GENERA **ricostruisce** il logo e lo rende canonico: niente guardia di somiglianza di base. Lo scarto
+  massimo diventa un'opzione spenta di base.
+- Principio e regole canoniche in `docs/GENERA.md` §0. Il motore canonico è
+  `core/src/generate/canon.ts` (costruzione rette + archi + raccordi, risolutore a vincoli).
+- Lezione: **non preservare l'originale quando Marco chiede una trasformazione.** «Abbellire» vuol dire
+  ricostruire secondo la regola, non limare.
+- **Fatto nella 0.13.0:** `generate/canon.ts` (`toConstruction`, `solve`, `finalize`,
+  `fromConstruction`).
+  - Il risolutore ha un richiamo debole alla forma di partenza (si spegne a fine corsa), più giri
+    alternati di rifinitura e risolutore. La rifinitura rende ogni arco esatto e sceglie il centro
+    coerente con l'ampiezza originale (niente bozzi).
+  - Sezione aurea: R = cerchio intero più grande (o arco più grande non quasi piatto); archi oltre il
+    60% di D tengono il raggio; la griglia sposta solo i centri dei cerchi interi; la mezzeria è nella
+    griglia.
+  - Strutturato: unifica solo i raggi (entro l'8%), non i centri, che trasformavano la coda in un
+    cerchio.
+  - Simmetrico canonico: solo `mirrorHalf`, senza le altre correzioni di `refine`, che rovinavano la
+    cornice.
+  - Test: `test/canon.test.ts`.
 
 ## 0. Fatto nella 0.9.0 (18/11 pomeriggio): A + C in ANALIZZA
 
@@ -75,7 +99,7 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
 
 ## 1. Dove siamo
 
-- Versione pubblicata: **0.12.0**. Installer:
+- Versione pubblicata: **0.13.0**. Installer:
   `https://github.com/marcodolce904-boop/COMPASSO/releases/download/vX.Y.Z/Compasso-Setup.exe`.
   Si pubblica da solo con un push su `main` quando la versione in `apps/illustrator/package.json` è nuova.
 - Schede funzionanti:

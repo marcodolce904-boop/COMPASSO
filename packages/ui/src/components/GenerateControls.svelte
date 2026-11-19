@@ -23,7 +23,7 @@
 
   const pct = (v: number) => `${Math.round(v * 100)} %`;
   // scarto massimo mostrato in % della diagonale (da 0,5% a 10%)
-  let devPct = $derived(Math.round((options.maxDeviation / D) * 1000) / 10);
+  let devPct = $derived(Math.round(((options.maxDeviation ?? 0.03 * D) / D) * 1000) / 10);
   const setDev = (v: number) => (options.maxDeviation = Math.round(((v * D) / 100) * 100) / 100);
   const angle = $derived(String(options.math.angle));
   let autoModule = $derived(options.math.module === null);
@@ -41,17 +41,30 @@
   unit="%"
   format={pct}
 />
-<Slider
-  label={t(lang, 'gen.maxDeviation')}
-  bind:value={() => devPct, setDev}
-  min={0.5}
-  max={10}
-  step={0.1}
-  defaultValue={Math.round((defaults.maxDeviation / D) * 1000) / 10}
-  unit="%"
-  format={(v) => `${num(lang, v, 1)} %`}
-/>
-<p class="hint">{t(lang, 'gen.maxDeviation.hint')}</p>
+<label class="chk">
+  <input
+    type="checkbox"
+    checked={options.maxDeviation !== null}
+    onchange={(e) =>
+      (options.maxDeviation = e.currentTarget.checked ? Math.round(0.03 * D * 100) / 100 : null)}
+  />
+  {t(lang, 'gen.limit')}
+</label>
+{#if options.maxDeviation !== null}
+  <Slider
+    label={t(lang, 'gen.maxDeviation')}
+    bind:value={() => devPct, setDev}
+    min={0.5}
+    max={10}
+    step={0.1}
+    defaultValue={3}
+    unit="%"
+    format={(v) => `${num(lang, v, 1)} %`}
+  />
+  <p class="hint">{t(lang, 'gen.maxDeviation.hint')}</p>
+{:else}
+  <p class="hint">{t(lang, 'gen.canon.hint')}</p>
+{/if}
 
 <details class="dd">
   <summary>{t(lang, 'gen.symmetric.params')}</summary>

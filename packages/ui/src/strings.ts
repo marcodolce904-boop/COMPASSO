@@ -43,6 +43,12 @@ const en = {
   'gen.onCopy': 'The version goes on a copy: the original stays, hidden.',
   'gen.apply': 'APPLY ON A COPY',
   'gen.common': 'ALL VERSIONS',
+  'gen.limit': 'Limit the change (keep it close to the original)',
+  'gen.canon.hint':
+    'Off: each version is rebuilt to follow its rule exactly, even if the logo changes a lot.',
+  'gen.sum.canon': 'rebuilt with {a} arcs and {r} radii',
+  'gen.sum.canonCenters': '{n} centres placed by the rule',
+  'gen.sum.unified': '{n} radii unified',
   'gen.maxDeviation': 'Max deviation',
   'gen.maxDeviation.hint':
     'How far the logo may move from the original (% of its diagonal): beyond it a rule is applied less or skipped.',
@@ -370,6 +376,12 @@ const it: Record<StringKey, string> = {
   'gen.onCopy': "La versione va su una copia: l'originale resta, nascosto.",
   'gen.apply': 'APPLICA SU UNA COPIA',
   'gen.common': 'TUTTE LE VERSIONI',
+  'gen.limit': "Limita lo stravolgimento (resta vicino all'originale)",
+  'gen.canon.hint':
+    'Spento: ogni versione è ricostruita per seguire la sua regola alla perfezione, anche se il logo cambia molto.',
+  'gen.sum.canon': 'ricostruito con {a} archi e {r} raggi',
+  'gen.sum.canonCenters': '{n} centri messi dalla regola',
+  'gen.sum.unified': '{n} raggi unificati',
   'gen.maxDeviation': 'Scarto massimo',
   'gen.maxDeviation.hint':
     "Quanto il logo può allontanarsi dall'originale (% della sua diagonale): oltre, una regola si applica di meno o si salta.",

@@ -212,7 +212,8 @@
       const d = generateDefaults(g);
       const D = refineDefaults(g).D;
       if (!genOptions) genOptions = structuredClone(d);
-      else if (Math.abs(D / genD - 1) > 0.01) genOptions.maxDeviation *= D / genD;
+      else if (genOptions.maxDeviation !== null && Math.abs(D / genD - 1) > 0.01)
+        genOptions.maxDeviation *= D / genD;
       genDefaults = d;
       genD = D;
     });

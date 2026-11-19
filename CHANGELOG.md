@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.13.0 — 19/11/2026
+
+- **GENERA cambia filosofia** (richiesta di Marco): non deve più assomigliare all'originale, deve rendere
+  il logo **canonico** alla regola scelta, anche stravolgendolo.
+  - Ogni tracciato viene **ricostruito** come costruzione: rette, archi di cerchio e raccordi. Le curve
+    libere diventano archi tangenti.
+  - Un **risolutore** impone la regola a tutto il logo insieme e tiene esatti i raccordi tangenti:
+    il risultato è continuo e pulito, non spezzato.
+  - **Sezione aurea:**
+    - ogni raggio, anche quello degli archi delle curve, nella serie R/φᵏ;
+    - rette a multipli di 18° (la famiglia dei triangoli aurei);
+    - cerchi interi, rette orizzontali e verticali sulla griglia aurea, che ora comprende la
+      mezzeria; i bordi paralleli di un tratto si spostano insieme, così lo spessore resta.
+  - **Matematico:** ogni raggio multiplo del modulo; centri e spigoli tra curve sulla griglia; rette a
+    15°.
+  - **Strutturato:** tutto archi e rette, raggi simili unificati, raccordi tangenti.
+  - **Simmetrico:** riflette sempre, rispetto all'asse più plausibile, anche un logo asimmetrico.
+  - **Minimal:** semplificazione forte di base.
+  - **«Limita lo stravolgimento»**: interruttore spento di base. Se lo accendi torna il comportamento
+    prudente (scarto massimo, regole attenuate).
+  - Il riepilogo dice com'è stato ricostruito il logo (es. «ricostruito con 5 archi e 4 raggi ·
+    3 raggi nella serie · 6 rette ad angoli esatti»). La somiglianza resta come informazione, non come
+    limite.
+
 ## 0.12.0 — 19/11/2026
 
 - **GENERA, modalità Sezione aurea** (specifica approvata in `docs/GENERA.md` §7c):

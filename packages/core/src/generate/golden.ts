@@ -45,7 +45,8 @@ function stepLabel(k: number, ratio: GoldenRatio): string {
 
 /** Frazioni della griglia sul lato (0 e 1 compresi). */
 export function gridFractions(q: number): number[] {
-  const out: number[] = [0, 1];
+  // 0 e 1 (bordi) e la mezzeria (asse dei loghi centrati), poi le divisioni del rapporto
+  const out: number[] = [0, 0.5, 1];
   if (q <= 1 + 1e-9) out.push(0.25, 0.5, 0.75);
   else
     for (let k = 1; k <= 3; k++) {
