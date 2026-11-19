@@ -491,6 +491,7 @@
             modeLabels={{
               after: t(lang, 'gen.mode.after'),
               compare: t(lang, 'fix.mode.compare'),
+              wipe: t(lang, 'fix.mode.wipe'),
               before: t(lang, 'fix.mode.before'),
             }}
             modeAria={t(lang, 'fix.mode.aria')}
@@ -519,6 +520,7 @@
             modeLabels={{
               after: t(lang, 'fix.mode.after'),
               compare: t(lang, 'fix.mode.compare'),
+              wipe: t(lang, 'fix.mode.wipe'),
               before: t(lang, 'fix.mode.before'),
             }}
             modeAria={t(lang, 'fix.mode.aria')}

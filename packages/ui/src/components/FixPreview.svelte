@@ -3,7 +3,7 @@
   import { geometryBox, logoShapes, movedAnchors } from '../preview';
   import Segmented from './Segmented.svelte';
 
-  export type FixMode = 'after' | 'compare' | 'before';
+  export type FixMode = 'after' | 'compare' | 'wipe' | 'before';
   let {
     title,
     original,
@@ -38,6 +38,9 @@
     warning?: string;
   } = $props();
   const excludedSet = $derived(new Set(excluded));
+  const uid = $props.id();
+  // tendina: posizione della linea nella vista (0 = bordo sinistro, 1 = bordo destro)
+  let wipeT = $state(0.5);
   type View = { x: number; y: number; w: number; h: number };
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 400;
@@ -105,14 +108,29 @@
     return () => el.removeEventListener('wheel', onWheel);
   });
 
-  // trascinamento: sposta la vista
+  // trascinamento: sposta la vista (o, in Tendina, la linea se si parte vicino a lei)
   let drag: { id: number; x: number; y: number } | null = null;
+  let wiping: number | null = null;
+  /** Punto dello schermo → frazione della vista (0–1) lungo x. */
+  function fracAt(cx: number): number | null {
+    const p = toUser(cx, 0);
+    return p ? (p.x - cur.x) / cur.w : null;
+  }
   let dragging = $state(false);
   // clic (senza trascinare) su una forma: la esclude dalla correzione, o la riammette
   let press: { x: number; y: number; key: string | null } | null = null;
   function down(e: PointerEvent) {
     if (e.button !== 0) return;
     if ((e.target as Element).closest('button')) return; // i pulsanti di zoom non trascinano
+    if (mode === 'wipe') {
+      const f = fracAt(e.clientX);
+      const px = svgEl?.getScreenCTM()?.a ?? 1;
+      if (f !== null && Math.abs(f - wipeT) * cur.w * px < 16) {
+        wiping = e.pointerId;
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        return;
+      }
+    }
     const shape = (e.target as Element).closest('[data-key]');
     press = { x: e.clientX, y: e.clientY, key: shape ? shape.getAttribute('data-key') : null };
     drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
@@ -120,12 +138,21 @@
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
   function move(e: PointerEvent) {
+    if (wiping === e.pointerId) {
+      const f = fracAt(e.clientX);
+      if (f !== null) wipeT = Math.max(0, Math.min(1, f));
+      return;
+    }
     if (!drag || drag.id !== e.pointerId) return;
     const s = svgEl?.getScreenCTM()?.a ?? 1; // pixel per unità del logo
     panBy(-(e.clientX - drag.x) / s, -(e.clientY - drag.y) / s);
     drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
   }
   function up(e: PointerEvent) {
+    if (wiping === e.pointerId) {
+      wiping = null;
+      return;
+    }
     if (drag?.id === e.pointerId) drag = null;
     dragging = false;
     if (press && press.key && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 4)
@@ -139,8 +166,8 @@
       '=': () => zoomAt(1.25, null),
       '-': () => zoomAt(0.8, null),
       '0': () => (view = null),
-      ArrowLeft: () => panBy(-step, 0),
-      ArrowRight: () => panBy(step, 0),
+      ArrowLeft: () => (mode === 'wipe' ? (wipeT = Math.max(0, wipeT - 0.05)) : panBy(-step, 0)),
+      ArrowRight: () => (mode === 'wipe' ? (wipeT = Math.min(1, wipeT + 0.05)) : panBy(step, 0)),
       ArrowUp: () => panBy(0, -step),
       ArrowDown: () => panBy(0, step),
     };
@@ -151,6 +178,8 @@
     }
   }
   const filled = $derived(logoShapes(mode === 'before' ? original : after));
+  const beforeShapes = $derived(mode === 'wipe' ? logoShapes(original) : []);
+  const splitX = $derived(cur.x + cur.w * wipeT);
   const outline = $derived(mode === 'compare' ? logoShapes(original) : []);
   const moved = $derived(mode === 'compare' && fixed ? movedAnchors(original, fixed) : []);
   const dot = $derived((box ? Math.max(box.width, box.height) * 0.012 : 1) / Math.max(1, zoom));
@@ -167,6 +196,7 @@
         options={[
           { value: 'after', label: modeLabels.after },
           { value: 'compare', label: modeLabels.compare },
+          { value: 'wipe', label: modeLabels.wipe },
           { value: 'before', label: modeLabels.before },
         ]}
       />
@@ -185,7 +215,7 @@
     onpointermove={move}
     onpointerup={up}
     onpointercancel={up}
-    ondblclick={() => (view = null)}
+    ondblclick={() => (mode === 'wipe' ? (wipeT = 0.5) : (view = null))}
     onkeydown={key}
   >
     <svg
@@ -195,7 +225,30 @@
       role="img"
       aria-label={summary}
     >
-      <g class="fill">
+      {#if mode === 'wipe'}
+        <defs>
+          <clipPath id="{uid}-l"
+            ><rect
+              x={cur.x - cur.w}
+              y={cur.y - cur.h}
+              width={splitX - cur.x + cur.w}
+              height={cur.h * 3}
+            /></clipPath
+          >
+          <clipPath id="{uid}-r"
+            ><rect x={splitX} y={cur.y - cur.h} width={cur.w * 2} height={cur.h * 3} /></clipPath
+          >
+        </defs>
+        <g class="fill before" clip-path="url(#{uid}-l)">
+          {#each beforeShapes as s (s.key)}<path
+              d={s.d}
+              fill-rule="evenodd"
+              class:line={!s.filled}
+              style={s.filled ? '' : `stroke-width:${s.strokeWidth}`}
+            />{/each}
+        </g>
+      {/if}
+      <g class="fill" clip-path={mode === 'wipe' ? `url(#${uid}-r)` : undefined}>
         {#each filled as s (s.key)}<path
             d={s.d}
             data-key={s.key}
@@ -211,7 +264,17 @@
       <g class="moved">
         {#each moved as p, i (i)}<circle cx={p.x} cy={p.y} r={dot} />{/each}
       </g>
+      {#if mode === 'wipe'}
+        <g class="split">
+          <line x1={splitX} x2={splitX} y1={cur.y} y2={cur.y + cur.h} />
+          <circle cx={splitX} cy={cur.y + cur.h / 2} r={dot * 3.2} />
+        </g>
+      {/if}
     </svg>
+    {#if mode === 'wipe'}
+      <span class="tag left">{modeLabels.before}</span>
+      <span class="tag right">{modeLabels.after}</span>
+    {/if}
     <div class="zoom">
       <button type="button" aria-label={zoomLabels.out} onclick={() => zoomAt(0.8, null)}>−</button>
       <span class="pct">{Math.round(zoom * 100)}%</span>
@@ -364,6 +427,42 @@
   }
   .moved circle {
     fill: var(--c-accent);
+  }
+  /* tendina: il prima più chiaro, la linea e la maniglia nel colore d'accento */
+  .fill.before path {
+    fill: var(--c-text-3);
+  }
+  .fill.before path.line {
+    fill: none;
+    stroke: var(--c-text-3);
+  }
+  .split {
+    pointer-events: none;
+  }
+  .split line {
+    stroke: var(--c-accent);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+  .split circle {
+    fill: var(--c-accent);
+  }
+  .tag {
+    position: absolute;
+    top: var(--sp-1);
+    padding: 1px var(--sp-1);
+    border-radius: var(--r-s);
+    background: var(--c-bg-card);
+    font: 500 var(--fs-xs) var(--f-mono);
+    letter-spacing: var(--ls-caps);
+    color: var(--c-text-2);
+    pointer-events: none;
+  }
+  .tag.left {
+    left: var(--sp-1);
+  }
+  .tag.right {
+    right: var(--sp-1);
   }
   .legend {
     font: 400 var(--fs-xs) var(--f-sans);

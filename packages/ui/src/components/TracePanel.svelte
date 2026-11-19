@@ -81,6 +81,9 @@
   let perfect = $state(true);
   let drawCons = $state(false); // Perfeziona: disegna anche la costruzione
   let showImage = $state(true);
+  let wipe = $state(false); // tendina: schizzo a sinistra, tracciati a destra
+  let wipeT = $state(0.5);
+  const uid = $props.id();
   let ms = $state<number | null>(null);
   let busy = $state(false);
   /** Risultato del ricalco (prima delle modifiche a mano). */
@@ -294,10 +297,16 @@
     <section class="card" aria-busy={busy}>
       <div class="head">
         <span class="title">{t(lang, 'trace.preview')}</span>
-        <label class="chk">
-          <input type="checkbox" bind:checked={showImage} />
-          {t(lang, 'trace.showImage')}
-        </label>
+        <div class="heads">
+          <label class="chk">
+            <input type="checkbox" bind:checked={wipe} />
+            {t(lang, 'fix.mode.wipe')}
+          </label>
+          <label class="chk">
+            <input type="checkbox" bind:checked={showImage} />
+            {t(lang, 'trace.showImage')}
+          </label>
+        </div>
       </div>
       <ZoomPane
         {fit}
@@ -312,7 +321,35 @@
         onBackgroundClick={() => editor.clearSelection()}
       >
         {#snippet children(ctx)}
-          {#if showImage}
+          {#if wipe}
+            <defs>
+              <clipPath id="{uid}-l"
+                ><rect
+                  x={fit.x - fit.w}
+                  y={fit.y - fit.h}
+                  width={fit.w * (1 + wipeT)}
+                  height={fit.h * 3}
+                /></clipPath
+              >
+              <clipPath id="{uid}-r"
+                ><rect
+                  x={fit.x + fit.w * wipeT}
+                  y={fit.y - fit.h}
+                  width={fit.w * 2}
+                  height={fit.h * 3}
+                /></clipPath
+              >
+            </defs>
+            <image
+              href={source.loaded.url}
+              x={fit.x}
+              y={fit.y}
+              width={fit.w}
+              height={fit.h}
+              clip-path="url(#{uid}-l)"
+              preserveAspectRatio="none"
+            />
+          {:else if showImage}
             <image
               href={source.loaded.url}
               x={fit.x}
@@ -323,7 +360,11 @@
               preserveAspectRatio="none"
             />
           {/if}
-          <g class="traced" class:filled={output?.style.filled}>
+          <g
+            class="traced"
+            class:filled={output?.style.filled}
+            clip-path={wipe ? `url(#${uid}-r)` : undefined}
+          >
             {#each shapes as s (s.key)}<path d={s.d} fill-rule="evenodd" />{/each}
           </g>
           {#if construction}
@@ -337,9 +378,31 @@
               {/each}
             </g>
           {/if}
+          {#if wipe}
+            <line
+              class="split"
+              x1={fit.x + fit.w * wipeT}
+              x2={fit.x + fit.w * wipeT}
+              y1={fit.y}
+              y2={fit.y + fit.h}
+              stroke-width={ctx.px * 2}
+            />
+          {/if}
           <PenLayer {editor} paths={shown} px={ctx.px} toUser={ctx.toUser} />
         {/snippet}
       </ZoomPane>
+      {#if wipe}
+        <Slider
+          label={t(lang, 'fix.mode.wipe')}
+          bind:value={wipeT}
+          min={0}
+          max={1}
+          step={0.01}
+          defaultValue={0.5}
+          unit="%"
+          format={(v) => `${Math.round(v * 100)} %`}
+        />
+      {/if}
       <div class="pen-tools">
         <Segmented
           ariaLabel={t(lang, 'pen.aria')}
@@ -553,6 +616,13 @@
 {/if}
 
 <style>
+  .heads {
+    display: flex;
+    gap: var(--sp-3);
+  }
+  .split {
+    stroke: var(--c-accent);
+  }
   .cons {
     fill: none;
     stroke: var(--c-text-3);
