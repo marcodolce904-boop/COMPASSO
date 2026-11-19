@@ -60,7 +60,7 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
 - UI: 4 miniature calcolate una alla volta, partendo dalla scelta; tendina «Simmetrico: parametri».
 
 **Prossimi passi su GENERA:**
-- **Sezione aurea**: serve una specifica sua da far approvare a Marco;
+- **Sezione aurea**: specifica scritta in `docs/GENERA.md` §7c (19/11), **in attesa di approvazione** di Marco (5 decisioni in fondo alla sezione);
 - calcolo in un worker se diventa lento (oggi ~0,4 s per modalità sul logo di prova).
 
 ## 1. Dove siamo

@@ -198,10 +198,81 @@ Il logo diventa interamente costruibile con riga e compasso.
 - L'anteprima mostra i **cerchi** degli archi nuovi.
 - Il riepilogo dice quante curve sono diventate archi e quanti archi sono stati usati.
 
+## 7c. Modalità SEZIONE AUREA (bozza da approvare, 19/11/2026)
+
+Idea: il logo ricomposto su **rapporti aurei**. Le misure principali stanno tra loro come
+φ = 1,618…: ogni misura è la precedente divisa o moltiplicata per φ (1 : 0,618 : 0,382 : 0,236…).
+È il metodo con cui molti marchi famosi sono stati costruiti, con cerchi di diametri in serie aurea.
+
+### Il rapporto
+
+- **φ = 1,618** di base. In alternativa: **√2 = 1,414** (formati carta), **3:2 = 1,5**, **1:1**
+  (cerchi tutti uguali).
+- **Passo**: rapporto intero (r, r/φ, r/φ²…) di base, oppure **mezzo passo** (√φ = 1,272 tra un
+  gradino e l'altro), che cambia meno il logo.
+
+### Regole, in quest'ordine
+
+1. **Raggi in serie aurea.**
+   - Il cerchio vero **più grande** è il riferimento R e non cambia.
+   - Ogni altro cerchio prende il raggio della serie più vicino al suo: R/φ, R/φ², R/φ³…
+   - I cerchi con raggi uguali restano uguali; quelli concentrici restano concentrici.
+   - I cerchi vengono scalati intorno al proprio centro, come in Matematico.
+2. **Griglia aurea.** Sul riquadro del logo si tracciano le linee che lo dividono in proporzione aurea:
+   - verticali a 0,382 e 0,618 della larghezza, poi le suddivisioni successive (0,236 e 0,764);
+   - orizzontali allo stesso modo sull'altezza.
+
+   I **centri dei cerchi** e le **rette orizzontali e verticali** del logo (bordi, tagli, assi) vicini
+   a una linea della griglia ci si spostano sopra. Gli spigoli si ricollegano come in Matematico.
+3. **Proporzioni tra spessori.** Dove il logo ha tratti di due spessori diversi e il loro rapporto è
+   vicino a φ (tra 1,45 e 1,8), il più sottile diventa esattamente il più spesso diviso φ.
+4. **Riquadro aureo (facoltativo, spento di base).** Se il rapporto larghezza/altezza del logo è vicino
+   a φ (o a 1/φ), il logo viene allungato o accorciato su un solo asse, quanto basta per arrivare a φ
+   esatto. È spento di base perché deforma anche le curve.
+
+### Loghi senza cerchi
+
+Le regole 2 e 3 valgono anche senza cerchi. Se nessun elemento è vicino a un rapporto aureo (entro lo
+scarto massimo), l'anteprima lo dice («nessuna misura vicina alla sezione aurea») invece di forzare.
+
+### Cosa mostra l'anteprima
+
+- La **griglia aurea** sul riquadro.
+- I **cerchi** con il loro gradino (es. «R», «R/φ», «R/φ²»).
+- Facoltativa: la **spirale aurea** inscritta nel riquadro, come riferimento visivo (solo anteprima).
+- Il riepilogo: «3 raggi in serie φ · 2 centri sulla griglia aurea · 1 rapporto di spessori φ ·
+  somiglianza 98%».
+
+### Parametri
+
+- rapporto (φ · √2 · 3:2 · 1:1) e passo (intero · mezzo);
+- regole attive: raggi, griglia, spessori (accese di base), riquadro (spento di base);
+- spirale nell'anteprima (sì/no);
+- come sempre: intensità e scarto massimo, con la stessa guardia di riconoscibilità delle altre
+  modalità (prima si saltano gli elementi che sforano, poi si riduce l'intensità).
+
+### Come si costruisce (per chi sviluppa)
+
+- Nuovo `core/src/generate/golden.ts`, che riusa da Matematico lo scalamento dei cerchi e la
+  ricostruzione degli spigoli come intersezioni.
+- Nessuna modifica a `model.ts`.
+- Test prima del codice:
+  - raggi esattamente in serie R/φᵏ (o R/φ^(k/2));
+  - centri sulle linee 0,382/0,618;
+  - un logo senza misure auree non cambia e la nota lo dice;
+  - scarto massimo rispettato;
+  - stesso numero di tracciati.
+
+### Decisioni da prendere con Marco
+
+1. **Riferimento dei raggi:** il cerchio più grande (proposta) o il cerchio con più peso nel logo?
+2. **Passo di base:** intero (più «aureo», cambia di più) o mezzo passo (proposta: intero)?
+3. **Riquadro aureo:** spento di base (proposta) o acceso?
+4. **Spirale aurea nell'anteprima:** sì (proposta) o no?
+5. **Rapporti alternativi** (√2, 3:2, 1:1): servono subito (proposta: sì, costano poco) o solo φ?
+
 ## 7b. Ancora fuori
 
-- **Sezione aurea**: raggi in progressione φ, proporzioni del riquadro e posizioni sulla griglia aurea.
-  Ha bisogno di una specifica sua.
 - Preset salvabili dei parametri.
 
 ## 8. Decisioni da prendere con Marco
