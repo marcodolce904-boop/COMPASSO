@@ -61,6 +61,12 @@ export {
 } from './trace/trace';
 export { downscale, type RasterImage, type Mask } from './trace/raster';
 export {
+  PERFECT_DEFAULTS,
+  type PerfectOptions,
+  type PerfectReport,
+  type PerfectSymmetry,
+} from './trace/perfect';
+export {
   toEdit,
   fromEdit,
   isSmooth,

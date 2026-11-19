@@ -21,8 +21,9 @@ import {
   type RasterImage,
 } from './raster';
 import { strokes, thin } from './skeleton';
+import { perfectTrace, PERFECT_DEFAULTS, type PerfectOptions, type PerfectReport } from './perfect';
 
-export type TraceMode = 'lines' | 'shapes';
+export type TraceMode = 'lines' | 'shapes' | 'perfect';
 
 export interface TraceOptions {
   /** `lines`: la linea centrale dei tratti. `shapes`: il contorno delle zone piene. */
@@ -50,6 +51,8 @@ export interface TraceOptions {
    * Forme: dove sta il bordo rispetto al tratto, da 0 (linea centrale) a 1 (filo esterno, di base).
    */
   edge?: number;
+  /** Perfeziona: tolleranza, simmetria e morbidezza (docs/PERFEZIONA.md). */
+  perfect?: Partial<PerfectOptions>;
 }
 
 /**
@@ -102,6 +105,8 @@ export interface TraceOutput {
   stats: { paths: number; anchors: number; ms: number };
   /** Maschera dell'inchiostro dopo pulizia (per l'anteprima). */
   mask: Mask;
+  /** Perfeziona: cosa è stato fatto (coordinate del documento). */
+  perfect?: PerfectReport;
 }
 
 /** Valori predefiniti proporzionati all'immagine. */
@@ -672,47 +677,82 @@ export function trace(
   const place: TracePlacement = { ...where, scale: where.scale / up };
   const t0 = now();
   const win = Math.max(15, Math.round(Math.max(img.width, img.height) / 20) | 1);
-  let mask: Mask = adaptiveThreshold(img, o.sensitivity, win);
-  mask = close(mask, Math.round(o.merge));
-  mask = clean(mask, o.minArea, Math.max(o.minArea, (2 * o.merge + 2) ** 2));
-  // asole tra passate parallele: più strette di ~3 volte il raggio di fusione
-  mask = fillThinHoles(mask, Math.max(2, o.merge * 1.5 + 1));
-
-  let polylines: { pts: Vec2[]; closed: boolean }[];
+  let mask: Mask;
   let strokeWidthPx = 1;
-  if (o.mode === 'lines') {
-    const c = centerlines(mask, o, tu);
-    mask = c.mask;
-    strokeWidthPx = c.strokeWidthPx;
-    polylines = c.polylines;
+  let fitted: { closed: boolean; segs: Segment[]; poly: Vec2[] }[];
+  let perfectOut: PerfectReport | undefined;
+  if (o.mode === 'perfect') {
+    // Perfeziona: contorni dal grigio, simmetria, archi tangenti (niente maschera binaria)
+    // il campo sfumato smussa un po' le punte: soglia dello spigolo più bassa
+    // i dettagli piccoli (artigli, pois) contano: filtro dello sporco più permissivo
+    const res = perfectTrace(
+      img,
+      { ...PERFECT_DEFAULTS, ...o.perfect },
+      o.minArea / 4,
+      o.cornerAngle * 0.8,
+      up,
+    );
+    mask = res.mask;
+    fitted = res.contours.map((c) => ({ closed: true, segs: c.segs, poly: c.poly }));
+    const r = res.report;
+    const k = place.scale;
+    perfectOut = {
+      ...r,
+      axis:
+        r.axis === null
+          ? null
+          : r.symmetry === 'vertical'
+            ? place.x + r.axis * k
+            : place.y + r.axis * k,
+      maxDeviation: r.maxDeviation * k,
+      circles: r.circles.map((c) => ({
+        cx: place.x + c.cx * k,
+        cy: place.y + c.cy * k,
+        r: c.r * k,
+      })),
+    };
   } else {
-    // forme intere: spessore del tratto, buchi chiusi dal tratto riempiti, bordo sotto il pixel
-    // spostato tra il filo esterno (edge = 1) e la linea centrale (edge = 0)
-    const sw = Math.max(1, widthOf(mask, thin(mask)));
-    strokeWidthPx = sw;
-    // anelli disegnati (linee centrali chiuse): servono a capire cosa è dentro una forma
-    const loops = () =>
-      centerlines(mask, o, tu)
-        .polylines.filter((p) => p.closed)
-        .map((p) => p.pts);
-    const shape = o.fill === false ? mask : fillEnclosed(mask, sw, 4, loops);
-    const edge = Math.max(0, Math.min(1, o.edge ?? 1));
-    const level = ((1 - edge) * sw) / 2;
-    polylines = isoContours(signedField(shape, 1), shape.width, shape.height, level)
-      .filter((l) => Math.abs(signedArea(l)) >= o.minArea)
-      .map((l) => ({ pts: l, closed: true }));
-  }
+    mask = adaptiveThreshold(img, o.sensitivity, win);
+    mask = close(mask, Math.round(o.merge));
+    mask = clean(mask, o.minArea, Math.max(o.minArea, (2 * o.merge + 2) ** 2));
+    // asole tra passate parallele: più strette di ~3 volte il raggio di fusione
+    mask = fillThinHoles(mask, Math.max(2, o.merge * 1.5 + 1));
 
-  // unità di misura del disegno: lo spessore del tratto (forme piene: il raggio di fusione)
-  const unit = o.mode === 'lines' ? Math.max(1.5, strokeWidthPx) : Math.max(2, o.merge + 1);
-  // tratti → segmenti in px
-  const fitted = polylines
-    .map((pl) => ({
-      closed: pl.closed,
-      segs: fitStroke(pl.pts, pl.closed, o, unit, tu),
-      poly: pl.pts,
-    }))
-    .filter((f) => f.segs.length > 0 && !degenerate(f.segs, f.closed, unit));
+    let polylines: { pts: Vec2[]; closed: boolean }[];
+    if (o.mode === 'lines') {
+      const c = centerlines(mask, o, tu);
+      mask = c.mask;
+      strokeWidthPx = c.strokeWidthPx;
+      polylines = c.polylines;
+    } else {
+      // forme intere: spessore del tratto, buchi chiusi dal tratto riempiti, bordo sotto il pixel
+      // spostato tra il filo esterno (edge = 1) e la linea centrale (edge = 0)
+      const sw = Math.max(1, widthOf(mask, thin(mask)));
+      strokeWidthPx = sw;
+      // anelli disegnati (linee centrali chiuse): servono a capire cosa è dentro una forma
+      const loops = () =>
+        centerlines(mask, o, tu)
+          .polylines.filter((p) => p.closed)
+          .map((p) => p.pts);
+      const shape = o.fill === false ? mask : fillEnclosed(mask, sw, 4, loops);
+      const edge = Math.max(0, Math.min(1, o.edge ?? 1));
+      const level = ((1 - edge) * sw) / 2;
+      polylines = isoContours(signedField(shape, 1), shape.width, shape.height, level)
+        .filter((l) => Math.abs(signedArea(l)) >= o.minArea)
+        .map((l) => ({ pts: l, closed: true }));
+    }
+
+    // unità di misura del disegno: lo spessore del tratto (forme piene: il raggio di fusione)
+    const unit = o.mode === 'lines' ? Math.max(1.5, strokeWidthPx) : Math.max(2, o.merge + 1);
+    // tratti → segmenti in px
+    fitted = polylines
+      .map((pl) => ({
+        closed: pl.closed,
+        segs: fitStroke(pl.pts, pl.closed, o, unit, tu),
+        poly: pl.pts,
+      }))
+      .filter((f) => f.segs.length > 0 && !degenerate(f.segs, f.closed, unit));
+  }
 
   // orientamento: profondità di annidamento pari → senso orario (y in giù: area > 0)
   const closedIdx = fitted.map((f, i) => (f.closed ? i : -1)).filter((i) => i >= 0);
@@ -764,12 +804,12 @@ export function trace(
     const path: PathData = {
       id: `t${i}`,
       closed: f.closed,
-      filled: o.mode === 'shapes',
+      filled: o.mode !== 'lines',
       stroked: o.mode === 'lines',
       segments: segs.map(tp),
     };
     if (o.mode === 'lines') path.strokeWidth = Math.round(strokeWidthPx * place.scale * 100) / 100;
-    if (o.mode === 'shapes') path.glyphId = `g${topOf(i)}`;
+    if (o.mode !== 'lines') path.glyphId = `g${topOf(i)}`;
     return path;
   });
   const anchors = paths.reduce((s, p) => s + p.segments.length + (p.closed ? 0 : 1), 0);
@@ -778,5 +818,6 @@ export function trace(
     strokeWidth: strokeWidthPx * place.scale,
     stats: { paths: paths.length, anchors, ms: Math.round(now() - t0) },
     mask,
+    ...(perfectOut ? { perfect: perfectOut } : {}),
   };
 }
