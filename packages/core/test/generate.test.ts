@@ -43,7 +43,7 @@ const offMultiple = (v: number, step: number) => {
 };
 
 describe('GENERA: regole comuni', () => {
-  for (const mode of ['math', 'minimal'] as const) {
+  for (const mode of ['math', 'minimal', 'symmetric', 'structured'] as const) {
     it(`${mode}: stesso numero di tracciati, entro lo scarto massimo, deterministico`, () => {
       for (const svg of [LOGO_A, LOGO_C]) {
         const g = parseSvg(svg);
@@ -66,7 +66,7 @@ describe('GENERA: regole comuni', () => {
     fc.assert(
       fc.property(fc.double({ min: 0.005, max: 0.1, noNaN: true }), (f) => {
         const o = { ...generateDefaults(g), maxDeviation: f * D };
-        for (const mode of ['math', 'minimal'] as const)
+        for (const mode of ['math', 'minimal', 'symmetric', 'structured'] as const)
           expect(geometryDrift(generate(g, mode, o).geometry, g)).toBeLessThanOrEqual(
             o.maxDeviation + 1e-6,
           );
@@ -157,5 +157,117 @@ describe('GENERA: Minimal', () => {
     const r = generate(g, 'minimal', generateDefaults(g));
     expect(r.geometry.paths).toHaveLength(2);
     expect(r.report.smallShapes).toBe(1);
+  });
+});
+
+// cuore disegnato a mano: quasi simmetrico, punti diversi sui due lati
+const HEART =
+  '<svg><path d="M249.43 413.50C185.87 364.47 88.31 282.09 72.57 199.31C48.22 71.21 179.35 64.14 250.50 134.66C314.20 66.78 448.94 68.63 427.75 191.50C412.23 281.54 316.33 359.40 249.43 413.50Z"/></svg>';
+
+/** Scarto massimo tra il disegno e il suo riflesso rispetto alla verticale x = c. */
+const mirrorGap = (g: DocumentGeometry, c: number) => {
+  const pts: Vec2[] = [];
+  for (const p of g.paths)
+    for (const s of p.segments)
+      for (let k = 0; k < 40; k++) {
+        const t = k / 40;
+        const u = 1 - t;
+        pts.push(
+          s.kind === 'line'
+            ? { x: s.p0.x * u + s.p1.x * t, y: s.p0.y * u + s.p1.y * t }
+            : {
+                x:
+                  u ** 3 * s.p0.x +
+                  3 * u * u * t * s.c1.x +
+                  3 * u * t * t * s.c2.x +
+                  t ** 3 * s.p1.x,
+                y:
+                  u ** 3 * s.p0.y +
+                  3 * u * u * t * s.c1.y +
+                  3 * u * t * t * s.c2.y +
+                  t ** 3 * s.p1.y,
+              },
+        );
+      }
+  let worst = 0;
+  for (const p of pts) {
+    let best = Infinity;
+    for (const q of pts) best = Math.min(best, Math.hypot(2 * c - p.x - q.x, p.y - q.y));
+    worst = Math.max(worst, best);
+  }
+  return worst;
+};
+
+describe('GENERA: Simmetrico', () => {
+  it('un logo quasi simmetrico disegnato a mano diventa simmetrico, con l asse nelle guide', () => {
+    const g = parseSvg(HEART);
+    const r = generate(g, 'symmetric', generateDefaults(g));
+    expect(r.guides.axis).not.toBeNull();
+    const ax = r.guides.axis!;
+    expect(Math.abs(ax.x1 - ax.x2)).toBeLessThan(1e-9); // asse verticale
+    expect(mirrorGap(r.geometry, ax.x1)).toBeLessThan(1);
+    expect(mirrorGap(g, ax.x1)).toBeGreaterThan(3);
+    expect(r.report.notes).not.toContain('no-axis');
+  });
+
+  it('metà scelta: la metà sinistra resta com era', () => {
+    const g = parseSvg(HEART);
+    const o = generateDefaults(g);
+    const r = generate(g, 'symmetric', { ...o, symmetric: { axis: 'auto', keep: 'left' } });
+    expect(r.guides.axis).not.toBeNull();
+    expect(mirrorGap(r.geometry, r.guides.axis!.x1)).toBeLessThan(1);
+  });
+
+  it('un logo asimmetrico resta com è e il riepilogo dice perché', () => {
+    const g = parseSvg(LOGO_A);
+    const r = generate(g, 'symmetric', generateDefaults(g));
+    expect(r.guides.axis).toBeNull();
+    expect(r.report.notes).toContain('no-axis');
+  });
+});
+
+describe('GENERA: Strutturato', () => {
+  it('le curve libere diventano archi di cerchio veri, tangenti tra loro', () => {
+    const g = parseSvg(LOGO_A);
+    const before = analyze(g);
+    const r = generate(g, 'structured', generateDefaults(g));
+    expect(r.report.arcCurves).toBeGreaterThan(0);
+    expect(r.report.arcs).toBeGreaterThanOrEqual(r.report.arcCurves);
+    expect(r.guides.circles.length).toBe(r.report.arcs);
+    // dopo: la coda è fatta di archi veri (più cerchi veri, meno curve libere approssimate)
+    const after = analyze(r.geometry);
+    const real = (a: typeof before) => a.circles.filter((c) => c.approx === undefined).length;
+    const free = (a: typeof before) => a.circles.filter((c) => c.approx !== undefined).length;
+    expect(real(after)).toBeGreaterThan(real(before));
+    expect(free(after)).toBeLessThan(free(before));
+    // ogni anchor della coda sta su una curva liscia (niente spigoli nuovi tra gli archi)
+    const tail = r.geometry.paths.find((p) => p.id === g.paths[3]!.id)!;
+    let kinks = 0;
+    tail.segments.forEach((s, i) => {
+      const n = tail.segments[(i + 1) % tail.segments.length]!;
+      if (s.kind !== 'cubic' || n.kind !== 'cubic') return;
+      const a = Math.atan2(s.p1.y - s.c2.y, s.p1.x - s.c2.x);
+      const b = Math.atan2(n.c1.y - n.p0.y, n.c1.x - n.p0.x);
+      let d = Math.abs(a - b);
+      if (d > Math.PI) d = 2 * Math.PI - d;
+      if (d > (3 * Math.PI) / 180) kinks++;
+    });
+    const kinksBefore = g.paths[3]!.segments.reduce((k, s, i, arr) => {
+      const n = arr[(i + 1) % arr.length]!;
+      if (s.kind !== 'cubic' || n.kind !== 'cubic') return k;
+      const a = Math.atan2(s.p1.y - s.c2.y, s.p1.x - s.c2.x);
+      const b = Math.atan2(n.c1.y - n.p0.y, n.c1.x - n.p0.x);
+      let d = Math.abs(a - b);
+      if (d > Math.PI) d = 2 * Math.PI - d;
+      return d > (3 * Math.PI) / 180 ? k + 1 : k;
+    }, 0);
+    expect(kinks).toBeLessThanOrEqual(kinksBefore);
+  });
+
+  it('un logo fatto solo di rette e cerchi non cambia', () => {
+    const g = parseSvg(LOGO_C);
+    const r = generate(g, 'structured', generateDefaults(g));
+    expect(r.report.arcCurves).toBe(0);
+    expect(r.report.notes).toContain('nothing-to-do');
   });
 });

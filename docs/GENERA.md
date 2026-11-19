@@ -166,13 +166,42 @@ GENERA
   - **Minimal**: meno anchor, nessuno spigolo vero perso;
   - **casi veri**: la «A con coda» (ricostruita) e i loghi disegnati a mano del banco di prova.
 
-## 7. Fuori da questo primo rilascio
+## 7. Modalità SIMMETRICO e STRUTTURATO (0.11.0, avviate da Marco il 19/11)
 
-- **Simmetrico**: è già pronto nel motore (`mirror.ts`); entra in GENERA come terza anteprima appena la
-  scheda c'è.
+### Simmetrico
+
+Idea: il logo **perfettamente simmetrico**, con il metodo sulle forme della 0.8.0 (`mirror.ts`).
+
+- Si cerca l'asse (verticale, orizzontale o automatico) confrontando le curve dei due lati.
+- Una metà resta com'è e l'altra diventa il suo **riflesso esatto**. Le forme che attraversano l'asse
+  si tagliano e si ricompongono; quelle tutte da un lato prendono la forma del gemello riflesso.
+- **Metà da tenere**: Auto (la più pulita, cioè quella con meno anchor) · Sinistra · Destra · Sopra ·
+  Sotto.
+- Vale lo scarto massimo:
+  - se i due lati sono troppo diversi l'anteprima lo dice («nessun asse plausibile entro lo scarto»);
+  - se una forma non ha gemello, resta com'è e il riepilogo lo segnala.
+- L'anteprima mostra l'**asse** tratteggiato.
+
+### Strutturato
+
+Idea: ogni curva libera **diventa davvero** la catena di archi tangenti che ANALIZZA mostra dalla 0.9.0.
+Il logo diventa interamente costruibile con riga e compasso.
+
+- Le curve già circolari restano archi e le rette restano rette. Le curve libere (né archi, né ovali,
+  né rette) vengono sostituite dalla loro catena di archi tangenti: senza spigoli tra un arco e
+  l'altro e con lo scarto più piccolo possibile.
+- Parte dal logo **originale**, non da quello corretto: gli archi di CORREGGI non sono per forza
+  tangenti tra loro, mentre qui la catena deve esserlo.
+- Tolleranza degli archi: dallo 0,2% allo 0,8% della diagonale secondo l'intensità, mai oltre lo
+  scarto massimo.
+- Una curva che richiederebbe troppi archi (più di 3 per tratto) resta com'è e il riepilogo lo dice.
+- L'anteprima mostra i **cerchi** degli archi nuovi.
+- Il riepilogo dice quante curve sono diventate archi e quanti archi sono stati usati.
+
+## 7b. Ancora fuori
+
 - **Sezione aurea**: raggi in progressione φ, proporzioni del riquadro e posizioni sulla griglia aurea.
   Ha bisogno di una specifica sua.
-- **Strutturato**: le curve libere diventano davvero gli archi tangenti della 0.9.0.
 - Preset salvabili dei parametri.
 
 ## 8. Decisioni da prendere con Marco

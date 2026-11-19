@@ -7,8 +7,11 @@ import { refine, refineDefaults } from '../fix/refine';
 import { anchorCount, bboxOf, driftStats, toNodes, fromNodes } from './geometry';
 import { mathCompose, type MathOptions } from './math';
 import { minimalCompose } from './minimal';
+import { structureCompose } from './structured';
+import type { MirrorKeep } from '../fix/mirror';
+import type { SymmetryAxis } from '../fix/refine';
 
-export type GenerateMode = 'math' | 'minimal';
+export type GenerateMode = 'math' | 'minimal' | 'symmetric' | 'structured';
 export type MinimalLevel = 'light' | 'medium' | 'strong';
 
 export interface GenerateOptions {
@@ -18,6 +21,8 @@ export interface GenerateOptions {
   maxDeviation: number;
   math: MathOptions;
   minimal: { level: MinimalLevel; maxAnchors: number | null };
+  /** Simmetrico: asse e metà da tenere (come in CORREGGI). */
+  symmetric: { axis: SymmetryAxis; keep: 'auto' | MirrorKeep };
 }
 
 export type GenerateNote =
@@ -28,7 +33,15 @@ export type GenerateNote =
   /** Minimal: il numero massimo di anchor non è raggiungibile entro lo scarto. */
   | 'max-anchors-not-reached'
   /** Matematico: alcune rette lasciate al loro angolo (ruotarle avrebbe sformato il logo). */
-  | 'angles-skipped';
+  | 'angles-skipped'
+  /** Simmetrico: nessun asse plausibile entro lo scarto massimo. */
+  | 'no-axis'
+  /** Simmetrico: alcune forme senza gemello sono rimaste com'erano. */
+  | 'partial'
+  /** Strutturato: nessuna curva libera da trasformare. */
+  | 'nothing-to-do'
+  /** Strutturato: alcune curve richiederebbero troppi archi e restano com'erano. */
+  | 'curves-skipped';
 
 export interface GenerateReport {
   mode: GenerateMode;
@@ -48,6 +61,9 @@ export interface GenerateReport {
   division: number;
   /** Minimal: forme molto piccole (meno del 3% della diagonale), segnalate e non tolte. */
   smallShapes: number;
+  /** Strutturato: curve libere diventate archi, e archi usati. */
+  arcCurves: number;
+  arcs: number;
   notes: GenerateNote[];
 }
 
@@ -56,6 +72,8 @@ export interface GenerateGuides {
   grid: { x: number; y: number; width: number; height: number; step: number } | null;
   /** Cerchi di costruzione con il raggio in moduli (es. «r = 3m»). */
   circles: { cx: number; cy: number; r: number; label: string }[];
+  /** Asse di simmetria (Simmetrico). */
+  axis: { x1: number; y1: number; x2: number; y2: number } | null;
 }
 
 export interface GenerateResult {
@@ -79,6 +97,7 @@ export function generateDefaults(geom: DocumentGeometry): GenerateOptions {
       rules: { angles: true, radii: true, positions: true },
     },
     minimal: { level: 'medium', maxAnchors: null },
+    symmetric: { axis: 'auto', keep: 'auto' },
   };
 }
 
@@ -135,8 +154,10 @@ export function generate(
     module: 0,
     division: 1,
     smallShapes: 0,
+    arcCurves: 0,
+    arcs: 0,
   };
-  let guides: GenerateGuides = { grid: null, circles: [] };
+  let guides: GenerateGuides = { grid: null, circles: [], axis: null };
 
   if (mode === 'math') {
     const a = analyze(start);
@@ -191,7 +212,62 @@ export function generate(
         r: c.r,
         label: `r = ${round(c.r / module, 2)}m`,
       })),
+      axis: null,
     };
+  } else if (mode === 'symmetric') {
+    // simmetria sulle forme (la stessa di CORREGGI, con la tolleranza = scarto massimo)
+    const strength = Math.max(0, Math.min(1, opts.strength));
+    const ro = refineDefaults(start).options;
+    const r =
+      strength > 0
+        ? refine(start, {
+            ...ro,
+            symmetry: {
+              enabled: true,
+              tolerance: Math.max(1e-6, limit),
+              axis: opts.symmetric.axis,
+              keep: opts.symmetric.keep,
+            },
+          })
+        : null;
+    if (r && r.report.axis && within(r.geometry)) {
+      out = r.geometry;
+      strengthUsed = 1;
+      if (r.report.symmetryNote === 'partial') notes.push('partial');
+      const bb = bboxOf(normalizeGeometry(out.paths).paths);
+      const m = 0.06 * Math.max(bb.width, bb.height);
+      const { theta, rho } = r.report.axis;
+      guides.axis =
+        Math.abs(theta) < 1e-9
+          ? { x1: rho, y1: bb.y - m, x2: rho, y2: bb.y + bb.height + m }
+          : { x1: bb.x - m, y1: rho, x2: bb.x + bb.width + m, y2: rho };
+    } else notes.push('no-axis');
+  } else if (mode === 'structured') {
+    const strength = Math.max(0, Math.min(1, opts.strength));
+    // si parte dall'originale: gli archi di CORREGGI non sono per forza tangenti tra loro, qui invece
+    // la catena di archi deve esserlo
+    const a = analyze(geom);
+    const obase = normalizeGeometry(geom.paths).paths;
+    const covered = new Set<string>();
+    for (const c of a.circles)
+      if (c.approx === undefined) for (const r of c.refs) covered.add(`${r.pathId}:${r.index}`);
+    for (const e of a.ellipses) for (const r of e.refs) covered.add(`${r.pathId}:${r.index}`);
+    const tol = Math.min(0.8 * limit, (0.002 + 0.006 * strength) * D);
+    const res = strength > 0 && tol > 0 ? structureCompose(obase, covered, tol, D) : null;
+    if (res && res.curves > 0 && within(merge(geom, res.paths))) {
+      out = merge(geom, res.paths);
+      strengthUsed = strength;
+      report.arcCurves = res.curves;
+      report.arcs = res.circles.length;
+      guides.circles = res.circles.map((c) => ({
+        cx: c.cx,
+        cy: c.cy,
+        r: c.r,
+        label: `r = ${round(c.r, 1)} pt`,
+      }));
+    }
+    if (!res || res.curves === 0) notes.push('nothing-to-do');
+    if (res && res.skipped > 0) notes.push('curves-skipped');
   } else {
     // livelli di semplificazione crescenti; si tiene il più semplice che resta entro lo scarto
     const levels = [LEVEL_TOL[opts.minimal.level]];

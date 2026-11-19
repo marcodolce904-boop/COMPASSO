@@ -198,6 +198,7 @@
   );
 
   // --- GENERA (docs/GENERA.md) ------------------------------------------------------------------
+  const GEN_MODES = ['symmetric', 'math', 'structured', 'minimal'] as const;
   let genOptions = $state<GenerateOptions | null>(null);
   let genDefaults = $state<GenerateOptions | null>(null);
   let genD = $state(100);
@@ -221,18 +222,33 @@
     const g = geometry;
     const o = genOptions ? ($state.snapshot(genOptions) as GenerateOptions) : null;
     if (mainTab !== 'generate' || !g || !o) return;
-    const id = setTimeout(() => {
-      const next: Partial<Record<GenerateMode, GenerateResult>> = {};
-      for (const m of ['math', 'minimal'] as const) {
-        try {
-          next[m] = generate(g, m, o);
-        } catch (e) {
-          console.error('[compasso] generazione non riuscita', m, e);
-        }
+    // una modalità alla volta, cominciando da quella scelta: il pannello resta reattivo e le
+    // miniature compaiono man mano
+    let stopped = false;
+    let id: ReturnType<typeof setTimeout>;
+    const first = untrack(() => genSel);
+    const order = [
+      ...(first === 'orig' ? [] : [first]),
+      ...GEN_MODES.filter((m) => m !== first),
+    ] as GenerateMode[];
+    // le miniature vecchie restano finché arriva la nuova (niente sfarfallio)
+    const next: Partial<Record<GenerateMode, GenerateResult>> = { ...untrack(() => genResults) };
+    const step = (k: number) => {
+      if (stopped || k >= order.length) return;
+      const m = order[k]!;
+      try {
+        next[m] = generate(g, m, o);
+      } catch (e) {
+        console.error('[compasso] generazione non riuscita', m, e);
       }
-      genResults = next;
-    }, 60);
-    return () => clearTimeout(id);
+      genResults = { ...next };
+      id = setTimeout(() => step(k + 1), 0);
+    };
+    id = setTimeout(() => step(0), 60);
+    return () => {
+      stopped = true;
+      clearTimeout(id);
+    };
   });
   const genChosen = $derived(genSel === 'orig' ? null : (genResults[genSel] ?? null));
   const genThumbs = $derived<GenerateThumb[]>(
@@ -244,13 +260,13 @@
             geometry,
             caption: t(lang, 'gen.cap.orig', { n: genResults.math?.report.anchorsBefore ?? 0 }),
           },
-          ...(['math', 'minimal'] as const).map((m) => {
+          ...GEN_MODES.map((m) => {
             const r = genResults[m];
             return {
               key: m,
               label: t(lang, `gen.mode.${m}`),
               geometry: r?.geometry ?? null,
-              guides: m === 'math' ? r?.guides : undefined,
+              guides: m === 'minimal' ? undefined : r?.guides,
               anchors: m === 'minimal',
               caption: r ? generateCaption(lang, r) : t(lang, 'preview.analyzing'),
             };

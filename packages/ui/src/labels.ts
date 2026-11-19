@@ -129,6 +129,10 @@ export function generateSummary(lang: Lang, r: GenerateResult): string {
     if (rp.radii) parts.push(t(lang, 'gen.sum.radii', { n: rp.radii }));
     if (rp.positions) parts.push(t(lang, 'gen.sum.positions', { n: rp.positions }));
     parts.push(t(lang, 'gen.sum.module', { m: num(lang, rp.module, 2), d: rp.division }));
+  } else if (rp.mode === 'symmetric') {
+    if (!rp.notes.includes('no-axis')) parts.push(t(lang, 'gen.sum.symmetric'));
+  } else if (rp.mode === 'structured') {
+    if (rp.arcCurves) parts.push(t(lang, 'gen.sum.structured', { n: rp.arcCurves, a: rp.arcs }));
   } else {
     parts.push(t(lang, 'gen.anchors', { a: rp.anchorsBefore, b: rp.anchorsAfter }));
     if (rp.anchorsAfter >= rp.anchorsBefore) parts.push(t(lang, 'gen.sum.alreadyMinimal'));

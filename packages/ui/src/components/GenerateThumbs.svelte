@@ -75,6 +75,13 @@
             {/each}
           </g>
         {/if}
+        {#if it.guides?.axis}
+          <line
+            class="axis"
+            {...it.guides.axis}
+            style="stroke-width:{unit * 0.8};stroke-dasharray:{unit * 3} {unit * 2}"
+          />
+        {/if}
         {#if it.guides}
           <g class="cons" style="stroke-width:{unit * 0.3}">
             {#each it.guides.circles as c, i (i)}<circle cx={c.cx} cy={c.cy} r={c.r} />{/each}
@@ -98,7 +105,7 @@
 <style>
   .thumbs {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
     gap: var(--sp-2);
   }
   .card {
@@ -143,6 +150,9 @@
   .cons circle {
     fill: none;
     stroke: var(--c-preview-line);
+  }
+  .axis {
+    stroke: var(--c-accent);
   }
   .anchors circle {
     fill: var(--c-accent);

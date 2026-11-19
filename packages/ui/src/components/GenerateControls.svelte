@@ -54,6 +54,34 @@
 <p class="hint">{t(lang, 'gen.maxDeviation.hint')}</p>
 
 <details class="dd">
+  <summary>{t(lang, 'gen.symmetric.params')}</summary>
+  <div class="lbl">{t(lang, 'gen.symmetric.axis')}</div>
+  <Segmented
+    ariaLabel={t(lang, 'gen.symmetric.axis')}
+    bind:value={options.symmetric.axis}
+    dense
+    options={[
+      { value: 'auto', label: t(lang, 'fix.axis.auto') },
+      { value: 'vertical', label: t(lang, 'fix.axis.vertical') },
+      { value: 'horizontal', label: t(lang, 'fix.axis.horizontal') },
+    ]}
+  />
+  <div class="lbl">{t(lang, 'fix.keep')}</div>
+  <Segmented
+    ariaLabel={t(lang, 'fix.keep')}
+    bind:value={options.symmetric.keep}
+    dense
+    options={[
+      { value: 'auto', label: t(lang, 'fix.axis.auto') },
+      { value: 'left', label: t(lang, 'fix.keep.left') },
+      { value: 'right', label: t(lang, 'fix.keep.right') },
+      { value: 'top', label: t(lang, 'fix.keep.top') },
+      { value: 'bottom', label: t(lang, 'fix.keep.bottom') },
+    ]}
+  />
+</details>
+
+<details class="dd">
   <summary>{t(lang, 'gen.math.params')}</summary>
   <div class="lbl">{t(lang, 'gen.math.angle')}</div>
   <Segmented

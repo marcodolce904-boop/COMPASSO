@@ -38,7 +38,7 @@ function smoothJoin(a: Segment, b: Segment): boolean {
  * Tratti liberi: tratti curvi non spiegati da archi, ovali o rette, raggruppati in sequenze lisce.
  * `covered` = "pathId:index" dei tratti già spiegati.
  */
-function freeRuns(path: PathData, covered: Set<string>): number[][] {
+export function freeRuns(path: PathData, covered: Set<string>): number[][] {
   const segs = path.segments;
   const n = segs.length;
   const free = segs.map((s, i) => s.kind === 'cubic' && !covered.has(`${path.id}:${i}`));

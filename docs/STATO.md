@@ -58,6 +58,8 @@ Fatto (0.9.0): ANALIZZA costruisce le curve libere con catene di archi tangenti 
 scarto) e disegna le rette solo sul loro tratto (`GuideLine.span`, `lineExtent: 'segment'`).
 Fatto (0.10.0): scheda GENERA con Matematico e Minimal (`core/src/generate`, `docs/GENERA.md`),
 applicazione su una copia nel layer «Compasso — Generato».
+Fatto (0.11.0): GENERA con Simmetrico (simmetria sulle forme) e Strutturato (curve libere → archi
+tangenti). Manca la Sezione aurea (serve una specifica).
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

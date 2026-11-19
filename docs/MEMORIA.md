@@ -4,8 +4,8 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 18/11/2026, dopo il rilascio della 0.10.0 (scheda GENERA con Matematico e
-Minimal). Prossimo passo: prove di Marco su loghi veri, poi le altre modalità di GENERA._
+_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.11.0 (GENERA con Matematico, Minimal,
+Simmetrico e Strutturato). Prossimo passo: specifica della Sezione aurea; prove di Marco su loghi veri._
 
 ## 0. Fatto nella 0.9.0 (18/11 pomeriggio): A + C in ANALIZZA
 
@@ -50,14 +50,22 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
   3. intensità ridotta (ricerca binaria).
 - Minimal parte dalla versione con meno anchor (originale o corretta).
 
+**Fatto nella 0.11.0 (19/11):** modalità **Simmetrico** e **Strutturato**, chieste da Marco.
+- Simmetrico: `refine` con la sola simmetria sulle forme, con tolleranza pari allo scarto massimo;
+  note `no-axis` e `partial`; asse nelle guide.
+- Strutturato: `generate/structured.ts` sostituisce le curve libere con le catene di `arcSpline`,
+  convertite in cubiche esatte (al massimo 90° l'una).
+  - Parte dall'**originale**: gli archi di CORREGGI non sono tangenti tra loro.
+  - Tolleranza dallo 0,2% allo 0,8% di D secondo l'intensità; note `nothing-to-do` e `curves-skipped`.
+- UI: 4 miniature calcolate una alla volta, partendo dalla scelta; tendina «Simmetrico: parametri».
+
 **Prossimi passi su GENERA:**
-- modalità Simmetrico (riusa `mirror.ts`), Sezione aurea (serve una specifica sua) e Strutturato
-  (archi tangenti della 0.9.0);
+- **Sezione aurea**: serve una specifica sua da far approvare a Marco;
 - calcolo in un worker se diventa lento (oggi ~0,4 s per modalità sul logo di prova).
 
 ## 1. Dove siamo
 
-- Versione pubblicata: **0.10.0**. Installer:
+- Versione pubblicata: **0.11.0**. Installer:
   `https://github.com/marcodolce904-boop/COMPASSO/releases/download/vX.Y.Z/Compasso-Setup.exe`.
   Si pubblica da solo con un push su `main` quando la versione in `apps/illustrator/package.json` è nuova.
 - Schede funzionanti:

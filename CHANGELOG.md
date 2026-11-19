@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.0 — 19/11/2026
+
+- **GENERA, modalità Simmetrico**: il logo perfettamente simmetrico con il metodo sulle forme. Una metà
+  resta com'è e l'altra diventa il suo riflesso esatto, anche sui disegni a mano.
+  - Asse automatico, verticale o orizzontale; metà da tenere scelta in automatico o a mano.
+  - Se i lati sono troppo diversi lo dice («nessun asse plausibile»), invece di forzare.
+  - La miniatura mostra l'asse.
+- **GENERA, modalità Strutturato**: ogni curva libera diventa davvero la sua catena di archi tangenti.
+  - Il logo diventa interamente costruibile con riga e compasso, senza spigoli tra un arco e l'altro.
+  - La miniatura mostra i cerchi degli archi.
+  - Le curve che richiederebbero troppi archi restano com'erano, e il riepilogo lo dice.
+- Le quattro versioni compaiono una alla volta, partendo da quella scelta: il pannello non si blocca
+  mentre calcola.
+
 ## 0.10.0 — 18/11/2026
 
 - **Nuova scheda GENERA** (specifica in `docs/GENERA.md`): versioni del logo ricomposte secondo una
