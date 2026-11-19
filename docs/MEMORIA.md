@@ -4,8 +4,23 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.14.0 (RICALCA per forme intere, §0ter;
-GENERA canonico, §0bis). Prossimo passo: prove di Marco su schizzi veri, poi le migliorie del §4._
+_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.15.0 (RICALCA · Perfeziona, §0quater;
+forme intere, §0ter; GENERA canonico, §0bis). Prossimo passo: prove di Marco su schizzi veri, poi le
+migliorie del §4._
+
+## 0quater. RICALCA · Perfeziona (Marco, 19/11/2026; fatto nella 0.15.0)
+
+Nasce dai video LinkedIn: il «perfezionamento» mostrato lì ora lo fa il plugin. Specifica in
+`docs/PERFEZIONA.md` (approvata: terza modalità di RICALCA, valori di base proposti).
+- Core: `core/src/trace/perfect.ts` (`inkField` dal grigio, simmetria sul campo, `arcChain` a biarchi
+  con spigoli, `perfectPlan` per la costruzione); `trace()` ha la modalità `'perfect'`.
+- Simmetria esatta: si adatta la metà sinistra e la si riflette (forme a cavallo dell'asse tagliate
+  sull'asse, tangente perpendicolare dove è liscia).
+- Illustrator: `createTracePaths` riceve anche il piano della costruzione e lo disegna nella stessa
+  chiamata.
+- Taratura sui disegni dei video (gufo 144 px, maneki-neko): precisione di base 0,1% di D.
+- Lezione dai video: **mai reinterpretare i disegni o i riferimenti di Marco**; si ricalca fedelmente e
+  poi si perfeziona. I due rifacimenti «a occhio» (pettirosso, gatto) sono stati scartati.
 
 ## 0ter. RICALCA — Crea forme per forme intere (Marco, 19/11/2026; fatto nella 0.14.0)
 
@@ -108,14 +123,15 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
 
 ## 1. Dove siamo
 
-- Versione pubblicata: **0.14.0**. Installer:
+- Versione pubblicata: **0.15.0**. Installer:
   `https://github.com/marcodolce904-boop/COMPASSO/releases/download/vX.Y.Z/Compasso-Setup.exe`.
   Si pubblica da solo con un push su `main` quando la versione in `apps/illustrator/package.json` è nuova.
 - Schede funzionanti:
-  - **RICALCA**: schizzo → tracciati, con penna, storico Indietro/Avanti e Azzera tutto.
+  - **RICALCA**: schizzo → tracciati (Linee, Forme piene, Perfeziona), con penna, storico
+    Indietro/Avanti e Azzera tutto.
   - **CORREGGI**: 10 correzioni su una copia del logo.
   - **ANALIZZA**: costruzione a livelli Essenziale, Struttura, Dettaglio e Tutto.
-- Test: 335, tutti verdi.
+- Test: 397, tutti verdi.
 - Ancora da fare: la verifica di Marco in Illustrator vero (checklist §10.4 della SPEC).
 
 ## 2. Simmetria — RISOLTO nella 0.8.0 (simmetria sulle forme)

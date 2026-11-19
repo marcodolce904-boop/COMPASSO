@@ -24,5 +24,5 @@ export type Scripts = {
   applyGenerate: (paths: FixPath[]) => ApplyFixResult;
   revertGenerate: () => number;
   getSelectedImage: () => SelectedImage;
-  createTracePaths: (paths: FixPath[], style: TraceStyle) => CreateTraceResult;
+  createTracePaths: (paths: FixPath[], style: TraceStyle, plan?: PPlan | null) => CreateTraceResult;
 };

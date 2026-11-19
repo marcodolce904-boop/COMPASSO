@@ -2,12 +2,19 @@
   // Scheda RICALCA: schizzo → tracciati puliti col minimo di anchor.
   import {
     fromEdit,
+    geometryBBox,
+    perfectPlan,
+    PERFECT_DEFAULTS,
     refine,
     refineDefaults,
     toEdit,
     trace,
     traceDefaults,
+    type ConstructionPlan,
     type DocumentGeometry,
+    type DrawStyle,
+    type PerfectOptions,
+    type PerfectReport,
     type TraceOptions,
     type TracePlacement,
   } from '@compasso/core';
@@ -35,6 +42,9 @@
     /** Regolazioni usate (per la segnalazione di un problema). */
     options: TraceOptions;
     perfect: boolean;
+    /** Perfeziona: cosa è stato fatto e, se richiesta, la costruzione da disegnare. */
+    report?: PerfectReport | null;
+    construction?: ConstructionPlan | null;
   }
 
   let {
@@ -45,6 +55,13 @@
     message = '',
     output = $bindable(null),
     wide = false,
+    drawStyle = {
+      strokeWidth: 0.75,
+      markerSize: 8,
+      color: 'auto',
+      axisDash: [4, 3],
+      lineExtent: 'segment',
+    },
   }: {
     lang: Lang;
     source: TraceSource | null;
@@ -54,12 +71,15 @@
     output?: TraceReady | null;
     /** Pannello largo: anteprima e controlli su due colonne (figli diretti della griglia). */
     wide?: boolean;
+    /** Stile della costruzione (come in ANALIZZA), per Perfeziona. */
+    drawStyle?: DrawStyle;
   } = $props();
 
   let options = $state<TraceOptions | null>(null);
   let defaults = $state<TraceOptions | null>(null);
   let markSide = $state(10); // lato (px) dei segni da ignorare: minArea = lato²
   let perfect = $state(true);
+  let drawCons = $state(false); // Perfeziona: disegna anche la costruzione
   let showImage = $state(true);
   let ms = $state<number | null>(null);
   let busy = $state(false);
@@ -123,7 +143,9 @@
       try {
         const out = trace(s.loaded.image, o as TraceOptions, s.place);
         let g = out.geometry;
-        if (p && g.paths.length) g = refine(g, refineDefaults(g).options).geometry;
+        // Perfeziona esce già esatto: le correzioni di CORREGGI non servono
+        if (p && o.mode !== 'perfect' && g.paths.length)
+          g = refine(g, refineDefaults(g).options).geometry;
         ms = out.stats.ms;
         // regolazioni cambiate: passo nello storico; le modifiche a mano non valgono più
         // (restano recuperabili con «Indietro»)
@@ -135,9 +157,10 @@
         });
         traced = {
           geometry: g,
-          style: { filled: o.mode === 'shapes', strokeWidth: Math.max(0.25, out.strokeWidth) },
+          style: { filled: o.mode !== 'lines', strokeWidth: Math.max(0.25, out.strokeWidth) },
           options: o as TraceOptions,
           perfect: p,
+          report: out.perfect ?? null,
         };
       } catch (e) {
         console.error('[compasso] ricalco non riuscito', e);
@@ -165,8 +188,30 @@
   const geometry = $derived(
     traced ? (editor.paths ? fromEdit(editor.paths, traced.geometry) : traced.geometry) : null,
   );
+  // Perfeziona: costruzione (cerchi degli archi e asse) da disegnare insieme ai tracciati
+  const construction = $derived(
+    traced?.report && drawCons && geometry && geometry.paths.length
+      ? perfectPlan(traced.report, geometryBBox(geometry.paths), drawStyle)
+      : null,
+  );
   $effect(() => {
-    output = traced && geometry ? { ...traced, geometry } : null;
+    output = traced && geometry ? { ...traced, geometry, construction } : null;
+  });
+  // regolazioni di Perfeziona, con i valori di base se mancano
+  const pOpt = (): PerfectOptions => ({ ...PERFECT_DEFAULTS, ...(options?.perfect ?? {}) });
+  const setP = (patch: Partial<PerfectOptions>) => {
+    if (options) options.perfect = { ...pOpt(), ...patch };
+  };
+  const reportLine = $derived.by(() => {
+    const r = traced?.report;
+    if (!r) return '';
+    const parts = [
+      t(lang, 'trace.p.report', { s: r.shapes, a: r.arcs, d: num(lang, r.maxDeviation, 2) }),
+    ];
+    if (r.symmetry)
+      parts.push(t(lang, 'trace.p.symDone', { dir: t(lang, `trace.p.dir.${r.symmetry}`) }));
+    else if (r.note) parts.push(t(lang, `trace.p.note.${r.note}`));
+    return parts.join(' · ');
   });
   const shapes = $derived(geometry ? logoShapes(geometry) : []);
   const stats = $derived(
@@ -281,6 +326,17 @@
           <g class="traced" class:filled={output?.style.filled}>
             {#each shapes as s (s.key)}<path d={s.d} fill-rule="evenodd" />{/each}
           </g>
+          {#if construction}
+            <g class="cons" stroke-width={ctx.px}>
+              {#each construction.primitives as c (c.id)}
+                {#if c.type === 'circle'}
+                  <circle cx={c.cx} cy={c.cy} r={c.r} />
+                {:else if c.type === 'line'}
+                  <line class="axis" x1={c.a.x} y1={c.a.y} x2={c.b.x} y2={c.b.y} />
+                {/if}
+              {/each}
+            </g>
+          {/if}
           <PenLayer {editor} paths={shown} px={ctx.px} toUser={ctx.toUser} />
         {/snippet}
       </ZoomPane>
@@ -327,6 +383,7 @@
       <p class="summary">
         {#if stats}
           {t(lang, 'trace.stats', { p: stats.paths, a: stats.anchors, ms: stats.ms })}
+          {#if reportLine}<br />{reportLine}{/if}
         {:else}
           {t(lang, 'preview.analyzing')}
         {/if}
@@ -347,13 +404,56 @@
         options={[
           { value: 'lines', label: t(lang, 'trace.mode.lines') },
           { value: 'shapes', label: t(lang, 'trace.mode.shapes') },
+          { value: 'perfect', label: t(lang, 'trace.mode.perfect') },
         ]}
       />
       <p class="hint">
         {options.mode === 'lines'
           ? t(lang, 'trace.mode.linesHint')
-          : t(lang, 'trace.mode.shapesHint')}
+          : options.mode === 'shapes'
+            ? t(lang, 'trace.mode.shapesHint')
+            : t(lang, 'trace.mode.perfectHint')}
       </p>
+      {#if options.mode === 'perfect'}
+        <Slider
+          label={t(lang, 'trace.p.precision')}
+          bind:value={() => pOpt().tolerance * 100, (v) => setP({ tolerance: v / 100 })}
+          min={0.05}
+          max={1}
+          step={0.05}
+          defaultValue={PERFECT_DEFAULTS.tolerance * 100}
+          unit="%"
+          format={(v) => `${num(lang, v, 2)} %`}
+        />
+        <p class="hint">{t(lang, 'trace.p.precisionHint')}</p>
+        <div class="lbl">{t(lang, 'trace.p.symmetry')}</div>
+        <Segmented
+          ariaLabel={t(lang, 'trace.p.symmetry')}
+          dense
+          bind:value={() => pOpt().symmetry, (v) => setP({ symmetry: v })}
+          options={[
+            { value: 'auto', label: t(lang, 'trace.p.sym.auto') },
+            { value: 'vertical', label: t(lang, 'trace.p.sym.vertical') },
+            { value: 'horizontal', label: t(lang, 'trace.p.sym.horizontal') },
+            { value: 'none', label: t(lang, 'trace.p.sym.none') },
+          ]}
+        />
+        <Slider
+          label={t(lang, 'trace.p.softness')}
+          bind:value={() => pOpt().softness, (v) => setP({ softness: v })}
+          min={0}
+          max={1}
+          step={0.01}
+          defaultValue={PERFECT_DEFAULTS.softness}
+          unit="%"
+          format={(v) => `${Math.round(v * 100)} %`}
+        />
+        <Toggle
+          label={t(lang, 'trace.p.construction')}
+          hint={t(lang, 'trace.p.constructionHint')}
+          bind:checked={drawCons}
+        />
+      {/if}
       {#if options.mode === 'shapes'}
         <label class="chk">
           <input
@@ -374,26 +474,28 @@
         />
         <p class="hint">{t(lang, 'trace.edge.hint')}</p>
       {/if}
-      <Slider
-        label={t(lang, 'trace.sensitivity')}
-        bind:value={options.sensitivity}
-        min={2}
-        max={60}
-        step={1}
-        defaultValue={defaults.sensitivity}
-        unit=""
-        digits={0}
-      />
-      <Slider
-        label={t(lang, 'trace.merge')}
-        bind:value={options.merge}
-        min={0}
-        max={30}
-        step={1}
-        defaultValue={defaults.merge}
-        unit="px"
-        digits={0}
-      />
+      {#if options.mode !== 'perfect'}
+        <Slider
+          label={t(lang, 'trace.sensitivity')}
+          bind:value={options.sensitivity}
+          min={2}
+          max={60}
+          step={1}
+          defaultValue={defaults.sensitivity}
+          unit=""
+          digits={0}
+        />
+        <Slider
+          label={t(lang, 'trace.merge')}
+          bind:value={options.merge}
+          min={0}
+          max={30}
+          step={1}
+          defaultValue={defaults.merge}
+          unit="px"
+          digits={0}
+        />
+      {/if}
       <Slider
         label={t(lang, 'trace.minArea')}
         bind:value={markSide}
@@ -404,26 +506,28 @@
         unit="px"
         digits={0}
       />
-      <Slider
-        label={t(lang, 'trace.smooth')}
-        bind:value={options.smooth}
-        min={0}
-        max={5}
-        step={0.1}
-        defaultValue={defaults.smooth}
-        unit="×"
-        digits={1}
-      />
-      <Slider
-        label={t(lang, 'trace.tolerance')}
-        bind:value={options.tolerance}
-        min={0.1}
-        max={3}
-        step={0.05}
-        defaultValue={defaults.tolerance}
-        unit="×"
-        digits={2}
-      />
+      {#if options.mode !== 'perfect'}
+        <Slider
+          label={t(lang, 'trace.smooth')}
+          bind:value={options.smooth}
+          min={0}
+          max={5}
+          step={0.1}
+          defaultValue={defaults.smooth}
+          unit="×"
+          digits={1}
+        />
+        <Slider
+          label={t(lang, 'trace.tolerance')}
+          bind:value={options.tolerance}
+          min={0.1}
+          max={3}
+          step={0.05}
+          defaultValue={defaults.tolerance}
+          unit="×"
+          digits={2}
+        />
+      {/if}
       <Slider
         label={t(lang, 'trace.corner')}
         bind:value={options.cornerAngle}
@@ -434,17 +538,34 @@
         unit="°"
         digits={0}
       />
-      <Toggle
-        label={t(lang, 'trace.perfect')}
-        hint={t(lang, 'trace.perfectHint')}
-        bind:checked={perfect}
-      />
-      <p class="hint">{t(lang, 'trace.scaleHint', { k: num(lang, pxPt, 2) })}</p>
+      {#if options.mode !== 'perfect'}
+        <Toggle
+          label={t(lang, 'trace.perfect')}
+          hint={t(lang, 'trace.perfectHint')}
+          bind:checked={perfect}
+        />
+      {/if}
+      {#if options.mode !== 'perfect'}
+        <p class="hint">{t(lang, 'trace.scaleHint', { k: num(lang, pxPt, 2) })}</p>
+      {/if}
     {/if}
   </div>
 {/if}
 
 <style>
+  .cons {
+    fill: none;
+    stroke: var(--c-text-3);
+    opacity: 0.7;
+  }
+  .cons .axis {
+    stroke: var(--c-accent);
+  }
+  .lbl {
+    margin: 0;
+    font: 400 var(--fs-xs) var(--f-sans);
+    color: var(--c-text-3);
+  }
   .tcol {
     display: flex;
     flex-direction: column;

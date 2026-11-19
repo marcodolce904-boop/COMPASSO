@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.15.0 — 19/11/2026
+
+- **RICALCA · Perfeziona** (nuova terza modalità, docs/PERFEZIONA.md): il disegno resta quello, ma
+  esatto. È il metodo dei video di presentazione, ora dentro il plugin.
+  - **Ricalco fedele dal grigio** dell'immagine, non da una maschera: bordi sotto il pixel anche su
+    immagini piccole. Riconosce da solo il tratto scuro su carta chiara e quello chiaro su fondo scuro.
+  - **Archi tangenti**: ogni contorno diventa una catena di archi di cerchio, senza spigoli dove il
+    disegno è morbido; gli spigoli restano solo sulle punte.
+  - **Simmetria**: Auto, Verticale, Orizzontale o No. In Auto l'asse si cerca da solo; se i due lati
+    sono troppo diversi il pannello lo dice. Le due metà escono **identiche** (si adatta una metà e la
+    si riflette).
+  - Regolazioni: **Precisione** (scarto massimo, di base 0,1% della diagonale), **Morbidezza del
+    bordo**, **Disegna la costruzione** (cerchi degli archi e asse sul layer di costruzione, nella
+    stessa operazione che crea i tracciati).
+  - Report: «15 forme · 358 archi · scarto max 0,84 pt · simmetria verticale».
+
 ## 0.14.0 — 19/11/2026
 
 - **RICALCA · Crea forme ragiona per forme intere** (richiesta di Marco):

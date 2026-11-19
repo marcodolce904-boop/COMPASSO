@@ -473,6 +473,7 @@
         onPick={onPickImage}
         message={traceMessage}
         bind:output={traceOut}
+        drawStyle={style}
       />
     {:else}
       <div class="col main">

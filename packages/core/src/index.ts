@@ -62,6 +62,7 @@ export {
 export { downscale, type RasterImage, type Mask } from './trace/raster';
 export {
   PERFECT_DEFAULTS,
+  perfectPlan,
   type PerfectOptions,
   type PerfectReport,
   type PerfectSymmetry,

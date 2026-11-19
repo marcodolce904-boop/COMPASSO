@@ -65,6 +65,8 @@ Fatto (0.13.0): GENERA canonico (richiesta di Marco): ricostruzione a costruzion
 vincoli (`core/src/generate/canon.ts`); nessun limite di somiglianza di base.
 Fatto (0.14.0): RICALCA · Crea forme per forme intere (riempimento con anelli disegnati, bordo
 regolabile, contorni sotto il pixel).
+Fatto (0.15.0): RICALCA · Perfeziona (`core/src/trace/perfect.ts`, docs/PERFEZIONA.md): ricalco dal
+grigio, simmetria sul campo con metà riflessa, archi tangenti, costruzione disegnabile.
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

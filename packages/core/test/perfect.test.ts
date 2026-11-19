@@ -152,3 +152,45 @@ describe('Perfeziona: forme e fori', () => {
     expect(out.perfect!.shapes).toBe(2);
   });
 });
+
+describe('Perfeziona: costruzione da disegnare', () => {
+  it('cerchi degli archi e asse di simmetria nel piano, sul layer di costruzione', async () => {
+    const { perfectPlan, geometryBBox, LAYER_NAME } = await import('../src');
+    const img = paper(300, 300);
+    fill(img, circlePts(150, 150, 100, 240));
+    const out = trace(img, perfect(300, 300), place);
+    const plan = perfectPlan(out.perfect!, geometryBBox(out.geometry.paths), {
+      strokeWidth: 0.5,
+      markerSize: 4,
+      color: 'auto',
+      axisDash: [4, 3],
+      lineExtent: 'segment',
+    });
+    expect(plan.layerName).toBe(LAYER_NAME);
+    const circles = plan.primitives.filter((p) => p.type === 'circle');
+    expect(circles.length).toBeGreaterThan(0);
+    // il cerchio della costruzione è quello vero del disco
+    expect(circles.some((c) => c.type === 'circle' && Math.abs(c.r - 100) < 2)).toBe(true);
+    expect(plan.primitives.some((p) => p.type === 'line' && p.group === 'axes')).toBe(true);
+  });
+});
+
+describe('Perfeziona: asse della costruzione', () => {
+  it('l’asse verticale passa per il centro e copre tutta l’altezza', async () => {
+    const { perfectPlan, geometryBBox } = await import('../src');
+    const img = paper(300, 300);
+    fill(img, circlePts(150, 150, 100, 240));
+    const out = trace(img, perfect(300, 300, { symmetry: 'vertical' }), place);
+    const plan = perfectPlan(out.perfect!, geometryBBox(out.geometry.paths), {
+      strokeWidth: 0.5,
+      markerSize: 4,
+      color: 'auto',
+      axisDash: [4, 3],
+      lineExtent: 'segment',
+    });
+    const ax = plan.primitives.find((p) => p.type === 'line');
+    expect(
+      ax && ax.type === 'line' && Math.abs(ax.a.x - 150) < 2 && ax.a.y < 50 && ax.b.y > 250,
+    ).toBe(true);
+  });
+});

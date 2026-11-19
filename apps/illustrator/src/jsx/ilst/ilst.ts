@@ -227,17 +227,26 @@ export const getSelectedImage = (): SelectedImage => {
   });
 };
 
-/** RICALCA: crea i tracciati ricalcati su un layer dedicato. */
-export const createTracePaths = (paths: FixPath[], style: TraceStyle): CreateTraceResult => {
+/**
+ * RICALCA: crea i tracciati ricalcati su un layer dedicato. Perfeziona può passare anche la sua
+ * costruzione (cerchi e asse): si disegna nella stessa chiamata, sul layer di costruzione.
+ */
+export const createTracePaths = (
+  paths: FixPath[],
+  style: TraceStyle,
+  plan?: PPlan | null,
+): CreateTraceResult => {
   return withDocumentCoordinates(function () {
     var doc = drawDocument();
     var black: unknown;
     if (doc && colorEnv.isCMYK(doc.documentColorSpace)) black = colorEnv.cmyk(0, 0, 0, 100);
     else black = colorEnv.rgb(0, 0, 0);
-    return createTrace(doc as unknown as AiTraceDocument | null, paths, style, {
+    var res = createTrace(doc as unknown as AiTraceDocument | null, paths, style, {
       black: black,
       smooth: PointType.SMOOTH,
       corner: PointType.CORNER,
     });
+    if (plan && plan.primitives.length) draw(drawDocument(), plan, colorEnv);
+    return res;
   });
 };

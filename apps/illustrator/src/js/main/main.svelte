@@ -205,7 +205,10 @@
   }
   async function createTrace(r: TraceReady) {
     try {
-      const res = hostOk(await evalTS('createTracePaths', toFixPaths(r.geometry), r.style));
+      // Perfeziona: la costruzione si disegna nella stessa chiamata (una evalScript per operazione)
+      const res = hostOk(
+        await evalTS('createTracePaths', toFixPaths(r.geometry), r.style, r.construction ?? null),
+      );
       traceMessage = t(lang, 'trace.created', { n: res.paths });
       void refresh(true); // i tracciati creati sono selezionati: si analizzano subito
     } catch (e) {

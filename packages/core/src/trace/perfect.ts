@@ -1,6 +1,8 @@
 // RICALCA · Perfeziona (docs/PERFEZIONA.md): ricalco fedele dal grigio dell'immagine, simmetria sul
 // campo, poi ogni contorno diventa una catena di archi di cerchio tangenti (spigoli solo sulle punte).
-import type { Segment, Vec2 } from '../model';
+import type { ConstructionPlan, DrawStyle, Primitive, Segment, Vec2 } from '../model';
+import { LAYER_NAME } from '../plan/plan';
+import type { BBox } from '../math';
 import { arcToCubics } from '../extract/pathParser';
 import { isoContours } from './contour';
 import { luminance, type Mask, type RasterImage } from './raster';
@@ -624,4 +626,33 @@ export function perfectTrace(
     },
     mask: { width: w, height: h, data },
   };
+}
+
+/**
+ * Costruzione di Perfeziona come piano da disegnare (stesso layer e stesso disegno di ANALIZZA):
+ * i cerchi degli archi principali e, se c'è, l'asse di simmetria (coordinate del documento).
+ */
+export function perfectPlan(report: PerfectReport, bbox: BBox, style: DrawStyle): ConstructionPlan {
+  const primitives: Primitive[] = report.circles.map((c, i) => ({
+    type: 'circle',
+    id: `pc${i + 1}`,
+    cx: c.cx,
+    cy: c.cy,
+    r: c.r,
+    group: 'circles',
+  }));
+  if (report.axis !== null) {
+    const m = 0.08 * Math.max(bbox.width, bbox.height);
+    const v = report.symmetry === 'vertical';
+    primitives.push({
+      type: 'line',
+      id: 'pax1',
+      a: v ? { x: report.axis, y: bbox.y - m } : { x: bbox.x - m, y: report.axis },
+      b: v
+        ? { x: report.axis, y: bbox.y + bbox.height + m }
+        : { x: bbox.x + bbox.width + m, y: report.axis },
+      group: 'axes',
+    });
+  }
+  return { layerName: LAYER_NAME, style, primitives };
 }

@@ -1,4 +1,4 @@
-# PERFEZIONA — specifica breve (bozza da approvare)
+# PERFEZIONA — specifica breve (approvata da Marco il 19/11/2026, fatta nella 0.15.0)
 
 _19/11/2026. Nasce dai video di presentazione: lì il «perfezionamento» è stato fatto con script fuori
 dal plugin. Questa funzione lo porta dentro Compasso, così il plugin fa davvero quello che i video
@@ -45,7 +45,7 @@ Nuovo: campo da grigio, simmetria sul campo, catena di biarchi con spigoli (in `
 
 | Regolazione | Valori | Base |
 |---|---|---|
-| Precisione (tolleranza) | da 0,1% a 1% di D | 0,3% |
+| Precisione (tolleranza) | da 0,05% a 1% di D | 0,1% (0,3% approvato, abbassato in taratura: a 0,3% le stelline del gatto perdevano i lati curvi) |
 | Simmetria | Auto · Verticale · Orizzontale · No | Auto |
 | Morbidezza del bordo | da 0 a 100% | 50% |
 | Disegna la costruzione | sì / no | no |
