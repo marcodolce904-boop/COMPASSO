@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { RefineOptions, RefineReport } from '@compasso/core';
+  import type { RefineOptions, RefineReport, ZeroKey, ZeroWhy } from '@compasso/core';
   import { num, t, type Lang } from '../strings';
   import Slider from './Slider.svelte';
   import Toggle from './Toggle.svelte';
@@ -13,6 +13,7 @@
     report,
     lang,
     onReset,
+    why = {},
   }: {
     options: RefineOptions;
     defaults: RefineOptions;
@@ -21,7 +22,18 @@
     report: RefineReport | null;
     lang: Lang;
     onReset: () => void;
+    /** Perché le correzioni accese sono rimaste a 0 (docs/MIGLIORIE.md §2). */
+    why?: Partial<Record<ZeroKey, ZeroWhy>>;
   } = $props();
+  // «Prova con…»: porta la tolleranza della correzione al valore proposto
+  function tryWith(k: ZeroKey, v: number) {
+    if (k === 'lines') options.lines.angle = v;
+    else if (k === 'smooth') options.smooth.angle = v;
+    else if (k === 'arcs' || k === 'ellipses' || k === 'radii' || k === 'centers' || k === 'align')
+      options[k].tolerance = v;
+  }
+  const fmt = (w: { value: number; unit: 'pt' | 'deg' }, v = w.value) =>
+    w.unit === 'deg' ? `${num(lang, v, 1)}°` : `${num(lang, v, 2)} pt`;
 
   // estremi delle barre in proporzione al logo (passo arrotondato e leggibile)
   const step = $derived(Math.max(0.01, Math.round(D * 0.0005 * 100) / 100));
@@ -30,6 +42,22 @@
   const pt = (v: number) => `${num(lang, v, 2)} pt`;
   const deg = (v: number) => `${num(lang, v, 1)}°`;
 </script>
+
+{#snippet whyLine(k: ZeroKey)}
+  {@const w = why[k]}
+  {#if w && w.kind === 'near'}
+    <p class="why">
+      {t(lang, 'fix.why.near', { v: fmt(w), tol: fmt(w, w.tol) })}
+      <button type="button" class="try" onclick={() => tryWith(k, w.suggest)}
+        >{t(lang, 'fix.why.try', { v: fmt(w, w.suggest) })}</button
+      >
+    </p>
+  {:else if w && w.kind === 'none'}
+    <p class="why">{t(lang, `fix.why.none.${k}`)}</p>
+  {:else if w && w.kind === 'already'}
+    <p class="why">{t(lang, `fix.why.already.${k}`)}</p>
+  {/if}
+{/snippet}
 
 <div class="sect"><b>{t(lang, 'fix.global')}</b></div>
 <Slider
@@ -61,6 +89,7 @@
     unit="pt"
     format={pt}
   />
+  {@render whyLine('arcs')}
 </Toggle>
 
 <Toggle
@@ -83,6 +112,7 @@
     <input type="checkbox" bind:checked={options.ellipses.toCircle} />
     {t(lang, 'fix.ellipses.toCircle')}
   </label>
+  {@render whyLine('ellipses')}
 </Toggle>
 
 <Toggle
@@ -101,6 +131,7 @@
     unit="pt"
     format={pt}
   />
+  {@render whyLine('radii')}
 </Toggle>
 
 <Toggle
@@ -119,6 +150,7 @@
     unit="pt"
     format={pt}
   />
+  {@render whyLine('centers')}
 </Toggle>
 
 <Toggle
@@ -137,6 +169,7 @@
     unit="°"
     format={deg}
   />
+  {@render whyLine('lines')}
 </Toggle>
 
 <Toggle
@@ -155,6 +188,7 @@
     unit="pt"
     format={pt}
   />
+  {@render whyLine('align')}
 </Toggle>
 
 <Toggle
@@ -201,6 +235,7 @@
   {:else if options.symmetry.enabled && report?.symmetryMethod === 'shape'}
     <p class="note ok">{t(lang, 'fix.symmetry.note.shape')}</p>
   {/if}
+  {@render whyLine('symmetry')}
 </Toggle>
 
 <Toggle
@@ -219,6 +254,7 @@
     unit="°"
     format={deg}
   />
+  {@render whyLine('smooth')}
 </Toggle>
 
 <Toggle
@@ -241,6 +277,7 @@
     <input type="checkbox" bind:checked={options.grid.radii} />
     {t(lang, 'fix.gridRadii')}
   </label>
+  {@render whyLine('grid')}
 </Toggle>
 
 <Toggle
@@ -260,6 +297,20 @@
     justify-content: space-between;
     align-items: baseline;
     padding-top: var(--sp-1);
+  }
+  .why {
+    margin: 0;
+    font: 400 var(--fs-xs) / var(--lh-text) var(--f-sans);
+    color: var(--c-text-3);
+  }
+  .try {
+    margin-left: var(--sp-1);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--c-accent);
+    font: inherit;
+    cursor: pointer;
   }
   .sect b {
     font: 700 var(--fs-xs) var(--f-mono);

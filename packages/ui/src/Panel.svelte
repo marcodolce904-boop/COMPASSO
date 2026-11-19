@@ -2,6 +2,7 @@
   import {
     plan as makePlan,
     refine,
+    explainZero,
     refineDefaults,
     generate,
     generateDefaults,
@@ -13,6 +14,8 @@
     type RefineOptions,
     type RefineReport,
     type RefineResult,
+    type ZeroKey,
+    type ZeroWhy,
     type CompassoReport,
     buildReport,
     grayOf,
@@ -285,6 +288,7 @@
   let fixD = $state(100);
   let fixMode = $state<FixMode>('compare');
   let fixResult = $state<RefineResult | null>(null);
+  let fixWhy = $state.raw<Partial<Record<ZeroKey, ZeroWhy>>>({});
 
   // nuova selezione: valori predefiniti proporzionati al logo; le scelte dell'utente restano,
   // le tolleranze in pt si riscalano sulla nuova dimensione
@@ -318,6 +322,7 @@
     const id = setTimeout(() => {
       try {
         fixResult = refine(g, o);
+        fixWhy = explainZero(g, o, fixResult.report);
       } catch (e) {
         console.error('[compasso] correzione non riuscita', e);
         fixResult = null;
@@ -591,6 +596,7 @@
                 defaults={fixDefaults}
                 D={fixD}
                 report={fixResult?.report ?? null}
+                why={fixWhy}
                 {lang}
                 onReset={resetFix}
               />
