@@ -1,52 +1,50 @@
-# Punto Nave · 2026-11-18 (dopo la 0.10.0)
+# Punto Nave · 2026-11-19 (dopo la 0.12.0)
 
-- **Obiettivo:** prossimo sviluppo di Compasso dopo la scheda GENERA (Matematico + Minimal): completare
-  le modalità di GENERA e rendere il percorso schizzo → logo professionale più guidato, verificando
-  tutto su loghi veri di Marco.
+- **Obiettivo:** prossimo sviluppo di Compasso dopo GENERA completo. Rendere il flusso di lavoro
+  (schizzo → ricalco → correzione → generazione → costruzione) più guidato, comodo e veloce, e
+  verificarlo sui loghi veri di Marco.
 - **Vincoli:**
   - Solo Windows, pannello CEP, ExtendScript ES3.
-  - Il numero di tracciati non cambia mai: Illustrator scrive le copie tracciato per tracciato.
-  - Ogni modalità di GENERA resta entro lo scarto massimo (3% della diagonale, regolabile).
-  - Per ogni nuova modalità: prima una specifica approvata da Marco.
-  - Prima di cambiare `model.ts`, aggiungere dipendenze o aggiornare `fixtures/expected` va chiesta
-    conferma.
+  - Il numero di tracciati non cambia mai.
+  - Per `model.ts`, nuove dipendenze e `fixtures/expected` va chiesta conferma prima.
+  - Per le novità di peso: una specifica breve approvata da Marco prima del codice.
 - **Variabili chiave:**
-  - versione = 0.10.0, pubblicata il 18/11/2026
-  - test = 358, tutti verdi
-  - GENERA = 2 modalità su 5 (Matematico, Minimal)
-  - tempo di calcolo GENERA ≈ 0,4 s per modalità sul logo di prova (17 anchor)
-  - loghi veri di Marco ricevuti come file = 0 (solo screenshot)
+  - versione = 0.12.0, pubblicata il 19/11/2026
+  - test = 371, tutti verdi
+  - modalità di GENERA = 5 su 5 (Simmetrico, Sezione aurea, Matematico, Strutturato, Minimal)
+  - tempo di calcolo di GENERA ≈ 2–3 s per tutte le modalità (calcolate una alla volta)
+  - loghi veri di Marco ricevuti come file = 0
 - **Decisioni prese:**
-  - Ordine dei lavori (Marco, 18/11):
-    1. simmetria sulle forme — fatto, 0.8.0;
-    2. GENERA con Matematico e Minimal — fatto, 0.10.0;
-    3. Sezione aurea e Strutturato;
-    4. migliorie UX: percorso guidato, confronto prima/dopo a tendina, preset salvabili, spiegazione
-       quando una correzione resta a 0.
-  - Strutturato = rendere davvero archi le curve libere, con gli archi tangenti della 0.9.0
-    (opzione B scelta come modalità futura).
-  - In ANALIZZA la costruzione per forma (opzione D) per ora non si fa.
+  - Ordine dei lavori (Marco, 18/11): i punti 1–3 sono fatti (simmetria, GENERA, Sezione aurea e
+    Strutturato). Resta il punto 4, le migliorie UX:
+    - percorso guidato RICALCA → CORREGGI → ANALIZZA, con un pulsante «Avanti»;
+    - confronto prima/dopo con una tendina trascinabile;
+    - preset salvabili delle regolazioni;
+    - spiegazione quando una correzione resta a 0.
+  - Tutte le specifiche di GENERA sono state approvate e realizzate (`docs/GENERA.md`).
 - **Questioni aperte:**
-  1. Proposta di Claude, da confermare: dentro il punto 3 fare prima **Simmetrico** in GENERA
-     (`mirror.ts` è già pronto, costo basso) e **Strutturato** (`arcspline.ts` è già pronto), poi
-     **Sezione aurea**, che ha bisogno di una specifica sua: quali proporzioni (raggi in progressione
-     φ, riquadro aureo, posizioni dei centri), cosa fare se il logo non ha cerchi.
-  2. Risultati di Marco con la 0.10.0 su loghi veri: quale modalità convince, dove esagera.
-  3. Bordi paralleli in ANALIZZA (es. le gambe della A) raggruppati con un segno di parallela: rimasto
-     da fare dalla 0.9.0.
-  4. Spostare il calcolo di GENERA in un worker, se con loghi grandi il pannello esita.
-  5. Verifica completa in Illustrator vero (checklist §10.4 della SPEC).
+  1. Ordine dentro il punto 4. Proposta di Claude, da confermare:
+     1. **confronto a tendina** in CORREGGI e GENERA: poco costo, molto utile per giudicare;
+     2. **spiegazioni** per ogni correzione rimasta a 0 (oggi solo la simmetria lo dice);
+     3. **percorso guidato** con «Avanti» tra le schede, inclusa GENERA;
+     4. **preset salvabili**: dove salvarli (nel pannello o in un file) va deciso con Marco.
+  2. **Velocità:** spostare il calcolo di GENERA in un worker, così il pannello non esita mai
+     (oggi le 5 modalità sono calcolate una alla volta nel pannello).
+  3. Bordi paralleli in ANALIZZA con il segno di parallela: rimasto dalla 0.9.0.
+  4. Prove di Marco con la 0.12.0 su loghi veri, e verifica completa in Illustrator (checklist §10.4).
 - **Rischi principali:**
-  - **Tarature solo su loghi sintetici.** Segnale: test verdi, ma Marco non vede effetti utili sui suoi
-    loghi (è già successo con la simmetria).
-  - **Sezione aurea che stravolge il logo o sembra arbitraria.** Segnale: l'anteprima aurea non è
-    riconoscibile, oppure il riepilogo non sa dire quali rapporti φ ha imposto.
-  - **Pannello lento con loghi complessi** (5 modalità calcolate insieme). Segnale: più di 1 s di attesa
-    a ogni movimento di una barra.
+  - **Nessuna prova su loghi veri.** Le tarature restano sulle forme di prova. Segnale: Marco non usa
+    GENERA o dice che esagera.
+  - **Pannello sovraccarico.** Con 5 schede, 5 modalità e molte tendine si perde chiarezza. Segnale:
+    Marco non trova le funzioni, o chiede «dove si fa X».
+  - **Lentezza su loghi grandi.** Segnale: più di 1 secondo di attesa a ogni movimento di una barra in
+    GENERA.
 - **Stato:**
-  - Rilasciati e funzionanti: RICALCA (penna, storico), CORREGGI (10 correzioni + simmetria sulle
-    forme), ANALIZZA (curve libere ad archi tangenti, rette al tratto), GENERA (Matematico, Minimal).
-  - Primo logo vero completato con Compasso: la «A con coda».
-  - Le modalità Simmetrico, Sezione aurea e Strutturato non sono ancora iniziate.
-- **Prossima azione:** Marco conferma l'ordine proposto (Simmetrico + Strutturato, poi Sezione aurea
-  con la sua specifica) e, se può, manda il file del logo «A con coda» con «⚙ → Segnala un problema».
+  - Rilasciati e funzionanti:
+    - RICALCA (penna, storico);
+    - CORREGGI (10 correzioni + simmetria sulle forme);
+    - ANALIZZA (archi tangenti per le curve libere, rette al tratto);
+    - GENERA completo.
+  - Le migliorie del punto 4 non sono iniziate.
+- **Prossima azione:** Marco conferma l'ordine proposto per il punto 4 (o lo cambia) e prova la 0.12.0
+  su un logo vero, mandandolo con «⚙ → Segnala un problema».
