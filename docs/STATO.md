@@ -67,6 +67,8 @@ Fatto (0.14.0): RICALCA · Crea forme per forme intere (riempimento con anelli d
 regolabile, contorni sotto il pixel).
 Fatto (0.15.0): RICALCA · Perfeziona (`core/src/trace/perfect.ts`, docs/PERFEZIONA.md): ricalco dal
 grigio, simmetria sul campo con metà riflessa, archi tangenti, costruzione disegnabile.
+Fatto (0.16.0): migliorie §4 (docs/MIGLIORIE.md): tendina prima/dopo, spiegazioni delle correzioni a
+0 con «Prova con…», percorso guidato, preset salvabili.
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

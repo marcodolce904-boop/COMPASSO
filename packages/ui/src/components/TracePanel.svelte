@@ -29,6 +29,8 @@
   import ZoomPane from './ZoomPane.svelte';
   import EmptyState from './EmptyState.svelte';
   import PenLayer from './PenLayer.svelte';
+  import PresetBar from './PresetBar.svelte';
+  import { TRACE_BUILTINS } from '../presets';
   import { PenEditor, type PenTool } from '../pen.svelte';
 
   export interface TraceSource {
@@ -461,6 +463,15 @@
 
   <div class="tcol" class:wide>
     {#if options && defaults}
+      <PresetBar
+        kind="trace"
+        {lang}
+        builtins={TRACE_BUILTINS}
+        current={() => options}
+        onApply={(p) => {
+          if (defaults) options = { ...defaults, ...(p.options as Partial<TraceOptions>) };
+        }}
+      />
       <Segmented
         ariaLabel={t(lang, 'trace.mode.aria')}
         bind:value={options.mode}

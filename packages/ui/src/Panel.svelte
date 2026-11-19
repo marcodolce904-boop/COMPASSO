@@ -51,6 +51,8 @@
   import Toast from './components/Toast.svelte';
   import FixPreview, { type FixMode } from './components/FixPreview.svelte';
   import FixControls from './components/FixControls.svelte';
+  import PresetBar from './components/PresetBar.svelte';
+  import { scaleFix, scaleGenerate } from './presets';
   import GenerateThumbs, { type GenerateThumb } from './components/GenerateThumbs.svelte';
   import GenerateControls from './components/GenerateControls.svelte';
   import TracePanel, { type TraceReady, type TraceSource } from './components/TracePanel.svelte';
@@ -620,6 +622,14 @@
         <div class="col side">
           {#if mainTab === 'generate'}
             {#if genOptions && genDefaults}
+              <PresetBar
+                kind="generate"
+                {lang}
+                current={() => genOptions}
+                D={genD}
+                onApply={(p) =>
+                  (genOptions = scaleGenerate(p.options as GenerateOptions, p.D, genD))}
+              />
               <GenerateControls
                 bind:options={genOptions}
                 defaults={genDefaults}
@@ -630,6 +640,13 @@
             {/if}
           {:else if mainTab === 'fix'}
             {#if fixOptions && fixDefaults}
+              <PresetBar
+                kind="fix"
+                {lang}
+                current={() => fixOptions}
+                D={fixD}
+                onApply={(p) => (fixOptions = scaleFix(p.options as RefineOptions, p.D, fixD))}
+              />
               <FixControls
                 bind:options={fixOptions}
                 defaults={fixDefaults}

@@ -4,9 +4,9 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.15.0 (RICALCA · Perfeziona, §0quater;
-forme intere, §0ter; GENERA canonico, §0bis). Prossimo passo: prove di Marco su schizzi veri, poi le
-migliorie del §4._
+_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.16.0 (migliorie del §4 fatte;
+Perfeziona §0quater; forme intere §0ter; GENERA canonico §0bis). Prossimo passo: prove di Marco su
+schizzi e loghi veri in Illustrator._
 
 ## 0quater. RICALCA · Perfeziona (Marco, 19/11/2026; fatto nella 0.15.0)
 
@@ -123,7 +123,7 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
 
 ## 1. Dove siamo
 
-- Versione pubblicata: **0.15.0**. Installer:
+- Versione pubblicata: **0.16.0**. Installer:
   `https://github.com/marcodolce904-boop/COMPASSO/releases/download/vX.Y.Z/Compasso-Setup.exe`.
   Si pubblica da solo con un push su `main` quando la versione in `apps/illustrator/package.json` è nuova.
 - Schede funzionanti:
@@ -131,7 +131,7 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
     Indietro/Avanti e Azzera tutto.
   - **CORREGGI**: 10 correzioni su una copia del logo.
   - **ANALIZZA**: costruzione a livelli Essenziale, Struttura, Dettaglio e Tutto.
-- Test: 397, tutti verdi.
+- Test: 402, tutti verdi.
 - Ancora da fare: la verifica di Marco in Illustrator vero (checklist §10.4 della SPEC).
 
 ## 2. Simmetria — RISOLTO nella 0.8.0 (simmetria sulle forme)
@@ -230,7 +230,12 @@ obbligatori, non facoltativi.
 **Decisione di Marco (18/11):** prossimo sviluppo **A + C**, prima di GENERA. D per ora no; B resta la
 futura modalità Strutturato di GENERA.
 
-## 4. Altre migliorie concordate da valutare
+## 4. Altre migliorie concordate — FATTE nella 0.16.0 (docs/MIGLIORIE.md)
+
+Tendina prima/dopo (`FixPreview` vista 'wipe', casella in RICALCA); spiegazioni delle correzioni a 0
+(`core/src/fix/explain.ts` → `explainZero`, riga e «Prova con…» in `FixControls`); percorso guidato
+(riga dei passi e «Avanti →» in `Panel`); preset (`ui/src/presets.ts`, `PresetBar.svelte`, memoria
+locale del pannello, export/import JSON, misure riadattate a D).
 
 - **Percorso guidato** RICALCA → CORREGGI → ANALIZZA, con un pulsante «Avanti».
 - **Confronto prima/dopo** con una tendina trascinabile sull'anteprima.

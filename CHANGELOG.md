@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.16.0 — 19/11/2026
+
+Le quattro migliorie concordate (docs/MIGLIORIE.md, approvate da Marco):
+
+- **Tendina prima/dopo**: quarta vista «Tendina» nell'anteprima di CORREGGI e GENERA (prima a
+  sinistra, dopo a destra; la linea si trascina o si sposta con ← →, doppio clic = centro). In
+  RICALCA: casella «Tendina» con lo schizzo a sinistra e i tracciati a destra.
+- **Perché una correzione resta a 0**: sotto ogni interruttore di CORREGGI una riga dice se non c'è
+  niente da correggere, se è già esatto, oppure di quanto si scosta il caso più vicino, con il
+  pulsante **«Prova con …»** che porta la tolleranza al valore giusto.
+- **Percorso guidato**: riga dei passi «1 Ricalca · 2 Correggi · 3 Analizza · 4 Genera» (cliccabile)
+  e pulsante **«Avanti →»** in fondo: crea i tracciati e va a Correggi, applica e va ad Analizza, va
+  a Genera.
+- **Preset**: in RICALCA, CORREGGI e GENERA si salvano le regolazioni con un nome, si riapplicano,
+  si eliminano, si esportano (appunti e file `.json`) e si importano. Le misure in pt si riadattano
+  alla misura del logo. Tre preset di esempio in RICALCA: Schizzo a matita, Disegno a china,
+  Immagine piccola (Perfeziona).
+
 ## 0.15.0 — 19/11/2026
 
 - **RICALCA · Perfeziona** (nuova terza modalità, docs/PERFEZIONA.md): il disegno resta quello, ma

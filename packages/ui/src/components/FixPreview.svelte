@@ -318,11 +318,10 @@
     letter-spacing: var(--ls-caps);
     color: var(--c-text-2);
   }
+  /* quattro viste: su una riga tutta loro, sotto il titolo */
   .modes {
-    flex: 1;
+    flex: 1 1 100%;
     min-width: 0;
-    max-width: calc(var(--w-panel) * 0.62);
-    margin-left: auto;
   }
   .thumb {
     height: var(--h-thumb);
