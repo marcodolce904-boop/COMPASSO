@@ -48,7 +48,8 @@ describe('Crea forme: precisione', () => {
     expect(Math.abs(meanRadius(out.geometry, 0, 200, 200) - 150)).toBeLessThan(0.5);
     const c = analyze(out.geometry, { tolerance: 'loose' }).circles[0]!;
     expect(Math.abs(c.r - 150)).toBeLessThan(0.6);
-  });
+    // ricalco + analisi di un'immagine intera: sul server di rilascio, carico, supera i 5 s di base
+  }, 20000);
 });
 
 describe('Crea forme: forme intere e bordo', () => {
