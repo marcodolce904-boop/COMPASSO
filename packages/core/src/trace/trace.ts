@@ -7,13 +7,15 @@
 //  buchi antiorario) → coordinate del documento.
 
 import type { DocumentGeometry, PathData, Segment, Vec2 } from '../model';
-import { contours } from './contour';
+import { isoContours } from './contour';
 import { corners, fitCubic, fitLoop, fitPiece, resample, smooth, smoothCurves } from './fit';
 import {
   adaptiveThreshold,
   clean,
   close,
+  fillEnclosed,
   fillThinHoles,
+  signedField,
   upscale,
   type Mask,
   type RasterImage,
@@ -40,6 +42,14 @@ export interface TraceOptions {
   tolerance: number;
   /** Angolo minimo (gradi) perché un cambio di direzione sia uno spigolo. */
   cornerAngle: number;
+  /**
+   * Forme: i contorni chiusi da un tratto diventano forme piene (non anelli). Di base acceso.
+   */
+  fill?: boolean;
+  /**
+   * Forme: dove sta il bordo rispetto al tratto, da 0 (linea centrale) a 1 (filo esterno, di base).
+   */
+  edge?: number;
 }
 
 /**
@@ -105,6 +115,8 @@ export function traceDefaults(width: number, height: number): TraceOptions {
     smooth: 1.5,
     tolerance: 0.6,
     cornerAngle: 55,
+    fill: true,
+    edge: 1,
   };
 }
 
@@ -615,6 +627,34 @@ function dropTiny(segs: Segment[], closed: boolean, min: number): Segment[] {
   return out;
 }
 
+/** Linee centrali dei tratti (modalità a linee): polilinee, spessore del tratto, maschera rifinita. */
+function centerlines(
+  input: Mask,
+  o: TraceOptions,
+  tu: TraceTuning,
+): { polylines: { pts: Vec2[]; closed: boolean }[]; strokeWidthPx: number; mask: Mask } {
+  let mask = input;
+  let sk = thin(mask);
+  let strokeWidthPx = widthOf(mask, sk);
+  // buchetti dentro la traccia (più piccoli di ~2,5 spessori): passate che non si toccano.
+  // Lasciati lì diventerebbero minuscoli anelli; si riempiono e si rifà la linea centrale.
+  const refilled = clean(mask, 0, (2.5 * strokeWidthPx) ** 2);
+  if (refilled.data.some((v, i) => v !== mask.data[i])) {
+    mask = refilled;
+    sk = thin(mask);
+    strokeWidthPx = widthOf(mask, sk);
+  }
+  const spur = Math.max(4, Math.round(o.merge * 2 + strokeWidthPx));
+  const found = strokes(sk, spur, Math.max(spur * 4, Math.round(strokeWidthPx * 25)))
+    .filter((s) => s.points.length >= Math.max(4, spur))
+    .map((s) => ({ pts: s.points, closed: s.closed }));
+  const joined = tu.joinGaps
+    ? joinGaps(found, Math.max(5 * o.merge, 5 * strokeWidthPx, 10))
+    : found;
+  const polylines = extendEnds(dropDoubles(joined, 1.5 * strokeWidthPx), mask, strokeWidthPx);
+  return { polylines, strokeWidthPx, mask };
+}
+
 export function trace(
   source: RasterImage,
   opts: TraceOptions,
@@ -641,26 +681,24 @@ export function trace(
   let polylines: { pts: Vec2[]; closed: boolean }[];
   let strokeWidthPx = 1;
   if (o.mode === 'lines') {
-    let sk = thin(mask);
-    strokeWidthPx = widthOf(mask, sk);
-    // buchetti dentro la traccia (più piccoli di ~2,5 spessori): passate che non si toccano.
-    // Lasciati lì diventerebbero minuscoli anelli; si riempiono e si rifà la linea centrale.
-    const refilled = clean(mask, 0, (2.5 * strokeWidthPx) ** 2);
-    if (refilled.data.some((v, i) => v !== mask.data[i])) {
-      mask = refilled;
-      sk = thin(mask);
-      strokeWidthPx = widthOf(mask, sk);
-    }
-    const spur = Math.max(4, Math.round(o.merge * 2 + strokeWidthPx));
-    const found = strokes(sk, spur, Math.max(spur * 4, Math.round(strokeWidthPx * 25)))
-      .filter((s) => s.points.length >= Math.max(4, spur))
-      .map((s) => ({ pts: s.points, closed: s.closed }));
-    const joined = tu.joinGaps
-      ? joinGaps(found, Math.max(5 * o.merge, 5 * strokeWidthPx, 10))
-      : found;
-    polylines = extendEnds(dropDoubles(joined, 1.5 * strokeWidthPx), mask, strokeWidthPx);
+    const c = centerlines(mask, o, tu);
+    mask = c.mask;
+    strokeWidthPx = c.strokeWidthPx;
+    polylines = c.polylines;
   } else {
-    polylines = contours(mask)
+    // forme intere: spessore del tratto, buchi chiusi dal tratto riempiti, bordo sotto il pixel
+    // spostato tra il filo esterno (edge = 1) e la linea centrale (edge = 0)
+    const sw = Math.max(1, widthOf(mask, thin(mask)));
+    strokeWidthPx = sw;
+    // anelli disegnati (linee centrali chiuse): servono a capire cosa è dentro una forma
+    const loops = () =>
+      centerlines(mask, o, tu)
+        .polylines.filter((p) => p.closed)
+        .map((p) => p.pts);
+    const shape = o.fill === false ? mask : fillEnclosed(mask, sw, 4, loops);
+    const edge = Math.max(0, Math.min(1, o.edge ?? 1));
+    const level = ((1 - edge) * sw) / 2;
+    polylines = isoContours(signedField(shape, 1), shape.width, shape.height, level)
       .filter((l) => Math.abs(signedArea(l)) >= o.minArea)
       .map((l) => ({ pts: l, closed: true }));
   }

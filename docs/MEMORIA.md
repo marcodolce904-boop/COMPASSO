@@ -4,8 +4,17 @@ Impostazioni di lavoro concordate con Marco, valide per tutte le prossime sessio
 Questo file si carica in automatico da `CLAUDE.md`. Va aggiornato quando cambia una decisione.
 Stato dettagliato in `docs/STATO.md`, fotografia Vanta in `.vanta/punto-nave.md`.
 
-_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.13.0 (GENERA canonico, §0bis). Prossimo
-passo: prove di Marco su loghi veri con la 0.13.0, poi le migliorie del §4._
+_Ultimo aggiornamento: 19/11/2026, dopo il rilascio della 0.14.0 (RICALCA per forme intere, §0ter;
+GENERA canonico, §0bis). Prossimo passo: prove di Marco su schizzi veri, poi le migliorie del §4._
+
+## 0ter. RICALCA — Crea forme per forme intere (Marco, 19/11/2026; fatto nella 0.14.0)
+
+Marco: «si lavora meglio se ragionato in forme intere invece che in tratti»; vuole una barra per il
+bordo, dal centro all'esterno del tratto, e più precisione. Riferimenti: i suoi schizzi (A con la coda
+a contorno) e foto di schizzi di logo con contorni a matita riempiti di tratteggio.
+- Fatto: forme intere, bordo regolabile, contorni sotto il pixel. Dettagli in `docs/RICALCO.md`.
+- Decisione sulle zone chiuse: dentro un anello di forma → piena; dentro una controforma → buco;
+  fuori → vuota.
 
 ## 0bis. DIREZIONE DI GENERA CAMBIATA (Marco, 19/11/2026) — PRIORITÀ
 
@@ -99,7 +108,7 @@ Marco ha confermato l'opzione (a) per `model.ts` alle 15:00.
 
 ## 1. Dove siamo
 
-- Versione pubblicata: **0.13.0**. Installer:
+- Versione pubblicata: **0.14.0**. Installer:
   `https://github.com/marcodolce904-boop/COMPASSO/releases/download/vX.Y.Z/Compasso-Setup.exe`.
   Si pubblica da solo con un push su `main` quando la versione in `apps/illustrator/package.json` è nuova.
 - Schede funzionanti:

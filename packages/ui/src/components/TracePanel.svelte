@@ -354,6 +354,26 @@
           ? t(lang, 'trace.mode.linesHint')
           : t(lang, 'trace.mode.shapesHint')}
       </p>
+      {#if options.mode === 'shapes'}
+        <label class="chk">
+          <input
+            type="checkbox"
+            bind:checked={() => options!.fill !== false, (v) => (options!.fill = v)}
+          />
+          {t(lang, 'trace.fill')}
+        </label>
+        <Slider
+          label={t(lang, 'trace.edge')}
+          bind:value={() => options!.edge ?? 1, (v) => (options!.edge = v)}
+          min={0}
+          max={1}
+          step={0.01}
+          defaultValue={defaults.edge ?? 1}
+          unit="%"
+          format={(v) => `${Math.round(v * 100)} %`}
+        />
+        <p class="hint">{t(lang, 'trace.edge.hint')}</p>
+      {/if}
       <Slider
         label={t(lang, 'trace.sensitivity')}
         bind:value={options.sensitivity}

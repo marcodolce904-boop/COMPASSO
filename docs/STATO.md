@@ -63,6 +63,8 @@ tangenti). Manca la Sezione aurea (serve una specifica).
 Fatto (0.12.0): GENERA con Sezione aurea (`core/src/generate/golden.ts`). GENERA completo.
 Fatto (0.13.0): GENERA canonico (richiesta di Marco): ricostruzione a costruzione + risolutore a
 vincoli (`core/src/generate/canon.ts`); nessun limite di somiglianza di base.
+Fatto (0.14.0): RICALCA · Crea forme per forme intere (riempimento con anelli disegnati, bordo
+regolabile, contorni sotto il pixel).
 
 Da riprendere dopo, in quest'ordine di discussione:
 1. **Collaudo con loghi reali** — 2–3 loghi veri in SVG (anche ricalcati da uno schizzo), checklist §10.4,

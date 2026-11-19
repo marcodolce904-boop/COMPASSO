@@ -94,7 +94,11 @@ const en = {
   'trace.mode.shapes': 'Filled shapes',
   'trace.mode.linesHint':
     'The centre line of the pencil strokes: many passes become one clean line.',
-  'trace.mode.shapesHint': 'The outline of filled or hatched areas.',
+  'trace.mode.shapesHint':
+    'Whole shapes: the outline of filled areas, and of the areas closed by a stroke.',
+  'trace.fill': 'Fill the shapes closed by a stroke',
+  'trace.edge': 'Shape edge',
+  'trace.edge.hint': '0% = the centre line of the stroke, 100% = its outer edge.',
   'trace.sensitivity': 'Sensitivity',
   'trace.merge': 'Merge strokes within',
   'trace.minArea': 'Ignore marks under',
@@ -428,7 +432,11 @@ const it: Record<StringKey, string> = {
   'trace.mode.shapes': 'Forme piene',
   'trace.mode.linesHint':
     'La linea centrale dei tratti a matita: tante passate diventano una linea pulita.',
-  'trace.mode.shapesHint': 'Il contorno delle zone piene o tratteggiate.',
+  'trace.mode.shapesHint':
+    'Forme intere: il contorno delle zone piene e di quelle chiuse da un tratto.',
+  'trace.fill': 'Riempi le forme chiuse da un tratto',
+  'trace.edge': 'Bordo della forma',
+  'trace.edge.hint': '0% = la linea centrale del tratto, 100% = il suo filo esterno.',
   'trace.sensitivity': 'Sensibilità',
   'trace.merge': 'Unisci tratti entro',
   'trace.minArea': 'Ignora segni sotto',

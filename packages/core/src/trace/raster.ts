@@ -336,3 +336,153 @@ export function upscale(img: RasterImage, f: number): RasterImage {
   }
   return { width: W, height: H, data };
 }
+
+/**
+ * Forme intere: le zone chiuse da un TRATTO diventano inchiostro, così un contorno disegnato a
+ * matita diventa la forma piena che racchiude. Vale la regola «pari e dispari» (come i tracciati
+ * composti di Illustrator): da dentro ogni zona si conta quanti tratti si attraversano per uscire
+ * (in 4 direzioni, a maggioranza); dispari = dentro una forma (si riempie), pari = un buco (il
+ * buco di una O, il triangolo di una A) che resta vuoto. Una zona si riempie
+ * solo se il cerchio più grande che ci sta dentro ha il diametro di almeno `ratio` spessori del
+ * tratto: un anello spesso con un buco piccolo (una O in grassetto) resta un anello.
+ */
+export function fillEnclosed(
+  m: Mask,
+  strokeWidth: number,
+  ratio = 4,
+  /** Anelli disegnati, chiesti solo se c'è almeno una zona chiusa da decidere (costano tempo). */
+  getLoops: () => { x: number; y: number }[][] = () => [],
+): Mask {
+  const { width: w, height: h } = m;
+  const holes = components(m, 0);
+  const dist = distance(m, 0);
+  const widest = new Float32Array(holes.areas.length);
+  for (let i = 0; i < m.data.length; i++) {
+    const l = holes.label[i]!;
+    if (l >= 0 && dist[i]! > widest[l]!) widest[l] = dist[i]!;
+  }
+  // punto più interno di ogni zona (il più lontano dall'inchiostro)
+  const inner = new Int32Array(holes.areas.length).fill(-1);
+  for (let i = 0; i < m.data.length; i++) {
+    const l = holes.label[i]!;
+    if (l >= 0 && dist[i]! >= widest[l]!) inner[l] = i;
+  }
+  /** Tratti attraversati andando dal pixel `i` al bordo nella direzione (dx, dy). */
+  const crossings = (i: number, dx: number, dy: number) => {
+    let x = i % w;
+    let y = (i - x) / w;
+    let n = 0;
+    let inInk = false;
+    for (;;) {
+      x += dx;
+      y += dy;
+      if (x < 0 || y < 0 || x >= w || y >= h) return n;
+      const v = m.data[y * w + x] === 1;
+      if (v && !inInk) n++;
+      inInk = v;
+    }
+  };
+  const candidate = holes.areas.some(
+    (_, l) => !holes.touchesBorder[l] && 2 * widest[l]! >= ratio * strokeWidth,
+  );
+  if (!candidate) return m;
+  const loops = getLoops();
+  // anelli disegnati: una zona è piena se sta dentro almeno un anello «di forma»; è un buco se sta
+  // dentro un anello «controforma» (tutto dentro un altro anello e senza incrociarne nessuno, come
+  // il buco di una O). Così le sovrapposizioni si uniscono e lo spazio tra due forme resta vuoto.
+  const inPoly = (x: number, y: number, poly: { x: number; y: number }[]) => {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const a = poly[i]!;
+      const b = poly[j]!;
+      if (a.y > y !== b.y > y && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) c = !c;
+    }
+    return c;
+  };
+  const near = (a: { x: number; y: number }[], b: { x: number; y: number }[], d: number) => {
+    const step = Math.max(1, Math.floor(a.length / 200));
+    const stepB = Math.max(1, Math.floor(b.length / 400));
+    for (let i = 0; i < a.length; i += step)
+      for (let j = 0; j < b.length; j += stepB)
+        if (Math.hypot(a[i]!.x - b[j]!.x, a[i]!.y - b[j]!.y) < d) return true;
+    return false;
+  };
+  const counter = loops.map(
+    (L, i) =>
+      loops.some((M, j) => j !== i && inPoly(L[0]!.x, L[0]!.y, M)) &&
+      !loops.some((M, j) => j !== i && near(L, M, 1.5 * strokeWidth)),
+  );
+  // profondità per parità: dispari = dentro una forma (si riempie), pari = buco (resta)
+  const odd = holes.areas.map((_, l) => {
+    const i = inner[l]!;
+    if (i < 0) return false;
+    const votes = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ].map(([dx, dy]) => crossings(i, dx!, dy!) % 2 === 1);
+    return votes.filter(Boolean).length >= 3 || (votes.filter(Boolean).length === 2 && votes[0]!);
+  });
+  const decide = holes.areas.map((_, l) => {
+    const i = inner[l]!;
+    if (i < 0) return false;
+    const x = (i % w) + 0.5;
+    const y = Math.floor(i / w) + 0.5;
+    const ins = loops.map((L) => inPoly(x, y, L));
+    // nessun anello lo racchiude (o anelli non trovati): regola pari e dispari sui tratti
+    if (!ins.some(Boolean)) return loops.length ? false : odd[l]!;
+    if (ins.some((v, k) => v && counter[k])) return false;
+    return ins.some((v, k) => v && !counter[k]);
+  });
+  const data = m.data.slice();
+  for (let i = 0; i < data.length; i++) {
+    const l = holes.label[i]!;
+    if (l < 0 || holes.touchesBorder[l]) continue;
+    if (2 * widest[l]! < ratio * strokeWidth) continue;
+    if (decide[l]) data[i] = 1;
+  }
+  return { width: m.width, height: m.height, data };
+}
+
+/**
+ * Campo con segno: positivo dentro l'inchiostro (distanza dal bordo), negativo fuori. Il bordo vero
+ * sta a livello 0; un livello positivo L è il bordo spostato di L px verso l'interno. Ammorbidito
+ * con una piccola gaussiana per avere contorni sotto il pixel senza scalini.
+ */
+export function signedField(m: Mask, sigma = 1): Float32Array {
+  const din = distance(m, 1);
+  const dout = distance(m, 0);
+  const w = m.width;
+  const h = m.height;
+  const f = new Float32Array(w * h);
+  // centri dei pixel: il bordo tra un pixel pieno e uno vuoto è a metà (+0,5 e −0,5)
+  for (let i = 0; i < f.length; i++) f[i] = m.data[i] ? din[i]! - 0.5 : -(dout[i]! - 0.5);
+  if (sigma <= 0) return f;
+  const r = Math.max(1, Math.ceil(2 * sigma));
+  const k: number[] = [];
+  let s = 0;
+  for (let i = -r; i <= r; i++) {
+    const v = Math.exp(-(i * i) / (2 * sigma * sigma));
+    k.push(v);
+    s += v;
+  }
+  for (let i = 0; i < k.length; i++) k[i] = k[i]! / s;
+  const tmp = new Float32Array(w * h);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      let a = 0;
+      for (let j = -r; j <= r; j++)
+        a += k[j + r]! * f[y * w + Math.min(w - 1, Math.max(0, x + j))]!;
+      tmp[y * w + x] = a;
+    }
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      let a = 0;
+      for (let j = -r; j <= r; j++)
+        a += k[j + r]! * tmp[Math.min(h - 1, Math.max(0, y + j)) * w + x]!;
+      out[y * w + x] = a;
+    }
+  return out;
+}

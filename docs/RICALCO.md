@@ -70,6 +70,24 @@ partenza degli anelli dal punto più curvo.
   fa una "foto" PNG dell'area visibile (`Document.imageCapture`, ~1600 px sul lato lungo, tra 72 e
   600 ppi) in un file temporaneo, che il pannello legge e cancella.
 
+## Crea forme (forme intere, 0.14.0)
+
+- **Bordo sotto il pixel**: campo con segno (distanza dal bordo, positiva dentro), ammorbidito con una
+  gaussiana σ = 1, e contorni di livello con interpolazione (`isoContours`, `signedField`).
+- **Bordo della forma**: il livello del contorno è (1 − bordo) × spessore/2. Con 100% si prende il filo
+  esterno del tratto, con 0% la linea centrale.
+- **Forme intere** (`fillEnclosed`): si considerano le zone chiuse grandi almeno 4 spessori di tratto.
+  Gli anelli disegnati (linee centrali chiuse, dal ricalco a linee) decidono:
+  - dentro almeno un anello di forma → piena (le sovrapposizioni si uniscono);
+  - dentro un anello «controforma» (tutto dentro un altro e senza incrociarne nessuno, come il buco
+    di una O) → buco;
+  - fuori da tutti gli anelli (lo spazio tra due gambe) → vuota.
+
+  Se non si trovano anelli vale la regola pari e dispari sui tratti attraversati (raggi in 4 direzioni,
+  a maggioranza). Gli anelli si calcolano solo se c'è almeno una zona chiusa da decidere.
+- Test: `test/shapes.test.ts` (disco, cerchio a matita, O a due contorni, contorni sovrapposti, gambe a
+  contorno, tratteggio, anello spesso).
+
 ## Penna
 
 Le modifiche a mano (`core/src/edit`) sono funzioni pure: aggiungere un punto divide la curva con

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.14.0 — 19/11/2026
+
+- **RICALCA · Crea forme ragiona per forme intere** (richiesta di Marco):
+  - un contorno disegnato a matita diventa la **forma piena** che racchiude, non più un anello (bordo
+    esterno + bordo interno del tratto). Sul suo schizzo: da 14 tracciati e 72 anchor a 4 forme intere
+    e 28 anchor;
+  - **sovrapposizioni unite**: dove due contorni si sovrappongono (la coda sopra la gamba della A) la
+    forma resta piena;
+  - **buchi veri rispettati**: lo spazio tra due forme resta vuoto, così come il buco di una O e un
+    contorno chiuso dentro un altro. La decisione si basa sugli anelli disegnati, ricostruiti con il
+    motore del ricalco a linee;
+  - il **tratteggio** dentro un contorno diventa parte della forma piena;
+  - interruttore **«Riempi le forme chiuse da un tratto»** (acceso di base).
+- **Barra «Bordo della forma»**: il contorno parte da dove vuoi, da 0% (linea centrale del tratto) a
+  100% (filo esterno, di base).
+- **Più precisione**: i contorni delle forme si calcolano sotto il pixel, su una mappa di distanza
+  ammorbidita, invece che sugli scalini dei pixel. Su un disco pieno lo scarto dal bordo vero è sotto
+  il mezzo pixel. Il ricalco a linee non cambia.
+
 ## 0.13.0 — 19/11/2026
 
 - **GENERA cambia filosofia** (richiesta di Marco): non deve più assomigliare all'originale, deve rendere
